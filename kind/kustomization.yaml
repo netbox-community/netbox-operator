@@ -1,0 +1,35 @@
+resources:
+  - ../config/default
+  - secret.yaml
+  - namespace.yaml
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: controller-manager
+        namespace: system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: manager
+                image: netbox-operator:build-local
+                env:
+                  - name: NETBOX_HOST
+                    value: "netbox.default.svc.cluster.local"
+                  - name: HTTPS_ENABLE
+                    value: "false"
+                  #local netbox instance token, not a real secret
+                volumeMounts:
+                  - mountPath: "/config.env"
+                    subPath: "config.env"
+                    name: netbox-auth
+                    readOnly: true
+              - name: kube-rbac-proxy
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
+            volumes:
+              - name: netbox-auth
+                secret:
+                  secretName: netbox-auth

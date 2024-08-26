@@ -1,0 +1,13 @@
+apiVersion: netbox.dev/v1
+kind: IpAddress
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ipaddress-sample
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  ipAddress: "2.0.0.100/32"

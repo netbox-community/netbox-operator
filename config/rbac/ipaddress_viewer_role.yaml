@@ -1,0 +1,27 @@
+# permissions for end users to view ipaddresses.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: ipaddress-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: netbox-operator
+    app.kubernetes.io/part-of: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ipaddress-viewer-role
+rules:
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipaddresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipaddresses/status
+  verbs:
+  - get

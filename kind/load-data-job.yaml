@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: netbox-demo-data-load-job
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: netbox-demo-data-load
+          image: ghcr.io/zalando/spilo-16:3.2-p3
+          volumeMounts:
+            - name: netbox-demo-data-load-job-scripts
+              mountPath: /load-data-job
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: netbox.netbox-db.credentials.postgresql.acid.zalan.do
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          command: ["/bin/sh", "/load-data-job/load-data.sh"]
+      volumes:
+        - name: netbox-demo-data-load-job-scripts
+          configMap:
+            name: netbox-demo-data-load-job-scripts
