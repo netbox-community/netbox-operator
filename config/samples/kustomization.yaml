@@ -1,0 +1,7 @@
+## Append samples of your project ##
+resources:
+- netbox_v1_ipaddress.yaml
+- netbox_v1_ipaddressclaim.yaml
+- netbox_v1_prefix.yaml
+- netbox_v1_prefixclaim.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

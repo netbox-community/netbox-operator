@@ -1,0 +1,15 @@
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-sample
+spec:
+  parentPrefix: "10.112.129.0/24"
+  prefixLength: "/28"
+  tenant: "Dunder-Mifflin, Inc."
+  description: "some description"
+  comments: "your comments"
+  customFields:
+    example_field: "example value"

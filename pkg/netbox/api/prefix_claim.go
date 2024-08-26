@@ -1,0 +1,191 @@
+/*
+Copyright 2024 Swisscom (Schweiz) AG.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package api
+
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
+	"github.com/netbox-community/netbox-operator/pkg/config"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+)
+
+func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix, error) {
+	customPrefixSearch := newCustomFieldStringFilterOperation(config.GetOperatorConfig().NetboxRestorationHashFieldName, hash)
+	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, customPrefixSearch)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: find a better way?
+	if list.Payload.Count != nil && *list.Payload.Count == 0 {
+		return nil, nil
+	}
+
+	// We should not have more than 1 result...
+	if len(list.Payload.Results) != 1 {
+		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(list.Payload.Results))
+	}
+	res := list.Payload.Results[0]
+	if res.Prefix == nil {
+		return nil, errors.New("prefix in netbox is nil")
+	}
+
+	return &models.Prefix{
+		Prefix: *res.Prefix,
+	}, nil
+}
+
+func isRequestingTheEntireParentPrefix(prefixClaim *models.PrefixClaim) (bool, error) {
+	parentPrefixSplit := strings.Split(prefixClaim.ParentPrefix, "/")
+	if len(parentPrefixSplit) != 2 {
+		return false, errors.New("invalid parent prefix format")
+	}
+
+	if "/"+parentPrefixSplit[1] /* e.g. /24 */ == prefixClaim.PrefixLength /* e.g. /24 */ {
+		return true, nil
+	}
+	return false, nil
+}
+
+// GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
+func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
+	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
+		Prefix:   prefixClaim.ParentPrefix,
+		Metadata: prefixClaim.Metadata,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(responseParentPrefix.Payload.Results) == 0 {
+		return nil, errors.New("parent prefix not found")
+	}
+
+	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
+
+	// We reject target prefix size == parent prefix size
+	if ret, err := isRequestingTheEntireParentPrefix(prefixClaim); err != nil {
+		return nil, err
+	} else if ret {
+		// The issue lies in the prefix deletion.
+		// We do not want the operator to delete the parent prefix as a side effect of deleting any allocated prefixes
+		return nil, errors.New("requesting for the entire parent prefix range is disallowed")
+	}
+
+	/* Notes regarding the available prefix returned by netbox
+
+	The available prefixes API do NOT allow us to pass in the desired prefix size. And we observed the API's behavior as the following:
+	- If the parent prefix currently doesn't have any child prefix associated with it, the available prefix API will return the parent prefix itself (as we disallow requesting for the entire parent prefix, this is the special case we need to handle).
+	- If there is a child prefix (e.g. prefix of /28) associated with the parent prefix, the available prefixes API will likely return options containing /25 /26 /27 /28.
+	- If there are multiple child prefixes associated with the parent prefix, the available prefixes API will likely suggest options containing prefix sizes all the way up to the smallest prefix size
+
+	Thus, in some cases, we need to call CreateAvailablePrefixesByParentPrefix to explicitly request to the desired prefix size, e.g. when we have a never-used parent prefix.
+	*/
+
+	// step 1: we get available prefixes of the parent prefix from NetBox
+	responseAvailablePrefixes, err := r.GetAvailablePrefixesByParentPrefix(parentPrefixId)
+	if err != nil {
+		return nil, err
+	}
+
+	// step 2: we get the prefix that has the prefix size >= the requested size
+	matchingPrefix, IsMatchingPrefixSizeAsDesired, err := getSmallestMatchingPrefix(responseAvailablePrefixes, prefixClaim.PrefixLength)
+	if err != nil {
+		return nil, err
+	}
+
+	if !IsMatchingPrefixSizeAsDesired {
+		// step 3-1: if the matchingPrefix size != the requested size, we will take the smallest matching prefix a.b.c.d/x, and modify it into a.b.c.d/target_size
+		// Do NOT call CreateAvailablePrefixesByParentPrefix, as netbox uses a first-fit algorithm, where we would like to use the best-fit algorithm.
+		// Also, we are using netbox client v3.4.5, which requires a hack for the call to work [1]. The hack was implemented here [2].
+		// Reference:
+		// [1] https://github.com/netbox-community/go-netbox/issues/131
+		// [2] https://github.com/netbox-community/go-netbox/v3/commits/hack/v3.4.5-0/
+		matchingPrefixSplit := strings.Split(matchingPrefix, "/")
+		if len(matchingPrefixSplit) != 2 {
+			return nil, errors.New("wrong matchingPrefix subnet format")
+		}
+		matchingPrefix = matchingPrefixSplit[0] + prefixClaim.PrefixLength
+	} // else {
+	// step 3-2: if the matchingPrefix size == the requested size -> we return this one, thus no-op
+	// }
+
+	return &models.Prefix{
+		Prefix: matchingPrefix,
+	}, nil
+}
+
+func (r *NetboxClient) GetAvailablePrefixesByParentPrefix(parentPrefixId int64) (*ipam.IpamPrefixesAvailablePrefixesListOK, error) {
+	requestAvailablePrefixes := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	responseAvailablePrefixes, err := r.Ipam.IpamPrefixesAvailablePrefixesList(requestAvailablePrefixes, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(responseAvailablePrefixes.Payload) == 0 {
+		return nil, errors.New("parent prefix exhausted")
+	}
+	return responseAvailablePrefixes, nil
+}
+
+var ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criterias")
+
+func getSmallestMatchingPrefix(prefixList *ipam.IpamPrefixesAvailablePrefixesListOK, prefixClaimLengthString string) (string, bool, error) {
+	// input valiation
+	if len(prefixClaimLengthString) == 0 {
+		return "", false, errors.New("invalid prefixClaimLengthString: empty string")
+	}
+
+	if !strings.Contains(prefixClaimLengthString, "/") {
+		return "", false, errors.New("invalid prefixClaimLengthString: no subnet given (no slash in the string)")
+	}
+
+	prefixClaimLength, err := strconv.Atoi(strings.TrimPrefix(prefixClaimLengthString, "/"))
+	if err != nil {
+		return "", false, err
+	}
+
+	candidateIdx := -1
+	candidatePrefixSize := 0
+	for i, prefix := range prefixList.Payload {
+		_, sizeString, found := strings.Cut(prefix.Prefix, "/")
+		if !found {
+			// TODO: log error
+			continue
+		}
+		prefixSize, err := strconv.Atoi(sizeString)
+		if err != nil {
+			// TODO: log error
+			continue
+		}
+		if prefixSize == prefixClaimLength {
+			return prefix.Prefix, true, nil
+		}
+		if candidatePrefixSize < prefixSize && prefixSize <= prefixClaimLength {
+			candidateIdx = i
+			candidatePrefixSize = prefixSize
+		}
+	}
+
+	if candidateIdx == -1 {
+		return "", false, fmt.Errorf("%w", ErrNoPrefixMatchsSizeCriteria)
+	}
+
+	return prefixList.Payload[candidateIdx].Prefix, false, nil
+}

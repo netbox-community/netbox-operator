@@ -1,0 +1,14 @@
+apiVersion: netbox.dev/v1
+kind: Prefix
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefix-sample
+spec:
+  prefix: "10.112.128.16/28"
+  tenant: "Dunder-Mifflin, Inc."
+  description: "some description"
+  comments: "your comments"
+  customFields:
+    example_field: "example value"

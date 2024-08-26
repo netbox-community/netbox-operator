@@ -1,0 +1,90 @@
+---
+run:
+  timeout: 30m
+issues:
+  max-same-issues: 0
+  exclude-files:
+    - ^zz_generated.*
+    - test/
+    - pkg/leaselocker/
+    - internal/controller/suite_test.go
+linters:
+  disable-all: true
+  enable:
+    - goimports
+    - ineffassign
+    - nakedret
+    - revive
+    - staticcheck
+    - stylecheck
+    - unconvert
+    - unparam
+    - unused
+    - goheader
+linters-settings:
+  staticcheck:
+    checks:
+      - "all"
+      - "-SA1019" # Using a deprecated function, variable, constant or field
+      - "-SA2002" # Called testing.T.FailNow or SkipNow in a goroutine, which isn’t allowed
+  stylecheck:
+    checks:
+      - "ST1019"  # Importing the same package multiple times
+  revive:
+    ignore-generated-header: false
+    severity: error
+    confidence: 0.8
+    enable-all-rules: false
+    rules:
+      # we specify rules we would like to enable
+      - name: blank-imports
+        severity: error
+        disabled: false
+      - name: context-as-argument
+        severity: error
+        disabled: false
+      - name: dot-imports
+        severity: error
+        disabled: true
+      - name: error-return
+        severity: error
+        disabled: false
+      - name: error-naming
+        severity: error
+        disabled: false
+      - name: if-return
+        severity: error
+        disabled: false
+      - name: increment-decrement
+        severity: error
+        disabled: false
+      - name: var-declaration
+        severity: error
+        disabled: false
+      - name: package-comments
+        severity: error
+        disabled: false
+      - name: range
+        severity: error
+        disabled: false
+      - name: receiver-naming
+        severity: error
+        disabled: false
+      - name: time-naming
+        severity: error
+        disabled: false
+      - name: indent-error-flow
+        severity: error
+        disabled: false
+      - name: errorf
+        severity: error
+        disabled: false
+      - name: context-keys-type
+        severity: error
+        disabled: false
+      - name: error-strings
+        severity: error
+        disabled: false
+  # https://golangci-lint.run/usage/linters/#goheader
+  goheader:
+    template-path: ./tools/license_header.txt
