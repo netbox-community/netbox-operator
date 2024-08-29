@@ -24,7 +24,6 @@ Follow the instructions to bring up a locally running kind cluster, with NetBox 
     ```
 - execute `make deploy-kind`
 - in a separate terminal, run `kubectl port-forward deploy/netbox 8080:8080 -n default`
-- execute `make run`: now the operator is running in a local kind cluster!
 - go to your favorite browser and type in `localhost:8080`, with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster
 
 ### Using an existing NetBox instance and Kubernetes cluster
