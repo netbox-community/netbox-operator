@@ -147,7 +147,10 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		/* 6-1, create the Prefix object */
 		prefixResource := generatePrefixFromPrefixClaim(prefixClaim, prefixModel.Prefix)
-		controllerutil.SetOwnerReference(prefixClaim, prefixResource, r.Scheme)
+		err = controllerutil.SetOwnerReference(prefixClaim, prefixResource, r.Scheme)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		err = r.Client.Create(ctx, prefixResource)
 		if err != nil {
 			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, ""); setConditionErr != nil {
