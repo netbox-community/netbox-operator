@@ -24,7 +24,6 @@ Follow the instructions to bring up a locally running kind cluster, with NetBox 
     ```
 - execute `make deploy-kind`
 - in a separate terminal, run `kubectl port-forward deploy/netbox 8080:8080 -n default`
-- execute `make run`: now the operator is running in a local kind cluster!
 - go to your favorite browser and type in `localhost:8080`, with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster
 
 ### Using an existing NetBox instance and Kubernetes cluster
@@ -63,7 +62,7 @@ make deploy IMG=<some-registry>/netbox-operator:tag
 privileges or be logged in as admin.
 
 ### Create instances of your solution
-You can apply the samples (examples) from the config/sample:
+You can apply the samples (examples) from the config/sample directory:
 
 ```sh
 kubectl apply -k config/samples/
@@ -95,11 +94,11 @@ make undeploy
 
 In case the cluster that contains the NetBox Custom Resources managed by this Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this Operator:
 - `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
-- `RestorationHash` (`netboxOperatorRestorationHash` in NetBox) is used to identify an IP Address/Prefix in NetBox based on data from the IpAddressClaim/PrefixClaim
+- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix based on data from the IpAddressClaim/PrefixClaim resource
 
 Use Cases for this Restoration:
-- Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IpAddressClaim only
-- Redeployment of CNF: Since most of the CNF dislike IP changes, we don't want to have IPs changing too often
+- Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
+- Sticky IPs: Some services do not handle changes to IPs well. This ensures the IP/Prefix assigned to a Custom Resource is always the same.
 
 # Project Distribution
 
