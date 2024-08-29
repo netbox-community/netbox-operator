@@ -1,0 +1,69 @@
+---
+name: Bug Report
+description: Report a bug encountered while operating netbox operator
+labels:
+  - type/bug
+body:
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Bug report criteria
+      description: Please confirm this bug report meets the following criteria.
+      options:
+        - label: This bug report is not security related, security issues should be disclosed privately via netbox operator maintainers.
+        - label: Existing open issues have been checked and this is not a duplicate.
+
+  - type: markdown
+    attributes:
+      value: |
+        Please fill the form below and provide as much information as possible.
+        Not doing so may result in your bug not being addressed in a timely manner.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How can we reproduce it (as minimally and precisely as possible)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: netboxOperatorVersion
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Netbox operator configuration (command line flags or environment variables)
+      value: |
+        <details>
+
+        # paste your configuration here
+
+        </details>
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: Shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else we need to know?
