@@ -20,7 +20,6 @@ limitations under the License.
 package controller
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -36,7 +35,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,18 +50,9 @@ import (
 
 var cfg *rest.Config
 var k8sClient client.Client
-var k8sManager ctrl.Manager
 var k8sManagerOptions ctrl.Options
 var testEnv *envtest.Environment
-var ctx context.Context
-var cancel context.CancelFunc
 var mockCtrl *gomock.Controller
-var ipAddressReconciler *IpAddressReconciler
-var ipAddressClaimReconciler *IpAddressClaimReconciler
-var ipamMock *mock_interfaces.MockIpamInterface
-var tenancyMock *mock_interfaces.MockTenancyInterface
-var extrasMock *mock_interfaces.MockExtrasInterface
-var unexpectedCallCh chan error
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -114,7 +103,6 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	cancel()
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())

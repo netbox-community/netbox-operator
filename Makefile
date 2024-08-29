@@ -103,7 +103,7 @@ test: manifests generate fmt vet ## Run tests.
 
 .PHONY: integration-test
 integration-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -cover -v ./internal/controller/...
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(GINKGO) -cover -vv ./internal/controller/...
 ##@ Build
 
 .PHONY: build
