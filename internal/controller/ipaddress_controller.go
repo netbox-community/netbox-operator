@@ -18,8 +18,10 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -42,6 +44,7 @@ import (
 )
 
 const IpAddressFinalizerName = "ipaddress.netbox.dev/finalizer"
+const LastIpAddressMetadataAnnotationName = "ipaddress.netbox.dev/last-ip-address-metadata"
 
 // IpAddressReconciler reconciles a IpAddress object
 type IpAddressReconciler struct {
@@ -142,12 +145,50 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if ok {
 		logger.Info(fmt.Sprintf("Warning: restoration hash is calculated from spec, custom field with key %s will be ignored", config.GetOperatorConfig().NetboxRestorationHashFieldName))
 	}
-	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req))
+
+	accessor := apismeta.NewAccessor()
+	annotations, err := accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	ipAddressModel, err := generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req, annotations[LastIpAddressMetadataAnnotationName])
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
 	if err != nil {
 		updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
 			corev1.EventTypeWarning, o.Spec.IpAddress)
 		return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
 			"after reservation of ip in netbox failed: %w", updateStatusErr, err)
+	}
+
+	// update lastIpAddressMetadata annotation
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	if o.Spec.CustomFields != nil && len(o.Spec.CustomFields) > 0 {
+		lastIpAddressMetadata, err := json.Marshal(o.Spec.CustomFields)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to marshal lastIpAddressMetadata annotation: %w", err)
+		}
+
+		annotations[LastIpAddressMetadataAnnotationName] = string(lastIpAddressMetadata)
+	} else {
+		annotations[LastIpAddressMetadataAnnotationName] = "{}"
+	}
+
+	err = accessor.SetAnnotations(o, annotations)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// update object to store lastIpAddressMetadata annotation
+	if err := r.Update(ctx, o); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// check if created ip address contains entire description from spec
@@ -206,13 +247,31 @@ func (r *IpAddressReconciler) SetConditionAndCreateEvent(ctx context.Context, o 
 	return nil
 }
 
-func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec, req ctrl.Request) *models.IPAddress {
-	// add restoration hash value to custom fields map
-	netboxCustomFields := make(map[string]string)
-	for key, value := range spec.CustomFields {
-		netboxCustomFields[key] = value
+func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec, req ctrl.Request, lastIpAddressMetadata string) (*models.IPAddress, error) {
+	// unmarshal lastIpAddressMetadata json string to map[string]string
+	lastAppliedCustomFields := make(map[string]string)
+	if lastIpAddressMetadata != "" {
+		if err := json.Unmarshal([]byte(lastIpAddressMetadata), &lastAppliedCustomFields); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal lastIpAddressMetadata annotation: %w", err)
+		}
 	}
+
+	netboxCustomFields := make(map[string]string)
+	if spec.CustomFields != nil && len(spec.CustomFields) > 0 {
+		netboxCustomFields = maps.Clone(spec.CustomFields)
+	}
+
+	// if a custom field was removed from the spec, add it with an empty value
+
+	for key := range lastAppliedCustomFields {
+		_, ok := netboxCustomFields[key]
+		if !ok {
+			netboxCustomFields[key] = ""
+		}
+	}
+
 	netboxCustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = spec.RestorationHash
+
 	return &models.IPAddress{
 		IpAddress: spec.IpAddress,
 		Metadata: &models.NetboxMetadata{
@@ -221,5 +280,5 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 			Description: req.NamespacedName.String() + " // " + spec.Description,
 			Tenant:      spec.Tenant,
 		},
-	}
+	}, nil
 }

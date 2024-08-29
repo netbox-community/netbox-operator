@@ -175,6 +175,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 		_, err = ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
+			ipAddress.Spec.CustomFields = o.Spec.CustomFields
 			ipAddress.Spec.Comments = o.Spec.Comments
 			ipAddress.Spec.Description = o.Spec.Description
 			ipAddress.Spec.PreserveInNetbox = o.Spec.PreserveInNetbox

@@ -18,8 +18,10 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -43,6 +45,7 @@ import (
 )
 
 const PrefixFinalizerName = "prefix.netbox.dev/finalizer"
+const LastPrefixMetadataAnnotationName = "prefix.netbox.dev/last-prefix-metadata"
 
 // PrefixReconciler reconciles a Prefix object
 type PrefixReconciler struct {
@@ -143,14 +146,49 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		logger.Info(fmt.Sprintf("Warning: restoration hash is calculated from spec, custom field with key %s will be ignored", config.GetOperatorConfig().NetboxRestorationHashFieldName))
 	}
 
-	prefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(generateNetboxPrefixModelFromPrefixSpec(&prefix.Spec, req))
+	accessor := apismeta.NewAccessor()
+	annotations, err := accessor.Annotations(prefix)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	prefixModel, err := generateNetboxPrefixModelFromPrefixSpec(&prefix.Spec, req, annotations[LastPrefixMetadataAnnotationName])
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(prefixModel)
 	if err != nil {
 		updateStatusErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, prefix.Spec.Prefix)
 		return ctrl.Result{}, fmt.Errorf("failed at update prefix status: %w, "+"after reservation of prefix in netbox failed: %w", updateStatusErr, err)
 	}
 
+	// update lastPrefixMetadata annotation
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	if prefix.Spec.CustomFields != nil && len(prefix.Spec.CustomFields) > 0 {
+		lastPrefixMetadata, err := json.Marshal(prefix.Spec.CustomFields)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to marshal lastPrefixMetadata annotation: %w", err)
+		}
+		annotations[LastPrefixMetadataAnnotationName] = string(lastPrefixMetadata)
+	} else {
+		annotations[LastPrefixMetadataAnnotationName] = "{}"
+	}
+	err = accessor.SetAnnotations(prefix, annotations)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// update object to store lastIpAddressMetadata annotation
+	if err := r.Update(ctx, prefix); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// check if the created prefix contains the entire description from spec
-	if _, found := strings.CutPrefix(prefixModel.Description, req.NamespacedName.String()+" // "+prefix.Spec.Description); !found {
+	if _, found := strings.CutPrefix(netboxPrefixModel.Description, req.NamespacedName.String()+" // "+prefix.Spec.Description); !found {
 		r.Recorder.Event(prefix, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 
@@ -171,7 +209,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	/* 4. update status conditions */
-	prefix.Status.PrefixId = prefixModel.ID
+	prefix.Status.PrefixId = netboxPrefixModel.ID
 	if err = r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, ""); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -204,13 +242,30 @@ func (r *PrefixReconciler) SetConditionAndCreateEvent(ctx context.Context, o *ne
 	return nil
 }
 
-func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl.Request) *models.Prefix {
-	// add restoration hash value to custom fields map
-	netboxCustomFields := make(map[string]string)
-	for key, value := range spec.CustomFields {
-		netboxCustomFields[key] = value
+func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl.Request, lastPrefixMetadata string) (*models.Prefix, error) {
+	// unmarshal lastPrefixMetadata json string to map[string]string
+	lastAppliedCustomFields := make(map[string]string)
+	if lastPrefixMetadata != "" {
+		if err := json.Unmarshal([]byte(lastPrefixMetadata), &lastAppliedCustomFields); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal lastPrefixMetadata annotation: %w", err)
+		}
 	}
+
+	netboxCustomFields := make(map[string]string)
+	if spec.CustomFields != nil && len(spec.CustomFields) > 0 {
+		netboxCustomFields = maps.Clone(spec.CustomFields)
+	}
+
+	// if a custom field was removed from the spec, add it with an empty value
+	for key := range lastAppliedCustomFields {
+		_, ok := netboxCustomFields[key]
+		if !ok {
+			netboxCustomFields[key] = ""
+		}
+	}
+
 	netboxCustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = spec.RestorationHash
+
 	return &models.Prefix{
 		Prefix: spec.Prefix,
 		Metadata: &models.NetboxMetadata{
@@ -220,5 +275,5 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 			Site:        spec.Site,
 			Tenant:      spec.Tenant,
 		},
-	}
+	}, nil
 }
