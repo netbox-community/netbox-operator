@@ -54,6 +54,8 @@ type IpAddressStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	IpAddressId int64 `json:"id,omitempty"`
 
+	IpAddressUrl string `json:"url,omitempty"`
+
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
@@ -62,6 +64,8 @@ type IpAddressStatus struct {
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="IpAddress",type=string,JSONPath=`.spec.ipAddress`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+//+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
+//+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 // +kubebuilder:resource:shortName=ip
 
 // IpAddress is the Schema for the ipaddresses API

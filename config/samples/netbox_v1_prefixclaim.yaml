@@ -6,10 +6,10 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-sample
 spec:
-  parentPrefix: "10.112.129.0/24"
-  prefixLength: "/28"
   tenant: "Dunder-Mifflin, Inc."
+  site: "DataCenter"
   description: "some description"
   comments: "your comments"
-  customFields:
-    example_field: "example value"
+  preserveInNetbox: true
+  parentPrefix: "2.0.0.0/16"
+  prefixLength: "/28"

@@ -6,9 +6,9 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefix-sample
 spec:
-  prefix: "10.112.128.16/28"
   tenant: "Dunder-Mifflin, Inc."
+  site: "DataCenter"
   description: "some description"
   comments: "your comments"
-  customFields:
-    example_field: "example value"
+  preserveInNetbox: true
+  prefix: "2.0.0.0/24"

@@ -23,6 +23,12 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
+    - jsonPath: .status.id
+      name: ID
+      type: string
+    - jsonPath: .status.url
+      name: URL
+      type: string
     name: v1
     schema:
       openAPIV3Schema:
@@ -155,6 +161,8 @@ spec:
                   Important: Run "make" to regenerate code after modifying this file
                 format: int64
                 type: integer
+              url:
+                type: string
             type: object
         type: object
     served: true

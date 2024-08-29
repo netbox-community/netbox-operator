@@ -6,9 +6,8 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: ipaddressclaim-sample
 spec:
-  parentPrefix: "10.112.131.0/24"
   tenant: "Dunder-Mifflin, Inc."
-  customFields:
-    example_field: "example value"
+  description: "some description"
   comments: "your comments"
   preserveInNetbox: true
+  parentPrefix: "2.0.0.0/16"
