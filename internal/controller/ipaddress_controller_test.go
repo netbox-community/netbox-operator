@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
@@ -39,20 +40,25 @@ import (
 
 var _ = Describe("IpAddress Controller", func() {
 
-	const timeout = time.Second * 5
+	const timeout = time.Second * 4
 	const interval = time.Millisecond * 250
+
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var ipamMock *mock_interfaces.MockIpamInterface
+	var tenancyMock *mock_interfaces.MockTenancyInterface
+	var unexpectedCallCh chan error
+	var managerWG sync.WaitGroup
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 
 		ipamMock = mock_interfaces.NewMockIpamInterface(mockCtrl)
 		tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
-		extrasMock = mock_interfaces.NewMockExtrasInterface(mockCtrl)
 
 		netboxClient := &api.NetboxClient{
 			Ipam:    ipamMock,
 			Tenancy: tenancyMock,
-			Extras:  extrasMock,
 		}
 
 		k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
@@ -71,21 +77,32 @@ var _ = Describe("IpAddress Controller", func() {
 
 		// Initialize the channel to catch mock calls with unexpected parameters
 		unexpectedCallCh = make(chan error)
+		managerWG := sync.WaitGroup{}
+		managerWG.Add(1)
 
 		go func() {
 			defer GinkgoRecover()
 			ctx, cancel = context.WithCancel(context.TODO())
-			defer cancel()
-			err = k8sManager.Start(ctx)
-			Expect(err).ToNot(HaveOccurred(), "failed to run manager")
+			defer func() { cancel() }()
+
+			err := k8sManager.Start(ctx)
+			defer managerWG.Done()
+
+			// fail the test if the manager stops unexpectedly
+			isUnexpectedManagerErr := false
+			if err != nil && ctx.Err() == nil {
+				isUnexpectedManagerErr = true
+			}
+			Expect(isUnexpectedManagerErr).To(BeFalse())
 		}()
 	})
 
 	AfterEach(func() {
 		cancel()
 		mockCtrl.Finish()
-		// wait so that the k8smanager has time to shut down before next test starts
-		time.Sleep(timeout)
+
+		managerWG.Wait()
+		time.Sleep(2 * time.Second)
 	})
 
 	DescribeTable("Reconciler (ip address CR without owner reference)", func(
@@ -112,8 +129,6 @@ var _ = Describe("IpAddress Controller", func() {
 			select {
 			case errMsg := <-unexpectedCallCh:
 				Fail(errMsg.Error())
-			case <-time.After(timeout):
-				// Test completed without unexpected calls
 
 			case <-catchCtx.Done():
 				// Context was cancelled
@@ -124,18 +139,18 @@ var _ = Describe("IpAddress Controller", func() {
 		By("Creating IpAddress CR")
 		Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
 
-		// check that reconsile loop did run a least once by checking that conditions are set
+		// check that reconcile loop did run a least once by checking that conditions are set
 		createdCR := &netboxv1.IpAddress{}
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
-			return len(createdCR.Status.Conditions) > 0 && err == nil
+			return err == nil && len(createdCR.Status.Conditions) > 0
 		}, timeout, interval).Should(BeTrue())
 
 		// Now check if conditions are set as expected
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
-			return apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) ==
-				expectedConditionReady && err == nil
+			return err == nil &&
+				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
 		}, timeout, interval).Should(BeTrue())
 
 		// Check that the expected ip address is present in the status
@@ -223,8 +238,6 @@ var _ = Describe("IpAddress Controller", func() {
 			select {
 			case errMsg := <-unexpectedCallCh:
 				Fail(errMsg.Error())
-			case <-time.After(timeout):
-				// Test completed without unexpected calls
 
 			case <-catchCtx.Done():
 				// Context was cancelled
@@ -255,19 +268,19 @@ var _ = Describe("IpAddress Controller", func() {
 		By("Creating IpAddress CR")
 		Expect(k8sClient.Create(ctx, ipcr)).Should(Succeed())
 
-		// Check that reconsile loop did run a least once by checking that conditions are set
+		// Check that reconcile loop did run a least once by checking that conditions are set
 		createdCR := &netboxv1.IpAddress{}
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: ipcr.GetName(), Namespace: ipcr.GetNamespace()}, createdCR)
-			return len(createdCR.Status.Conditions) > 0 && err == nil
+			return err == nil && len(createdCR.Status.Conditions) > 0
 		}, timeout, interval).Should(BeTrue())
 
 		// Now check if conditions are set as expected
 		createdCR = &netboxv1.IpAddress{}
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: ipcr.GetName(), Namespace: ipcr.GetNamespace()}, createdCR)
-			return apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) ==
-				expectedConditionReady && err == nil
+			return err == nil &&
+				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
 		}, timeout, interval).Should(BeTrue())
 
 		// Check that the expected ip address is present in the status
