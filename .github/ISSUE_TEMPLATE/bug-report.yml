@@ -1,8 +1,7 @@
 ---
 name: Bug Report
 description: Report a bug encountered while operating netbox operator
-labels:
-  - type/bug
+labels: ["bug"]
 body:
   - type: checkboxes
     id: confirmations
