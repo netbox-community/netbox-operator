@@ -1,5 +1,12 @@
 # netbox-operator
 
+NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
+
+<div align=center>
+    <img src="./docs/NetBox Operator High-Level Architecture.png" alt="Diagram: NetBox Operator High-Level Architecture" width="800"/>
+    <p><em>Figure 1: NetBox Operator High-Level Architecture</em></p>
+</div>
+
 # Getting Started
 
 ## Prerequisites
@@ -124,7 +131,7 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/netbox-operator/<tag or
 ```
 
 # Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+We cordially invite collaboration from the community to enhance the quality and functionality of this project. Whether you are addressing bugs, introducing new features, refining documentation, or assisting with items on our to-do list, your contributions are highly valued and greatly appreciated. 
 
 > **NOTE**: Run `make help` for more information on all potential `make` targets
 
