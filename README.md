@@ -1,5 +1,7 @@
 # netbox-operator
 
+**Disclaimer:** This project is currently under development and may change rapidly, including breaking changes. Use with caution in production environments.
+
 NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
 <div align=center>
