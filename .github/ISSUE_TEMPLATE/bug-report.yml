@@ -41,6 +41,8 @@ body:
 
   - type: textarea
     id: netboxOperatorVersion
+    attributes:
+      label: Netbox operator version
     validations:
       required: true
 
@@ -49,11 +51,7 @@ body:
     attributes:
       label: Netbox operator configuration (command line flags or environment variables)
       value: |
-        <details>
-
         # paste your configuration here
-
-        </details>
 
   - type: textarea
     id: logs
