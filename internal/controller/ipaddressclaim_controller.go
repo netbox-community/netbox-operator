@@ -147,7 +147,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 
 		// 6.a create the IPAddress object
-		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress)
+		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress, logger)
 		err = controllerutil.SetControllerReference(o, ipAddressResource, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -175,7 +175,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 
-		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress)
+		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress, logger)
 		_, err = ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
 			// only add the mutable fields here
 			ipAddress.Spec.CustomFields = updatedIpAddressSpec.CustomFields

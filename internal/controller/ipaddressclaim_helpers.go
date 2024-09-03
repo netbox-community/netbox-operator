@@ -20,29 +20,38 @@ import (
 	"crypto/sha1"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func generateIpAddressFromIpAddressClaim(claim *netboxv1.IpAddressClaim, ip string) *netboxv1.IpAddress {
+func generateIpAddressFromIpAddressClaim(claim *netboxv1.IpAddressClaim, ip string, logger logr.Logger) *netboxv1.IpAddress {
 	ipAddressResource := &netboxv1.IpAddress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claim.Name,
 			Namespace: claim.ObjectMeta.Namespace,
 		},
-		Spec: generateIpAddressSpec(claim, ip),
+		Spec: generateIpAddressSpec(claim, ip, logger),
 	}
 	return ipAddressResource
 }
 
-func generateIpAddressSpec(claim *netboxv1.IpAddressClaim, ip string) netboxv1.IpAddressSpec {
+func generateIpAddressSpec(claim *netboxv1.IpAddressClaim, ip string, logger logr.Logger) netboxv1.IpAddressSpec {
+	// log a warning if the netboxOperatorRestorationHash name is a key in the customFields map of the IpAddressClaim
+	_, ok := claim.Spec.CustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName]
+	if ok {
+		logger.Info(fmt.Sprintf("Warning: restoration hash is calculated from spec, custom field with key %s will be ignored", config.GetOperatorConfig().NetboxRestorationHashFieldName))
+	}
+
 	// Copy customFields from claim and add restoration hash
 	customFields := make(map[string]string, len(claim.Spec.CustomFields)+1)
 	for k, v := range claim.Spec.CustomFields {
 		customFields[k] = v
 	}
+
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generateIpAddressRestorationHash(claim)
+
 	return netboxv1.IpAddressSpec{
 		IpAddress:        ip,
 		Tenant:           claim.Spec.Tenant,

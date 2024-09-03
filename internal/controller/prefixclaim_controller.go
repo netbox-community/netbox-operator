@@ -146,7 +146,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		/* 6-1, create the Prefix object */
-		prefixResource := generatePrefixFromPrefixClaim(prefixClaim, prefixModel.Prefix)
+		prefixResource := generatePrefixFromPrefixClaim(prefixClaim, prefixModel.Prefix, logger)
 		err = controllerutil.SetControllerReference(prefixClaim, prefixResource, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -169,7 +169,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 
-		updatedPrefixSpec := generatePrefixSpec(prefixClaim, prefix.Spec.Prefix)
+		updatedPrefixSpec := generatePrefixSpec(prefixClaim, prefix.Spec.Prefix, logger)
 		if _, err = ctrl.CreateOrUpdate(ctx, r.Client, prefix, func() error {
 			// only add the mutable fields here
 			prefix.Spec.Site = updatedPrefixSpec.Site
