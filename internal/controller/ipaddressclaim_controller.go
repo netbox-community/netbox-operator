@@ -148,7 +148,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// 6.a create the IPAddress object
 		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress)
-		err = controllerutil.SetOwnerReference(o, ipAddressResource, r.Scheme)
+		err = controllerutil.SetControllerReference(o, ipAddressResource, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
