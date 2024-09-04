@@ -95,7 +95,7 @@ require (
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
-	golang.org/x/time v0.5.0 // indirect
+	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
