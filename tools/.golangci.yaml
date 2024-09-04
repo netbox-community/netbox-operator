@@ -5,9 +5,6 @@ issues:
   max-same-issues: 0
   exclude-files:
     - ^zz_generated.*
-    - test/
-    - pkg/leaselocker/
-    - internal/controller/suite_test.go
 linters:
   disable-all: true
   enable:
@@ -85,6 +82,3 @@ linters-settings:
       - name: error-strings
         severity: error
         disabled: false
-  # https://golangci-lint.run/usage/linters/#goheader
-  goheader:
-    template-path: ./tools/license_header.txt
