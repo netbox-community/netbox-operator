@@ -17,33 +17,49 @@ NetBox Operator extends the Kubernetes API by allowing users to manage NetBox re
 - kubectl version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
 
-## Running and developing locally with the Go debugger
+## Running and developing locally
 
-### Using a kind cluster
+### Running the Operator on a local kind cluster
 
 Follow the instructions to bring up a locally running kind cluster, with NetBox and a NetBox operator running within it:
 - execute `make create-kind`
-- set the following environment varialbes:
-    ```
-    NETBOX_HOST="localhost:8080"
-    AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
-    POD_NAMESPACE="default"
-    HTTPS_ENABLE="false"
-    NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
-    ```
 - execute `make deploy-kind`
-- in a separate terminal, run `kubectl port-forward deploy/netbox 8080:8080 -n default`
+- run `kubectl port-forward deploy/netbox 8080:8080 -n default`
 - go to your favorite browser and type in `localhost:8080`, with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster
 
-### Using an existing NetBox instance and Kubernetes cluster
+### Running the Operator locally and Netbox on a local kind cluster
+
+Follow the instructions to bring up a locally running kind cluster, with NetBox running within it but NetBox Operator running on your local machine:
+
+- execute `make create-kind`
+- run `kubectl port-forward deploy/netbox 8080:8080 -n default` to make the NetBox API available locally
+- open a new terminal window and export the following environment variables:
+    ```
+    export NETBOX_HOST="localhost:8080"
+    export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
+    export POD_NAMESPACE="default"
+    export HTTPS_ENABLE="false"
+    export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
+    ```
+- run `make run` in a new terminal to start the netbox operator locally and accept incoming connections if a popup apears
+- go to your favorite browser and type in `localhost:8080`, with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster
+- run `kubectl apply -f config/samples/netbox_v1_ipaddressclaim.yaml` in a new terminal window to see netbox operator in action
+
+
+### Running the Operator locally sing an existing NetBox instance and Kubernetes cluster
 
 Prerequisites:
 - a NetBox instance to test against
 - a Kubernetes cluster with the netbox-operator CRDs installed (point the kubeconfig to the cluster and run `make install`)
-
-There are some mandatory environment variables to set to run the netbox-operator locally: `NETBOX_HOST`, `AUTH_TOKEN` and `POD_NAMESPACE`.
-
-If you want to run the operator against a host with HTTPS protocol you need to set the `HTTPS_ENABLE=true`.
+- There are some mandatory environment variables to set to run the netbox-operator locally. Make sure they are adapted to your NetBox instance and your NetBox instance is reachable using the defined HOST:
+    ```
+    export NETBOX_HOST="localhost:8080"
+    export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
+    export POD_NAMESPACE="default"
+    export HTTPS_ENABLE="true"
+    export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
+    ```
+- run `make run` in a new terminal to start the netbox operator locally and accept incoming connections if a popup apears
 
 ## To Deploy on the cluster
 
