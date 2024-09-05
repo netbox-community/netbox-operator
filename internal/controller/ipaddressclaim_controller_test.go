@@ -23,92 +23,42 @@ import (
 	"time"
 
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
-	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/swisscom/leaselocker"
-	"go.uber.org/mock/gomock"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var _ = Describe("IpAddress Controller", func() {
+var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 
 	const timeout = time.Second * 4
 	const interval = time.Millisecond * 250
 
-	var ctx context.Context
-	var cancel context.CancelFunc
-	var ipamMock *mock_interfaces.MockIpamInterface
-	var tenancyMock *mock_interfaces.MockTenancyInterface
 	var unexpectedCallCh chan error
-	var managerWG sync.WaitGroup
 
 	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
-
-		ipamMock = mock_interfaces.NewMockIpamInterface(mockCtrl)
-		tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
-
-		netboxClient := &api.NetboxClient{
-			Ipam:    ipamMock,
-			Tenancy: tenancyMock,
-		}
-
-		k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
-		Expect(k8sManager.GetConfig()).NotTo(BeNil())
-		Expect(err).ToNot(HaveOccurred())
-
-		err = (&IpAddressClaimReconciler{
-			Client:            k8sManager.GetClient(),
-			Scheme:            k8sManager.GetScheme(),
-			Recorder:          k8sManager.GetEventRecorderFor("ip-address-claim-controller"),
-			NetboxClient:      netboxClient,
-			OperatorNamespace: OperatorNamespace,
-			RestConfig:        k8sManager.GetConfig(),
-		}).SetupWithManager(k8sManager)
-		Expect(err).ToNot(HaveOccurred())
-
 		// Initialize the channel to catch mock calls with unexpected parameters
 		unexpectedCallCh = make(chan error)
 		managerWG := sync.WaitGroup{}
 		managerWG.Add(1)
-
-		go func() {
-			defer GinkgoRecover()
-			ctx, cancel = context.WithCancel(context.TODO())
-			defer func() { cancel() }()
-
-			err := k8sManager.Start(ctx)
-			defer managerWG.Done()
-
-			// fail the test if the manager stops unexpectedly
-			isUnexpectedManagerErr := false
-			if err != nil && ctx.Err() == nil {
-				isUnexpectedManagerErr = true
-			}
-			Expect(isUnexpectedManagerErr).To(BeFalse())
-		}()
 	})
 
 	AfterEach(func() {
-		cancel()
-		mockCtrl.Finish()
-
-		managerWG.Wait()
-		time.Sleep(2 * time.Second)
+		By("Resetting the mock controller")
+		resetMockFunctions(ipamMockIpAddress, ipamMockIpAddressClaim, tenancyMock)
 	})
 
-	DescribeTable("Reconciler (ip address claim CR, ip address CR does not yet exist)", func(
+	DescribeTable("Reconciler (ip address claim CR)", func(
 		cr *netboxv1.IpAddressClaim, // our CR as typed object
 		ipcr *netboxv1.IpAddress, // ip address CR expected to be created by ip address claim controller
 		ipcrMockStatus netboxv1.IpAddressStatus, // the that will be added to mock the ip address controller
-		IpamMocks []func(*mock_interfaces.MockIpamInterface, chan error),
+		IpamMocksIpAddressClaim []func(*mock_interfaces.MockIpamInterface, chan error),
+		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
 		expectedConditionIpAssigned bool, // Expected state of the ConditionReady condition
@@ -116,8 +66,11 @@ var _ = Describe("IpAddress Controller", func() {
 		prefixLockedByOtherOwner bool, // If prefix is locked by other owner when ipaddress claim CR is created
 	) {
 		By("Setting up mocks")
-		for _, mock := range IpamMocks {
-			mock(ipamMock, unexpectedCallCh)
+		for _, mock := range IpamMocksIpAddressClaim {
+			mock(ipamMockIpAddressClaim, unexpectedCallCh)
+		}
+		for _, mock := range IpamMocksIpAddress {
+			mock(ipamMockIpAddress, unexpectedCallCh)
 		}
 		for _, mock := range TenancyMocks {
 			mock(tenancyMock, unexpectedCallCh)
@@ -145,8 +98,8 @@ var _ = Describe("IpAddress Controller", func() {
 			ll, err := leaselocker.NewLeaseLocker(cfg, leaseLockerNSN, "default/some-other-owner")
 			Expect(err).To(BeNil())
 
-			lockCtx, cancel := context.WithCancel(ctx)
-			defer cancel()
+			lockCtx, lockCancel := context.WithCancel(ctx)
+			defer lockCancel()
 
 			locked := ll.TryLock(lockCtx)
 			Expect(locked).To(BeTrue())
@@ -182,11 +135,6 @@ var _ = Describe("IpAddress Controller", func() {
 
 			// check that the ip address claim controller created the ip address CR with correct spec
 			Expect(createdIpCR.Spec).To(Equal(ipcr.Spec))
-
-			By("Mocking the ip address controller by updating the status of the ip address CR")
-			createdIpCR.Status = ExpectedIpAddressStatus
-			apismeta.SetStatusCondition(&createdIpCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue)
-			Eventually(k8sClient.Status().Update(ctx, createdIpCR)).Should(Succeed())
 
 			// Change status of claim to trigger reconciliation (watch on ip address doesn't cause automatic reconciliation with env test)
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)).To(Succeed())
@@ -227,21 +175,36 @@ var _ = Describe("IpAddress Controller", func() {
 		Entry("Create IpAddressClaim CR, reserve new ip address in NetBox",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				expectedIpAddressListWithHashFilterEmptyResult,
-				expectedPrefixesListWithPrefixFilter,
-				expectedPrefixesAvailableIpsList,
+				mockIpAddressListWithHashFilterEmptyResult,
+				mockPrefixesListWithPrefixFilter,
+				mockPrefixesAvailableIpsList,
 			},
-			nil,
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithIpAddressFilterEmptyResult,
+				mockIpamIPAddressesCreateWithHash,
+				mockIpAddressesDelete,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
 			true, true, ExpectedIpAddressClaimStatus, false),
 		Entry("Create IpAddressClaim CR, reassign ip from NetBox",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				expectedIpAddressListWithHashFilter,
+				mockIpAddressListWithHashFilter,
 			},
-			nil,
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithIpAddressFilter,
+				mockIpamIPAddressesUpdateWithHash,
+				mockIpAddressesDelete,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
 			true, true, ExpectedIpAddressClaimStatus, false),
 		Entry("Create IpAddressClaim CR, prefix locked by other resource",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
+			nil,
 			nil,
 			nil,
 			false, false, netboxv1.IpAddressClaimStatus{}, true),
