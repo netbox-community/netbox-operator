@@ -122,7 +122,6 @@ docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .
 
 .PHONY: docker-build-local
-docker-build-local: SSH_AGENT_PUBLIC_KEY=
 docker-build-local: ## Build docker image with the manager.
 	DOCKER_BUILDKIT=1 $(CONTAINER_TOOL) build -t ${LOCAL_IMG} -f Dockerfile .
 

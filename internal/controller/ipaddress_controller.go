@@ -142,11 +142,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// 2. reserve or update ip address in netbox
-	_, ok := o.Spec.CustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName]
-	if ok {
-		logger.Info(fmt.Sprintf("Warning: restoration hash is calculated from spec, custom field with key %s will be ignored", config.GetOperatorConfig().NetboxRestorationHashFieldName))
-	}
-
 	accessor := apismeta.NewAccessor()
 	annotations, err := accessor.Annotations(o)
 	if err != nil {
