@@ -1,12 +1,12 @@
-# NetBox-Operator
+# NetBox Operator
 
 **Disclaimer:** This project is currently under development and may change rapidly, including breaking changes. Use with caution in production environments.
 
-NetBox-Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
+NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
 <div align=center>
-    <img src="./docs/NetBox Operator High-Level Architecture.png" alt="Diagram: NetBox-Operator High-Level Architecture" width="800"/>
-    <p><em>Figure 1: NetBox-Operator High-Level Architecture</em></p>
+    <img src="./docs/NetBox Operator High-Level Architecture.png" alt="Diagram: NetBox Operator High-Level Architecture" width="800"/>
+    <p><em>Figure 1: NetBox Operator High-Level Architecture</em></p>
 </div>
 
 # Getting Started
@@ -19,21 +19,21 @@ NetBox-Operator extends the Kubernetes API by allowing users to manage NetBox re
 
 ## Running and developing locally
 
-### Running the NetBox-Operator on a local kind cluster
+### Running the NetBox Operator and NetBox on a local kind cluster
 
-Follow the instructions to bring up a locally running kind cluster, with NetBox and a NetBox operator running within it:
-- execute `make create-kind`
-- execute `make deploy-kind`
-- run `kubectl port-forward deploy/netbox 8080:8080 -n default`
-- go to your favorite browser and type in `localhost:8080`, with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster
+Note: This requires Docker BuildKit.
 
-### Running the NetBox-Operator locally and Netbox on a local kind cluster
+- Create kind cluster with a NetBox deployment: `make create-kind`
+- Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
+- Open http://localhost:8080 in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
+- Deploy the NetBox Operator on the local kind cluster: `make deploy-kind`
 
-Follow the instructions to bring up a locally running kind cluster, with NetBox running within it but NetBox Operator running on your local machine:
+### Running the NetBox Operator on your machine and NetBox on a local kind cluster
 
-- execute `make create-kind`
-- run `kubectl port-forward deploy/netbox 8080:8080 -n default` to make the NetBox API available locally
-- open a new terminal window and export the following environment variables:
+- Create kind cluster with a NetBox deployment: `make create-kind`
+- Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
+- Open http://localhost:8080 in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
+- Open a new terminal window and export the following environment variables:
     ```
     export NETBOX_HOST="localhost:8080"
     export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
@@ -41,32 +41,44 @@ Follow the instructions to bring up a locally running kind cluster, with NetBox 
     export HTTPS_ENABLE="false"
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
-- run `make run` in a new terminal to start the NetBox-Operator locally and accept incoming connections if a popup appears
-- go to your favorite browser and type in `localhost:8080`, with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster
-- run `kubectl apply -f config/samples/netbox_v1_ipaddressclaim.yaml` in a new terminal window to see NetBox-Operator in action
+- Run the NetBox Operator locally (in a new terminal window) `make install && make run`
 
+### Running the NetBox Operator on your machine using an existing NetBox and Kubernetes cluster
 
-### Running the NetBox-Operator locally sing an existing NetBox instance and Kubernetes cluster
+Note: This requires a running NetBox instance that you can use (e.g. https://demo.netbox.dev) as well as a kubernetes cluster (can be as simple as `kind create cluster`)
 
-Prerequisites:
-- a NetBox instance to test against
-- a Kubernetes cluster with the NetBox-Operator CRDs installed (point the kubeconfig to the cluster and run `make install`)
-- There are some mandatory environment variables to set to run the NetBox-Operator locally. Make sure they are adapted to your NetBox instance and your NetBox instance is reachable using the defined HOST:
+- Prepare NetBox (based on the demo NetBox instance):
+  - Open https://demo.netbox.dev/plugins/demo/login/ and create any user
+  - Open https://demo.netbox.dev/user/api-tokens/ and create a token "0123456789abcdef0123456789abcdef01234567" with default settings
+  - Open https://demo.netbox.dev/extras/custom-fields/add/ and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address" and "IPAM > Prefix"
+- Open a new terminal window and export the following environment variables (adjust the API :
     ```
-    export NETBOX_HOST="localhost:8080"
+    export NETBOX_HOST="demo.netbox.dev"
     export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
     export POD_NAMESPACE="default"
     export HTTPS_ENABLE="true"
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
-- run `make run` in a new terminal to start the NetBox-Operator locally and accept incoming connections if a popup appears
+- Run the NetBox Operator locally (in a new terminal window) `make install && make run`
+
+## Testing NetBox Operator using samples
+
+In the folder config/samples/ you can find example manifests to create IpAddress, IpAddressClaim, Prefix and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>`.
+
+Example based on a PrefixClaim:
+1. Apply a PrefixClaim: `kubectl apply -f config/samples/netbox_v1_prefixclaim.yaml`
+2. Wait for ready condition: `kubectl wait prefix prefixclaim-sample --for=condition=Ready`
+3. List PrefixClaim and Prefix resources: `kubectl get pxc,px`
+4. For the prefix you’ll be able to see the URL, you can open it (login is admin/admin) to browse through the NetBox resources.
+
+Make sure to also discover the yaml output of these resources, check the events and Operator logs.
 
 ## To Deploy on the cluster
 
 ### Build and push your image to the location specified by `IMG`
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/netbox-operator:tag
+make docker-build docker-push IMG=<some-registry>/NetBox Operator:tag
 ```
 
 > **NOTE**: This image ought to be published in the personal registry you specified, and it is required to have access to pull the image from the working environment. Make sure you have the proper permission to the registry if the above commands don’t work.
@@ -80,7 +92,7 @@ make install
 ### Deploy the Manager to the cluster with the image specified by `IMG`
 
 ```sh
-make deploy IMG=<some-registry>/netbox-operator:tag
+make deploy IMG=<some-registry>/NetBox Operator:tag
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
@@ -117,8 +129,8 @@ make undeploy
 
 ## Restoration from NetBox
 
-In case the cluster that contains the NetBox Custom Resources managed by this NetBox-Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox-Operator:
-- `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox-Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
+In case the cluster that contains the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
+- `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
 - In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix based on data from the IpAddressClaim/PrefixClaim resource
 
 Use Cases for this Restoration:
@@ -132,7 +144,7 @@ Following are the steps to build the installer and distribute this project to us
 1. Build the installer for the image built and published in the registry:
 
 ```sh
-make build-installer IMG=<some-registry>/netbox-operator:tag
+make build-installer IMG=<some-registry>/NetBox Operator:tag
 ```
 
 > **NOTE**: The makefile target mentioned above generates an 'install.yaml'
@@ -145,7 +157,7 @@ its dependencies.
 Users can just run `kubectl apply -f <URL for YAML BUNDLE>` to install the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/netbox-operator/<tag or branch>/dist/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/<org>/NetBox Operator/<tag or branch>/dist/install.yaml
 ```
 
 # Contributing
