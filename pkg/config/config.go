@@ -92,3 +92,15 @@ func GetOperatorConfig() *OperatorConfig {
 
 	return configuration
 }
+
+func GetProtocol() string {
+	if GetOperatorConfig().HttpsEnable {
+		return "https"
+	} else {
+		return "http"
+	}
+}
+
+func GetBaseUrl() string {
+	return GetProtocol() + "://" + GetOperatorConfig().NetboxHost
+}

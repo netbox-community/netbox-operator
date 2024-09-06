@@ -211,7 +211,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// 4. update status conditions
 	o.Status.IpAddressId = netboxIpAddressModel.ID
-	o.Status.IpAddressUrl = "https://" + config.GetOperatorConfig().NetboxHost + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
+	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 	err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, "")
 	if err != nil {
 		return ctrl.Result{}, err
