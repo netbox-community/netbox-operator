@@ -14,9 +14,11 @@ NetBox Operator extends the Kubernetes API by allowing users to manage NetBox re
 ## Prerequisites
 
 - go version v1.22.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+- docker version 17.03+
+- kubectl version v1.11.3+
+- Access to a Kubernetes v1.11.3+ cluster
+- kind
+- docker cli
 
 ## Running and developing locally
 
@@ -27,7 +29,7 @@ Note: This requires Docker BuildKit.
 - Create kind cluster with a NetBox deployment: `make create-kind`
 - Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
 - Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
-- Deploy the NetBox Operator on the local kind cluster: `make deploy-kind`
+- Deploy the NetBox Operator on the local kind cluster: `make deploy-kind` (In case you're using podman use `CONTAINER_TOOL=podman make deploy-kind`)
 
 ### Running the NetBox Operator on your machine and NetBox on a local kind cluster
 
