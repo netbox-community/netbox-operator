@@ -59,7 +59,7 @@ Prerequisites:
     export HTTPS_ENABLE="true"
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
-- run `make run` in a new terminal to start the NetBox-Operator locally and accept incoming connections if a popup apears
+- run `make run` in a new terminal to start the NetBox-Operator locally and accept incoming connections if a popup appears
 
 ## To Deploy on the cluster
 
