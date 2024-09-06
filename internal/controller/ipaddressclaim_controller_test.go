@@ -135,11 +135,6 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 
 			// check that the ip address claim controller created the ip address CR with correct spec
 			Expect(createdIpCR.Spec).To(Equal(ipcr.Spec))
-
-			// Change status of claim to trigger reconciliation (watch on ip address doesn't cause automatic reconciliation with env test)
-			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)).To(Succeed())
-			apismeta.SetStatusCondition(&cr.Status.Conditions, netboxv1.ConditionIpClaimReadyFalse)
-			Expect(k8sClient.Status().Update(ctx, createdCR)).To(Succeed())
 		}
 
 		// Now check if conditions are set as expected

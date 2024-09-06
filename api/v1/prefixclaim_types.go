@@ -17,9 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"strings"
-
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -91,48 +88,6 @@ type PrefixClaimList struct {
 
 func init() {
 	SchemeBuilder.Register(&PrefixClaim{}, &PrefixClaimList{})
-}
-
-func (r *PrefixClaim) GeneratePrefixSpec(prefix string) PrefixSpec {
-	return PrefixSpec{
-		Prefix:      prefix,
-		Site:        r.Spec.Site,
-		Tenant:      r.Spec.Tenant,
-		Description: r.Spec.Description,
-		Comments:    r.Spec.Comments,
-	}
-}
-
-func (r *PrefixClaim) GeneratePrefix(prefix string) *Prefix {
-	prefixResource := &Prefix{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Prefix",
-			APIVersion: "netbox.dev/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.GetPrefixName(),
-			Namespace: r.ObjectMeta.Namespace,
-		},
-		Spec: r.GeneratePrefixSpec(prefix),
-	}
-	owner := []metav1.OwnerReference{
-		{
-			APIVersion: r.APIVersion,
-			Kind:       r.Kind,
-			Name:       r.Name,
-			UID:        r.UID,
-		},
-	}
-	prefixResource.SetOwnerReferences(owner)
-	return prefixResource
-}
-
-func (r *PrefixClaim) GetPrefixName() string {
-	if len(r.ObjectMeta.UID) == 0 {
-		panic(errors.New("UUID not provided in PrefixClaim resource"))
-	}
-	splitted_uid := strings.Split(string(r.ObjectMeta.UID), "-")
-	return r.ObjectMeta.Name + "-" + splitted_uid[0]
 }
 
 var ConditionPrefixClaimReadyTrue = metav1.Condition{
