@@ -24,9 +24,12 @@ NetBox Operator extends the Kubernetes API by allowing users to manage NetBox re
 Note: This requires Docker BuildKit.
 
 - Create kind cluster with a NetBox deployment: `make create-kind`
+- Deploy the NetBox Operator on the local kind cluster: `make deploy-kind` (In case you're using podman use `CONTAINER_TOOL=podman make deploy-kind`)
+
+To optionally access the NetBox UI:
+
 - Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
 - Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
-- Deploy the NetBox Operator on the local kind cluster: `make deploy-kind` (In case you're using podman use `CONTAINER_TOOL=podman make deploy-kind`)
 
 ### Running the NetBox Operator on your machine and NetBox on a local kind cluster
 
