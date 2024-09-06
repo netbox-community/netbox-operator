@@ -12,6 +12,7 @@ NetBox Operator extends the Kubernetes API by allowing users to manage NetBox re
 # Getting Started
 
 ## Prerequisites
+
 - go version v1.22.0+
 - docker version 17.03+.
 - kubectl version v1.11.3+.
@@ -25,40 +26,44 @@ Note: This requires Docker BuildKit.
 
 - Create kind cluster with a NetBox deployment: `make create-kind`
 - Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
-- Open http://localhost:8080 in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
+- Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
 - Deploy the NetBox Operator on the local kind cluster: `make deploy-kind`
 
 ### Running the NetBox Operator on your machine and NetBox on a local kind cluster
 
 - Create kind cluster with a NetBox deployment: `make create-kind`
 - Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
-- Open http://localhost:8080 in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
+- Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
 - Open a new terminal window and export the following environment variables:
-    ```
+
+    ```bash
     export NETBOX_HOST="localhost:8080"
     export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
     export POD_NAMESPACE="default"
     export HTTPS_ENABLE="false"
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
+
 - Run the NetBox Operator locally (in a new terminal window) `make install && make run`
 
 ### Running the NetBox Operator on your machine using an existing NetBox and Kubernetes cluster
 
-Note: This requires a running NetBox instance that you can use (e.g. https://demo.netbox.dev) as well as a kubernetes cluster (can be as simple as `kind create cluster`)
+Note: This requires a running NetBox instance that you can use (e.g. <https://demo.netbox.dev>) as well as a kubernetes cluster (can be as simple as `kind create cluster`)
 
 - Prepare NetBox (based on the demo NetBox instance):
-  - Open https://demo.netbox.dev/plugins/demo/login/ and create any user
-  - Open https://demo.netbox.dev/user/api-tokens/ and create a token "0123456789abcdef0123456789abcdef01234567" with default settings
-  - Open https://demo.netbox.dev/extras/custom-fields/add/ and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address" and "IPAM > Prefix"
+  - Open <https://demo.netbox.dev/plugins/demo/login/> and create any user
+  - Open <https://demo.netbox.dev/user/api-tokens/> and create a token "0123456789abcdef0123456789abcdef01234567" with default settings
+  - Open <https://demo.netbox.dev/extras/custom-fields/add/> and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address" and "IPAM > Prefix"
 - Open a new terminal window and export the following environment variables (adjust the API :
-    ```
+
+    ```bash
     export NETBOX_HOST="demo.netbox.dev"
     export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
     export POD_NAMESPACE="default"
     export HTTPS_ENABLE="true"
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
+
 - Run the NetBox Operator locally (in a new terminal window) `make install && make run`
 
 ## Testing NetBox Operator using samples
@@ -66,6 +71,7 @@ Note: This requires a running NetBox instance that you can use (e.g. https://dem
 In the folder config/samples/ you can find example manifests to create IpAddress, IpAddressClaim, Prefix and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>`.
 
 Example based on a PrefixClaim:
+
 1. Apply a PrefixClaim: `kubectl apply -f config/samples/netbox_v1_prefixclaim.yaml`
 2. Wait for ready condition: `kubectl wait prefix prefixclaim-sample --for=condition=Ready`
 3. List PrefixClaim and Prefix resources: `kubectl get pxc,px`
@@ -99,6 +105,7 @@ make deploy IMG=<some-registry>/NetBox Operator:tag
 privileges or be logged in as admin.
 
 ### Create instances of your solution
+
 You can apply the samples (examples) from the config/sample directory:
 
 ```sh
@@ -130,10 +137,12 @@ make undeploy
 ## Restoration from NetBox
 
 In case the cluster that contains the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
+
 - `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
 - In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix based on data from the IpAddressClaim/PrefixClaim resource
 
 Use Cases for this Restoration:
+
 - Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
 - Sticky IPs: Some services do not handle changes to IPs well. This ensures the IP/Prefix assigned to a Custom Resource is always the same.
 
@@ -161,7 +170,8 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/NetBox Operator/<tag or
 ```
 
 # Contributing
-We cordially invite collaboration from the community to enhance the quality and functionality of this project. Whether you are addressing bugs, introducing new features, refining documentation, or assisting with items on our to-do list, your contributions are highly valued and greatly appreciated. 
+
+We cordially invite collaboration from the community to enhance the quality and functionality of this project. Whether you are addressing bugs, introducing new features, refining documentation, or assisting with items on our to-do list, your contributions are highly valued and greatly appreciated.
 
 > **NOTE**: Run `make help` for more information on all potential `make` targets
 
