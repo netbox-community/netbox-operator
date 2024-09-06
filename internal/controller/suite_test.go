@@ -20,11 +20,11 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -35,6 +35,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +55,12 @@ var k8sClient client.Client
 var k8sManagerOptions ctrl.Options
 var testEnv *envtest.Environment
 var mockCtrl *gomock.Controller
+var ipamMockIpAddress *mock_interfaces.MockIpamInterface
+var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
+var tenancyMock *mock_interfaces.MockTenancyInterface
+var ctx context.Context
+var cancel context.CancelFunc
+var netboxClient *api.NetboxClient
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -85,11 +93,9 @@ var _ = BeforeSuite(func() {
 	err = netboxv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	timeout := time.Second * 1
 	By("defining k8sManager option to disable metrics server")
 	k8sManagerOptions = ctrl.Options{
-		Scheme:                  scheme.Scheme,
-		GracefulShutdownTimeout: &timeout,
+		Scheme: scheme.Scheme,
 		Metrics: server.Options{
 			BindAddress: "0", // Disable the metrics server
 		},
@@ -100,9 +106,56 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	mockCtrl = gomock.NewController(GinkgoT(), gomock.WithOverridableExpectations())
+
+	ipamMockIpAddress = mock_interfaces.NewMockIpamInterface(mockCtrl)
+	ipamMockIpAddressClaim = mock_interfaces.NewMockIpamInterface(mockCtrl)
+	tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
+
+	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
+	Expect(k8sManager.GetConfig()).NotTo(BeNil())
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&IpAddressReconciler{
+		Client:   k8sManager.GetClient(),
+		Scheme:   k8sManager.GetScheme(),
+		Recorder: k8sManager.GetEventRecorderFor("ip-address-claim-controller"),
+		NetboxClient: &api.NetboxClient{
+			Ipam:    ipamMockIpAddress,
+			Tenancy: tenancyMock,
+		},
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&IpAddressClaimReconciler{
+		Client:   k8sManager.GetClient(),
+		Scheme:   k8sManager.GetScheme(),
+		Recorder: k8sManager.GetEventRecorderFor("ip-address-claim-controller"),
+		NetboxClient: &api.NetboxClient{
+			Ipam:    ipamMockIpAddressClaim,
+			Tenancy: tenancyMock,
+		},
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	go func() {
+		defer GinkgoRecover()
+		ctx, cancel = context.WithCancel(context.TODO())
+		defer func() { cancel() }()
+
+		Expect(k8sManager.Start(ctx)).To(Succeed())
+	}()
 })
 
 var _ = AfterSuite(func() {
+	cancel()
+	mockCtrl.Finish()
+
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())

@@ -30,7 +30,7 @@ import (
 // IPAM Mock Functions
 // -----------------------------
 
-func expectedIpAddressListWithIpAddressFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpAddressListWithIpAddressFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
 			got := params.(*ipam.IpamIPAddressesListParams)
@@ -45,7 +45,7 @@ func expectedIpAddressListWithIpAddressFilter(ipamMock *mock_interfaces.MockIpam
 		}).MinTimes(1)
 }
 
-func expectedIpAddressListWithIpAddressFilterEmptyResult(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpAddressListWithIpAddressFilterEmptyResult(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
 			got := params.(*ipam.IpamIPAddressesListParams)
@@ -57,10 +57,10 @@ func expectedIpAddressListWithIpAddressFilterEmptyResult(ipamMock *mock_interfac
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseEmptyIPAddressList()}, nil
-		}).Times(1)
+		}).MinTimes(1)
 }
 
-func expectedIpAddressListWithHashFilterEmptyResult(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpAddressListWithHashFilterEmptyResult(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
 			got := params.(*ipam.IpamIPAddressesListParams)
@@ -73,10 +73,10 @@ func expectedIpAddressListWithHashFilterEmptyResult(ipamMock *mock_interfaces.Mo
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseEmptyIPAddressList()}, nil
-		}).Times(1)
+		}).MinTimes(1)
 }
 
-func expectedIpAddressListWithHashFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpAddressListWithHashFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
 			got := params.(*ipam.IpamIPAddressesListParams)
@@ -89,10 +89,10 @@ func expectedIpAddressListWithHashFilter(ipamMock *mock_interfaces.MockIpamInter
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressList()}, nil
-		}).Times(1)
+		}).MinTimes(1)
 }
 
-func expectedPrefixesListWithPrefixFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockPrefixesListWithPrefixFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamPrefixesListOK, error) {
 			got := params.(*ipam.IpamPrefixesListParams)
@@ -105,10 +105,10 @@ func expectedPrefixesListWithPrefixFilter(ipamMock *mock_interfaces.MockIpamInte
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamPrefixesList was called with expected input,\n")
 			return &ipam.IpamPrefixesListOK{Payload: mockedResponsePrefixList()}, nil
-		}).Times(1)
+		}).MinTimes(1)
 }
 
-func expectedPrefixesAvailableIpsList(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockPrefixesAvailableIpsList(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamPrefixesAvailableIpsList(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamPrefixesAvailableIpsListOK, error) {
 			got := params.(*ipam.IpamPrefixesAvailableIpsListParams)
@@ -121,10 +121,10 @@ func expectedPrefixesAvailableIpsList(ipamMock *mock_interfaces.MockIpamInterfac
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamPrefixesAvailableIpsList was called with expected input,\n")
 			return &ipam.IpamPrefixesAvailableIpsListOK{Payload: mockedResponseExpectedAvailableIpAddress()}, nil
-		}).Times(1)
+		}).MinTimes(1)
 }
 
-func expectedIpAddressesDelete(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpAddressesDelete(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesDeleteNoContent, error) {
 			got := params.(*ipam.IpamIPAddressesDeleteParams)
@@ -134,12 +134,12 @@ func expectedIpAddressesDelete(ipamMock *mock_interfaces.MockIpamInterface, catc
 				catchUnexpectedParams <- err
 				return &ipam.IpamIPAddressesDeleteNoContent{}, err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesDelete was called with expected input\n")
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesDelete was called with mock input\n")
 			return &ipam.IpamIPAddressesDeleteNoContent{}, nil
-		}).Times(1)
+		}).MinTimes(1)
 }
 
-func expectedIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {
 			got := params.(*ipam.IpamIPAddressesUpdateParams)
@@ -154,7 +154,22 @@ func expectedIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, 
 		}).MinTimes(1)
 }
 
-func expectedIpamIPAddressesUpdateFail(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpamIPAddressesUpdateWithHash(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
+		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {
+			got := params.(*ipam.IpamIPAddressesUpdateParams)
+			diff := deep.Equal(got, ExpectedIpAddressUpdateWithHashParams)
+			if len(diff) > 0 {
+				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesUpdate (with hash), diff to expected params diff: %+v", diff)
+				catchUnexpectedParams <- err
+				return &ipam.IpamIPAddressesUpdateOK{}, err
+			}
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesUpdate (with hash) was called with mock input\n")
+			return &ipam.IpamIPAddressesUpdateOK{Payload: mockedResponseIPAddress()}, nil
+		}).MinTimes(1)
+}
+
+func mockIpamIPAddressesUpdateFail(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {
 			got := params.(*ipam.IpamIPAddressesUpdateParams)
@@ -169,7 +184,7 @@ func expectedIpamIPAddressesUpdateFail(ipamMock *mock_interfaces.MockIpamInterfa
 		}).MinTimes(1)
 }
 
-func expectedIpamIPAddressesCreate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpamIPAddressesCreate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesCreateCreated, error) {
 			got := params.(*ipam.IpamIPAddressesCreateParams)
@@ -181,14 +196,29 @@ func expectedIpamIPAddressesCreate(ipamMock *mock_interfaces.MockIpamInterface, 
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesCreate was called with expected input\n")
 			return &ipam.IpamIPAddressesCreateCreated{Payload: mockedResponseIPAddress()}, nil
-		}).Times(1)
+		}).MinTimes(1)
+}
+
+func mockIpamIPAddressesCreateWithHash(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).
+		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesCreateCreated, error) {
+			got := params.(*ipam.IpamIPAddressesCreateParams)
+			diff := deep.Equal(got, ExpectedIpAddressesCreateWithHashParams)
+			if len(diff) > 0 {
+				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesCreate (with hash), diff to expected params diff: %+v", diff)
+				catchUnexpectedParams <- err
+				return &ipam.IpamIPAddressesCreateCreated{}, err
+			}
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesCreate (with hash) was called with expected input\n")
+			return &ipam.IpamIPAddressesCreateCreated{Payload: mockedResponseIPAddress()}, nil
+		}).MinTimes(1)
 }
 
 // -----------------------------
 // Tenancy Mock Functions
 // -----------------------------
 
-func expectedTenancyTenancyTenantsList(tenancyMock *mock_interfaces.MockTenancyInterface, catchUnexpectedParams chan error) {
+func mockTenancyTenancyTenantsList(tenancyMock *mock_interfaces.MockTenancyInterface, catchUnexpectedParams chan error) {
 	tenancyMock.EXPECT().TenancyTenantsList(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*tenancy.TenancyTenantsListOK, error) {
 			got := params.(*tenancy.TenancyTenantsListParams)
@@ -201,4 +231,26 @@ func expectedTenancyTenancyTenantsList(tenancyMock *mock_interfaces.MockTenancyI
 			fmt.Printf("NETBOXMOCK\t tenancy.TenancyTenantsList was called with expected input\n")
 			return &tenancy.TenancyTenantsListOK{Payload: mockedResponseTenancyTenantsList()}, nil
 		}).MinTimes(1)
+}
+
+// -----------------------------
+// Restet Mock Functions
+// -----------------------------
+
+func resetMockFunctions(ipamMockA *mock_interfaces.MockIpamInterface, ipamMockB *mock_interfaces.MockIpamInterface, tenancyMock *mock_interfaces.MockTenancyInterface) {
+	ipamMockA.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).Times(0)
+	ipamMockA.EXPECT().IpamIPAddressesUpdate(gomock.Any(), gomock.Any(), nil).Times(0)
+	ipamMockA.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).Times(0)
+	ipamMockA.EXPECT().IpamPrefixesAvailableIpsList(gomock.Any(), gomock.Any()).Times(0)
+	ipamMockA.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).Times(0)
+	ipamMockA.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Times(0)
+	ipamMockA.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).Times(0)
+	ipamMockB.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).Times(0)
+	ipamMockB.EXPECT().IpamIPAddressesUpdate(gomock.Any(), gomock.Any(), nil).Times(0)
+	ipamMockB.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).Times(0)
+	ipamMockB.EXPECT().IpamPrefixesAvailableIpsList(gomock.Any(), gomock.Any()).Times(0)
+	ipamMockB.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).Times(0)
+	ipamMockB.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Times(0)
+	ipamMockB.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).Times(0)
+	tenancyMock.EXPECT().TenancyTenantsList(gomock.Any(), nil).Times(0)
 }

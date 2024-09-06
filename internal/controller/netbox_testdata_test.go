@@ -24,7 +24,6 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
-	"github.com/netbox-community/netbox-operator/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,14 +42,17 @@ var siteSlug = "mars-ip-claim"
 var ipAddress = "1.0.0.1/32"
 var parentPrefix = "1.0.0.0/28"
 
-var customFields = map[string]string{"example_field": "example value"}
-
 var siteId = int64(2)
 var site = "Mars"
 
 var tenantId = int64(1)
 var tenant = "test-tenant"
 var tenantSlug = "test-tenant-slug"
+
+var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
+
+var customFields = map[string]string{"example_field": "example value"}
+var customFieldsWithHash = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
 
 var netboxLabel = "Status"
 var value = "active"
@@ -85,7 +87,7 @@ func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *netboxv1.IpAddress {
 		Spec: netboxv1.IpAddressSpec{
 			IpAddress:        ipAddress,
 			Tenant:           tenant,
-			CustomFields:     customFields,
+			CustomFields:     customFieldsWithHash,
 			Comments:         comments,
 			Description:      description,
 			PreserveInNetbox: preserveInNetbox,
@@ -220,7 +222,17 @@ var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	Comments: comments + warningComment,
 	CustomFields: map[string]string{
 		"example_field": "example value",
-		config.GetOperatorConfig().NetboxRestorationHashFieldName: "a0601ac7e6d196a82c0e61f9be17313113c3043f",
+	},
+	Description: nsn + description + warningComment,
+	Status:      "active",
+	Tenant:      &tenantId}
+
+var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
+	Address:  &ipAddress,
+	Comments: comments + warningComment,
+	CustomFields: map[string]string{
+		"example_field":                 "example value",
+		"netboxOperatorRestorationHash": restorationHash,
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
@@ -228,6 +240,9 @@ var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 
 var ExpectedIpAddressUpdateParams = ipam.NewIpamIPAddressesUpdateParams().WithDefaults().
 	WithData(expectedIpToUpdate).WithID(expectedIpAddressID)
+
+var ExpectedIpAddressUpdateWithHashParams = ipam.NewIpamIPAddressesUpdateParams().WithDefaults().
+	WithData(expectedIpToUpdateWithHash).WithID(expectedIpAddressID)
 
 var ExpectedTenantsListParams = tenancy.NewTenancyTenantsListParams().WithName(&tenant)
 
@@ -246,6 +261,8 @@ var ExpectedIpAddressListParams = ipam.NewIpamIPAddressesListParams()
 
 // expected inputs for ipam.IpamIPAddressesCreate method
 var ExpectedIpAddressesCreateParams = ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(expectedIpToUpdate)
+
+var ExpectedIpAddressesCreateWithHashParams = ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(expectedIpToUpdateWithHash)
 
 // expected inputs for ipam.IpamIPAddressesDelete method
 var ExpectedDeleteParams = ipam.NewIpamIPAddressesDeleteParams().WithID(expectedIpAddressID)
