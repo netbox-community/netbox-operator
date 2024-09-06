@@ -74,7 +74,7 @@ In the folder config/samples/ you can find example manifests to create IpAddress
 
 Example based on a PrefixClaim:
 
-![PrefixClaim example with a NetBox and NetBox Operator instance deployed on the same cluster](docs/prefixclaim-sample-with-netbox-running-in-cluster.drawio)
+![PrefixClaim example with a NetBox and NetBox Operator instance deployed on the same cluster](docs/prefixclaim-sample-with-netbox-running-in-cluster.drawio.svg)
 
 1. Apply a PrefixClaim: `kubectl apply -f config/samples/netbox_v1_prefixclaim.yaml`
 2. Wait for ready condition: `kubectl wait prefix prefixclaim-sample --for=condition=Ready`
