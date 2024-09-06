@@ -206,7 +206,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	/* 4. update status conditions */
 	prefix.Status.PrefixId = netboxPrefixModel.ID
-	prefix.Status.PrefixUrl = "https://" + config.GetOperatorConfig().NetboxHost + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
+	prefix.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
 	if err = r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, ""); err != nil {
 		return ctrl.Result{}, err
 	}
