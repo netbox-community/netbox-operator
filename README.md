@@ -43,7 +43,7 @@ Note: This requires Docker BuildKit.
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
 
-- Run the NetBox Operator locally (in a new terminal window) `make install && make run`
+- Run the NetBox Operator locally `make install && make run`
 
 ### Running the NetBox Operator on your machine using an existing NetBox and Kubernetes cluster
 
@@ -53,7 +53,7 @@ Note: This requires a running NetBox instance that you can use (e.g. <https://de
   - Open <https://demo.netbox.dev/plugins/demo/login/> and create any user
   - Open <https://demo.netbox.dev/user/api-tokens/> and create a token "0123456789abcdef0123456789abcdef01234567" with default settings
   - Open <https://demo.netbox.dev/extras/custom-fields/add/> and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address" and "IPAM > Prefix"
-- Open a new terminal window and export the following environment variables (adjust the API :
+- Open a new terminal window and export the following environment variables:
 
     ```bash
     export NETBOX_HOST="demo.netbox.dev"
@@ -63,7 +63,7 @@ Note: This requires a running NetBox instance that you can use (e.g. <https://de
     export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
     ```
 
-- Run the NetBox Operator locally (in a new terminal window) `make install && make run`
+- Run the NetBox Operator locally `make install && make run`
 
 ## Testing NetBox Operator using samples
 
@@ -85,7 +85,7 @@ Make sure to also discover the yaml output of these resources, check the events 
 ### Build and push your image to the location specified by `IMG`
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/NetBox Operator:tag
+make docker-build docker-push IMG=<some-registry>/netbox-operator:tag
 ```
 
 > **NOTE**: This image ought to be published in the personal registry you specified, and it is required to have access to pull the image from the working environment. Make sure you have the proper permission to the registry if the above commands don’t work.
@@ -99,7 +99,7 @@ make install
 ### Deploy the Manager to the cluster with the image specified by `IMG`
 
 ```sh
-make deploy IMG=<some-registry>/NetBox Operator:tag
+make deploy IMG=<some-registry>/netbox-operator:tag
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
@@ -154,7 +154,7 @@ Following are the steps to build the installer and distribute this project to us
 1. Build the installer for the image built and published in the registry:
 
 ```sh
-make build-installer IMG=<some-registry>/NetBox Operator:tag
+make build-installer IMG=<some-registry>/netbox-operator:tag
 ```
 
 > **NOTE**: The makefile target mentioned above generates an 'install.yaml'
@@ -167,7 +167,7 @@ its dependencies.
 Users can just run `kubectl apply -f <URL for YAML BUNDLE>` to install the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/NetBox Operator/<tag or branch>/dist/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/<org>/netbox-operator/<tag or branch>/dist/install.yaml
 ```
 
 # Contributing
