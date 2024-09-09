@@ -79,7 +79,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 
 		// Create our CR
 		By("Creating IpAddress CR")
-		Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
+		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
 
 		// check that reconcile loop did run a least once by checking that conditions are set
 		createdCR := &netboxv1.IpAddress{}

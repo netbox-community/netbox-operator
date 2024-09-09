@@ -107,7 +107,7 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 
 		// Create our CR
 		By("Creating IpAddressClaim CR")
-		Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
+		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
 
 		// check that ip address claim CR was created
 		createdCR := &netboxv1.IpAddressClaim{}
