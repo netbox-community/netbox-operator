@@ -1,6 +1,12 @@
 ---
 name: Go Vulnerability Checker
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  pull_request:
 permissions: read-all
 jobs:
   test:
