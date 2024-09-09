@@ -70,7 +70,7 @@ Note: This requires a running NetBox instance that you can use (e.g. <https://de
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to displa.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
