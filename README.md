@@ -140,7 +140,7 @@ make undeploy
 
 ## Restoration from NetBox
 
-In case the cluster that contains the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
+In the case that the cluster containing the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
 
 - `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
 - In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix based on data from the IpAddressClaim/PrefixClaim resource
