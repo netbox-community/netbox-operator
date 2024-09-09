@@ -26,3 +26,4 @@ go.work
 *.swo
 *~
 .drawio.dtmp
+.DS_Store
