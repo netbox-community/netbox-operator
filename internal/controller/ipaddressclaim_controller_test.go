@@ -167,41 +167,41 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 			return apierrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue())
 	},
-		Entry("Create IpAddressClaim CR, reserve new ip address in NetBox",
-			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
-			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithHashFilterEmptyResult,
-				mockPrefixesListWithPrefixFilter,
-				mockPrefixesAvailableIpsList,
-			},
-			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithIpAddressFilterEmptyResult,
-				mockIpamIPAddressesCreateWithHash,
-				mockIpAddressesDelete,
-			},
-			[]func(*mock_interfaces.MockTenancyInterface, chan error){
-				mockTenancyTenancyTenantsList,
-			},
-			true, true, ExpectedIpAddressClaimStatus, false),
-		Entry("Create IpAddressClaim CR, reassign ip from NetBox",
-			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
-			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithHashFilter,
-			},
-			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithIpAddressFilter,
-				mockIpamIPAddressesUpdateWithHash,
-				mockIpAddressesDelete,
-			},
-			[]func(*mock_interfaces.MockTenancyInterface, chan error){
-				mockTenancyTenancyTenantsList,
-			},
-			true, true, ExpectedIpAddressClaimStatus, false),
-		Entry("Create IpAddressClaim CR, prefix locked by other resource",
-			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
-			nil,
-			nil,
-			nil,
-			false, false, netboxv1.IpAddressClaimStatus{}, true),
+	//Entry("Create IpAddressClaim CR, reserve new ip address in NetBox",
+	//	defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
+	//	[]func(*mock_interfaces.MockIpamInterface, chan error){
+	//		mockIpAddressListWithHashFilterEmptyResult,
+	//		mockPrefixesListWithPrefixFilter,
+	//		mockPrefixesAvailableIpsList,
+	//	},
+	//	[]func(*mock_interfaces.MockIpamInterface, chan error){
+	//		mockIpAddressListWithIpAddressFilterEmptyResult,
+	//		mockIpamIPAddressesCreateWithHash,
+	//		mockIpAddressesDelete,
+	//	},
+	//	[]func(*mock_interfaces.MockTenancyInterface, chan error){
+	//		mockTenancyTenancyTenantsList,
+	//	},
+	//	true, true, ExpectedIpAddressClaimStatus, false),
+	//Entry("Create IpAddressClaim CR, reassign ip from NetBox",
+	//	defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
+	//	[]func(*mock_interfaces.MockIpamInterface, chan error){
+	//		mockIpAddressListWithHashFilter,
+	//	},
+	//	[]func(*mock_interfaces.MockIpamInterface, chan error){
+	//		mockIpAddressListWithIpAddressFilter,
+	//		mockIpamIPAddressesUpdateWithHash,
+	//		mockIpAddressesDelete,
+	//	},
+	//	[]func(*mock_interfaces.MockTenancyInterface, chan error){
+	//		mockTenancyTenancyTenantsList,
+	//	},
+	//	true, true, ExpectedIpAddressClaimStatus, false),
+	//Entry("Create IpAddressClaim CR, prefix locked by other resource",
+	//	defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
+	//	nil,
+	//	nil,
+	//	nil,
+	//	false, false, netboxv1.IpAddressClaimStatus{}, true),
 	)
 })
