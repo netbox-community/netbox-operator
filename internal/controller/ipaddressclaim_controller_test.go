@@ -107,7 +107,7 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 
 		// Create our CR
 		By("Creating IpAddressClaim CR")
-		Expect(k8sClient.Create(ctx, cr)).Should(Succeed())
+		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
 
 		// check that ip address claim CR was created
 		createdCR := &netboxv1.IpAddressClaim{}
@@ -183,25 +183,25 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 				mockTenancyTenancyTenantsList,
 			},
 			true, true, ExpectedIpAddressClaimStatus, false),
-		//Entry("Create IpAddressClaim CR, reassign ip from NetBox",
-		//	defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
-		//	[]func(*mock_interfaces.MockIpamInterface, chan error){
-		//		mockIpAddressListWithHashFilter,
-		//	},
-		//	[]func(*mock_interfaces.MockIpamInterface, chan error){
-		//		mockIpAddressListWithIpAddressFilter,
-		//		mockIpamIPAddressesUpdateWithHash,
-		//		mockIpAddressesDelete,
-		//	},
-		//	[]func(*mock_interfaces.MockTenancyInterface, chan error){
-		//		mockTenancyTenancyTenantsList,
-		//	},
-		//	true, true, ExpectedIpAddressClaimStatus, false),
-		//Entry("Create IpAddressClaim CR, prefix locked by other resource",
-		//	defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
-		//	nil,
-		//	nil,
-		//	nil,
-		//	false, false, netboxv1.IpAddressClaimStatus{}, true),
+		Entry("Create IpAddressClaim CR, reassign ip from NetBox",
+			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithHashFilter,
+			},
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithIpAddressFilter,
+				mockIpamIPAddressesUpdateWithHash,
+				mockIpAddressesDelete,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			true, true, ExpectedIpAddressClaimStatus, false),
+		Entry("Create IpAddressClaim CR, prefix locked by other resource",
+			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
+			nil,
+			nil,
+			nil,
+			false, false, netboxv1.IpAddressClaimStatus{}, true),
 	)
 })
