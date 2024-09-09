@@ -81,7 +81,7 @@ Example of assigning a Prefix using PrefixClaim:
 3. List PrefixClaim and Prefix resources: `kubectl get pxc,px`
 4. In the prefix status fields you’ll be able to see the netbox URL of the resource. Login with the default `admin`/`admin` credentials to access the NetBox resources.
 
-Make sure to also discover the yaml output of these resources, check the events and Operator logs.
+Key information can be found in the yaml formatted output of these resources, as well as in the events and Operator logs.
 
 ## To Deploy on the cluster
 
