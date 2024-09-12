@@ -9,6 +9,7 @@ on:
   pull_request:
 env:
   IMAGE_NAME: netbox-operator
+  DOCKER_METADATA_PR_HEAD_SHA: true
 jobs:
   push:
     runs-on: ubuntu-latest
@@ -32,23 +33,16 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5.5.1
         with:
-          images: ${{ env.IMAGE_NAME }}        
-      - name: Build and push image
-        run: |
-          # generate IMAGE_ID
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/
-          # This changes all uppercase characters to lowercase.
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
-          
-          echo IMAGE_ID=$IMAGE_ID
-          echo DOCKER_TAG="${{ steps.meta.outputs.tags }}"
-          echo DOCKER_LABELS="${{ steps.meta.outputs.labels }}"
-
-          # build and push
-          if [ ${{ github.event_name }} != "pull_request" ] 
-          then 
-            docker buildx build --platform linux/amd64,linux/arm64 --push --tag "${IMAGE_ID}${{ steps.meta.outputs.tags }}" --label "${{ steps.meta.outputs.labels }}" .
-          else
-            docker buildx build --platform linux/amd64,linux/arm64 --tag "${IMAGE_ID}${{ steps.meta.outputs.tags }}" --label "${{ steps.meta.outputs.labels }}" .
-          fi
-          
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}        
+          tags: |
+            # for commits on the main branch only, we will generate the tag named `latest`
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+            # the tag named sha-[short sha value] will be generated in all cases
+            type=sha,enable=true
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.ref == format('refs/heads/{0}', 'main') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
