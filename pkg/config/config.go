@@ -96,9 +96,8 @@ func GetOperatorConfig() *OperatorConfig {
 func GetProtocol() string {
 	if GetOperatorConfig().HttpsEnable {
 		return "https"
-	} else {
-		return "http"
 	}
+	return "http"
 }
 
 func GetBaseUrl() string {
