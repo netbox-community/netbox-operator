@@ -1,0 +1,60 @@
+---
+name: Static analysis
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+  pull_request:
+permissions: read-all
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: 1.22.6
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
+        with:
+          version: v1.60.3
+          args: --config tools/.golangci.yaml
+      - run: |
+          set -euo pipefail
+
+          make vet
+      - run: |
+          set -euo pipefail
+
+          make lint
+      - run: |
+          set -euo pipefail
+
+          make fmt
+
+          DIFF=$(git status --porcelain)
+
+          if [ -n "$DIFF" ]; then
+            echo "These files were modified:"
+            echo
+            echo "$DIFF"
+            echo
+            exit 1
+          fi
+      - run: |
+          set -euo pipefail
+
+          DIFF=$(git status --porcelain)
+
+          make generate manifests
+
+          if [ -n "$DIFF" ]; then
+          echo "These files were modified:"
+          echo
+          echo "$DIFF"
+          echo
+          echo "Please run make generate manifests and commit the changes."
+          exit 1
+          fi

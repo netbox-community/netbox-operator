@@ -45,7 +45,7 @@ GO_PACKAGE_NAME_GOLANGCI_LINT := golangci-lint
 install-$(GO_PACKAGE_NAME_GOLANGCI_LINT):
 	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_GOLANGCI_LINT)" ]; then \
 		echo "Installing $(GO_PACKAGE_NAME_GOLANGCI_LINT)..." ; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.57.2 ; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.60.3 ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_GOLANGCI_LINT) is installed" ; \
 	fi

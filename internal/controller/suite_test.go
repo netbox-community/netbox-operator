@@ -60,7 +60,6 @@ var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
 var tenancyMock *mock_interfaces.MockTenancyInterface
 var ctx context.Context
 var cancel context.CancelFunc
-var netboxClient *api.NetboxClient
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
