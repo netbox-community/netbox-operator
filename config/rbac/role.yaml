@@ -12,7 +12,7 @@ rules:
   - create
   - patch
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - ipaddressclaims
   verbs:
@@ -24,13 +24,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - ipaddressclaims/finalizers
   verbs:
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - ipaddressclaims/status
   verbs:
@@ -38,7 +38,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - ipaddresses
   verbs:
@@ -50,13 +50,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - ipaddresses/finalizers
   verbs:
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - ipaddresses/status
   verbs:
@@ -64,7 +64,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - prefixclaims
   verbs:
@@ -76,13 +76,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - prefixclaims/finalizers
   verbs:
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - prefixclaims/status
   verbs:
@@ -90,7 +90,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - prefixes
   verbs:
@@ -102,13 +102,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - prefixes/finalizers
   verbs:
   - update
 - apiGroups:
-  - netbox.dev
+  - ipam.netboxlabs.com
   resources:
   - prefixes/status
   verbs:

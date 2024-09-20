@@ -4,21 +4,21 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: ipaddresses.netbox.dev
+  name: prefixes.ipam.netboxlabs.com
 spec:
-  group: netbox.dev
+  group: ipam.netboxlabs.com
   names:
-    kind: IpAddress
-    listKind: IpAddressList
-    plural: ipaddresses
+    kind: Prefix
+    listKind: PrefixList
+    plural: prefixes
     shortNames:
-    - ip
-    singular: ipaddress
+    - px
+    singular: prefix
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.ipAddress
-      name: IpAddress
+    - jsonPath: .spec.prefix
+      name: Prefix
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -35,7 +35,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: IpAddress is the Schema for the ipaddresses API
+        description: Prefix is the Schema for the prefixes API
         properties:
           apiVersion:
             description: |-
@@ -55,7 +55,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IpAddressSpec defines the desired state of IpAddress
+            description: PrefixSpec defines the desired state of Prefix
             properties:
               comments:
                 type: string
@@ -65,24 +65,26 @@ spec:
                 type: object
               description:
                 type: string
-              ipAddress:
+              prefix:
                 format: cidr
                 type: string
                 x-kubernetes-validations:
-                - message: Field 'ipAddress' is immutable
+                - message: Field 'prefix' is immutable
                   rule: self == oldSelf
               preserveInNetbox:
                 type: boolean
+              site:
+                type: string
               tenant:
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'tenant' is immutable
                   rule: self == oldSelf
             required:
-            - ipAddress
+            - prefix
             type: object
           status:
-            description: IpAddressStatus defines the observed state of IpAddress
+            description: PrefixStatus defines the observed state of Prefix
             properties:
               conditions:
                 items:
@@ -157,6 +159,7 @@ spec:
                 description: |-
                   INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
                   Important: Run "make" to regenerate code after modifying this file
+                  Prefix status: container, active, reserved , deprecated
                 format: int64
                 type: integer
               url:

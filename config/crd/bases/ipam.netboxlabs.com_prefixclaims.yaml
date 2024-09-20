@@ -4,24 +4,24 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: ipaddressclaims.netbox.dev
+  name: prefixclaims.ipam.netboxlabs.com
 spec:
-  group: netbox.dev
+  group: ipam.netboxlabs.com
   names:
-    kind: IpAddressClaim
-    listKind: IpAddressClaimList
-    plural: ipaddressclaims
+    kind: PrefixClaim
+    listKind: PrefixClaimList
+    plural: prefixclaims
     shortNames:
-    - ipc
-    singular: ipaddressclaim
+    - pxc
+    singular: prefixclaim
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.ipAddress
-      name: IpAddress
+    - jsonPath: .status.prefix
+      name: Prefix
       type: string
-    - jsonPath: .status.conditions[?(@.type=="IPAssigned")].status
-      name: IpAssigned
+    - jsonPath: .status.conditions[?(@.type=="PrefixAssigned")].status
+      name: PrefixAssigned
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -32,7 +32,7 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: IpAddressClaim is the Schema for the ipaddressclaims API
+        description: PrefixClaim is the Schema for the prefixclaims API
         properties:
           apiVersion:
             description: |-
@@ -52,7 +52,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: IpAddressClaimSpec defines the desired state of IpAddressClaim
+            description: PrefixClaimSpec defines the desired state of PrefixClaim
             properties:
               comments:
                 type: string
@@ -68,8 +68,16 @@ spec:
                 x-kubernetes-validations:
                 - message: Field 'parentPrefix' is immutable
                   rule: self == oldSelf
+              prefixLength:
+                pattern: ^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$
+                type: string
+                x-kubernetes-validations:
+                - message: Field 'prefixLength' is immutable
+                  rule: self == oldSelf
               preserveInNetbox:
                 type: boolean
+              site:
+                type: string
               tenant:
                 type: string
                 x-kubernetes-validations:
@@ -77,9 +85,10 @@ spec:
                   rule: self == oldSelf
             required:
             - parentPrefix
+            - prefixLength
             type: object
           status:
-            description: IpAddressClaimStatus defines the observed state of IpAddressClaim
+            description: PrefixClaimStatus defines the observed state of PrefixClaim
             properties:
               conditions:
                 items:
@@ -150,11 +159,13 @@ spec:
                   - type
                   type: object
                 type: array
-              ipAddress:
+              prefix:
+                description: |-
+                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+                  Important: Run "make" to regenerate code after modifying this file
+                  Prefix status: container, active, reserved , deprecated
                 type: string
-              ipAddressDotDecimal:
-                type: string
-              ipAddressName:
+              prefixName:
                 type: string
             type: object
         type: object

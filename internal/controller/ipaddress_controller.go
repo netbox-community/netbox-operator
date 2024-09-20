@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -44,8 +44,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const IpAddressFinalizerName = "ipaddress.netbox.dev/finalizer"
-const LastIpAddressMetadataAnnotationName = "ipaddress.netbox.dev/last-ip-address-metadata"
+const IpAddressFinalizerName = "ipaddress.ipam.netboxlabs.com/finalizer"
+const LastIpAddressMetadataAnnotationName = "ipaddress.ipam.netboxlabs.com/last-ip-address-metadata"
 
 // IpAddressReconciler reconciles a IpAddress object
 type IpAddressReconciler struct {
@@ -57,9 +57,9 @@ type IpAddressReconciler struct {
 	RestConfig        *rest.Config
 }
 
-//+kubebuilder:rbac:groups=netbox.dev,resources=ipaddresses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=netbox.dev,resources=ipaddresses/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=netbox.dev,resources=ipaddresses/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddresses/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddresses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -69,7 +69,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	logger.Info("reconcile loop started")
 
-	o := &netboxv1.IpAddress{}
+	o := &ipamv1.IpAddress{}
 	err := r.Client.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -81,7 +81,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
 				if err != nil {
-					setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err.Error())
+					setConditionErr := r.SetConditionAndCreateEvent(ctx, o, ipamv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err.Error())
 					if setConditionErr != nil {
 						return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting IPAddress failed: %w", setConditionErr, err)
 					}
@@ -125,7 +125,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Name:      or[0].Name,
 			Namespace: req.Namespace,
 		}
-		ipAddressClaim := &netboxv1.IpAddressClaim{}
+		ipAddressClaim := &ipamv1.IpAddressClaim{}
 		err = r.Client.Get(ctx, orLookupKey, ipAddressClaim)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -171,7 +171,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
 	if err != nil {
-		updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
+		updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, ipamv1.ConditionIpaddressReadyFalse,
 			corev1.EventTypeWarning, o.Spec.IpAddress)
 		return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
 			"after reservation of ip in netbox failed: %w", updateStatusErr, err)
@@ -224,7 +224,15 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	debugLogger.Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
 
-	err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, "")
+	// 3. unlock lease of parent prefix
+	if ll != nil {
+		ll.Unlock()
+	}
+
+	// 4. update status conditions
+	o.Status.IpAddressId = netboxIpAddressModel.ID
+	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
+	err = r.SetConditionAndCreateEvent(ctx, o, ipamv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, "")
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -237,11 +245,11 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager sets up the controller with the Manager.
 func (r *IpAddressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&netboxv1.IpAddress{}).
+		For(&ipamv1.IpAddress{}).
 		Complete(r)
 }
 
-func (r *IpAddressReconciler) SetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpAddress, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
+func (r *IpAddressReconciler) SetConditionAndCreateEvent(ctx context.Context, o *ipamv1.IpAddress, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
 	if len(conditionMessageAppend) > 0 {
 		condition.Message = condition.Message + ". " + conditionMessageAppend
 	}
@@ -256,7 +264,7 @@ func (r *IpAddressReconciler) SetConditionAndCreateEvent(ctx context.Context, o 
 	return nil
 }
 
-func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec, req ctrl.Request, lastIpAddressMetadata string) (*models.IPAddress, error) {
+func generateNetboxIpAddressModelFromIpAddressSpec(spec *ipamv1.IpAddressSpec, req ctrl.Request, lastIpAddressMetadata string) (*models.IPAddress, error) {
 	// unmarshal lastIpAddressMetadata json string to map[string]string
 	lastAppliedCustomFields := make(map[string]string)
 	if lastIpAddressMetadata != "" {
