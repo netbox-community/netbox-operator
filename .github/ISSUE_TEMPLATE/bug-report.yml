@@ -50,8 +50,8 @@ body:
     id: config
     attributes:
       label: Netbox operator configuration (command line flags or environment variables)
-      value: |
-        # paste your configuration here
+      description: Please copy and paste your configuration here.
+      render: Shell
 
   - type: textarea
     id: logs
