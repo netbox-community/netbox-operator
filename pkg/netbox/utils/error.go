@@ -17,10 +17,17 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 )
 
-func NetboxError(message string, err error) error {
+var ErrNotFound = errors.New("not found")
 
-	return errors.Errorf(message, err.Error())
+func NetboxError(message string, err error) error {
+	return fmt.Errorf(message+": %w", err)
+}
+
+func NetboxNotFoundError(name string) error {
+	return NetboxError("failed to fetch "+name, ErrNotFound)
 }

@@ -234,7 +234,7 @@ func mockTenancyTenancyTenantsList(tenancyMock *mock_interfaces.MockTenancyInter
 }
 
 // -----------------------------
-// Restet Mock Functions
+// Reset Mock Functions
 // -----------------------------
 
 func resetMockFunctions(ipamMockA *mock_interfaces.MockIpamInterface, ipamMockB *mock_interfaces.MockIpamInterface, tenancyMock *mock_interfaces.MockTenancyInterface) {

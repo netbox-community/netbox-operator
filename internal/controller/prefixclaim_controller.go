@@ -135,7 +135,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					},
 				})
 			if err != nil {
-				return ctrl.Result{}, err
+				setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error())
+				if setConditionErr != nil {
+					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when getting an available Prefix failed: %w", setConditionErr, err)
+				}
+
+				return ctrl.Result{Requeue: true}, nil
 			}
 			debugLogger.Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
 		} else {

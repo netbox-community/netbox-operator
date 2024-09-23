@@ -23,6 +23,7 @@ import (
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
 const (
@@ -57,6 +58,10 @@ func (r *NetboxClient) RestoreExistingIpByHash(customFieldName string, hash stri
 
 // GetAvailableIpAddressByClaim searches an available IpAddress in Netbox matching IpAddressClaim requirements
 func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAddressClaim) (*models.IPAddress, error) {
+	_, err := r.GetTenantDetails(ipAddressClaim.Metadata.Tenant)
+	if err != nil {
+		return nil, err
+	}
 
 	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
 		Prefix:   ipAddressClaim.ParentPrefix,
@@ -66,7 +71,7 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 		return nil, err
 	}
 	if len(responseParentPrefix.Payload.Results) == 0 {
-		return nil, errors.New("parent prefix not found")
+		return nil, utils.NetboxNotFoundError("parent prefix")
 	}
 
 	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
