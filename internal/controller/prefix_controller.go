@@ -79,7 +79,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// if being deleted
 	if !prefix.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
-			if !prefix.Spec.PreserveInNetbox {
+			if prefix.Status.PrefixId != 0 {
 				if err := r.NetboxClient.DeletePrefix(prefix.Status.PrefixId); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -97,6 +97,15 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// end loop if deletion timestamp is not zero
 		return ctrl.Result{}, nil
+	}
+
+	// register finalizer if not yet registered
+	if !prefix.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
+		debugLogger.Info("adding the finalizer")
+		controllerutil.AddFinalizer(prefix, PrefixFinalizerName)
+		if err := r.Update(ctx, prefix); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	/*
@@ -201,15 +210,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// check if the created prefix contains the entire description from spec
 	if _, found := strings.CutPrefix(netboxPrefixModel.Description, req.NamespacedName.String()+" // "+prefix.Spec.Description); !found {
 		r.Recorder.Event(prefix, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
-	}
-
-	// register finalizer if not yet registered
-	if !prefix.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
-		debugLogger.Info("adding the finalizer")
-		controllerutil.AddFinalizer(prefix, PrefixFinalizerName)
-		if err := r.Update(ctx, prefix); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	debugLogger.Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", prefix.Spec.Prefix))

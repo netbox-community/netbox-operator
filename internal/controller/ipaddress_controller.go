@@ -78,7 +78,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// if being deleted
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
-			if !o.Spec.PreserveInNetbox {
+			if o.Status.IpAddressId != 0 {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
 				if err != nil {
 					return ctrl.Result{}, err
@@ -99,6 +99,15 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		// end loop if deletion timestamp is not zero
 		return ctrl.Result{}, nil
+	}
+
+	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
+	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
+		debugLogger.Info("adding the finalizer")
+		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
+		if err := r.Update(ctx, o); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// 1. try to lock lease of parent prefix if IpAddress status condition is not true
@@ -206,15 +215,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description)
 	if !found {
 		r.Recorder.Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
-	}
-
-	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
-		debugLogger.Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	debugLogger.Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
