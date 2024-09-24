@@ -40,6 +40,7 @@ var comments = "integration test comment"
 var siteSlug = "mars-ip-claim"
 
 var ipAddress = "1.0.0.1/32"
+var ipAddressFamily = int64(4)
 var parentPrefix = "1.0.0.0/28"
 
 var siteId = int64(2)
@@ -136,6 +137,7 @@ func mockedResponseExpectedAvailableIpAddress() []*netboxModels.AvailableIP {
 	return []*netboxModels.AvailableIP{
 		{
 			Address: ipAddress,
+			Family:  ipAddressFamily,
 		},
 	}
 }

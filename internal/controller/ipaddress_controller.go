@@ -118,9 +118,10 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		// get name of parent prefix
-		parentPrefixName := strings.Replace(ipAddressClaim.Spec.ParentPrefix, "/", "-", -1)
-
-		leaseLockerNSN := types.NamespacedName{Name: parentPrefixName, Namespace: r.OperatorNamespace}
+		leaseLockerNSN := types.NamespacedName{
+			Name:      convertCIDRToLeaseLockName(ipAddressClaim.Spec.ParentPrefix),
+			Namespace: r.OperatorNamespace,
+		}
 		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
 		if err != nil {
 			return ctrl.Result{}, err
@@ -132,13 +133,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// create lock
 		locked := ll.TryLock(lockCtx)
 		if !locked {
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefixName))
-			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s", parentPrefixName)
+			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix))
+			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+				ipAddressClaim.Spec.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info(fmt.Sprintf("sucessfully locked parent prefix %s", parentPrefixName))
+		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", ipAddressClaim.Spec.ParentPrefix))
 	}
 
 	// 2. reserve or update ip address in netbox

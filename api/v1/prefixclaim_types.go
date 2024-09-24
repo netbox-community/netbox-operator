@@ -29,12 +29,12 @@ type PrefixClaimSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Pattern=`^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\/([1-9]|[12][0-9]|3[0-2])$`
+	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix"`
 
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Pattern=`^\/([1-9]|[12][0-9]|3[0-2])$`
+	//+kubebuilder:validation:Pattern=`^\/[0-9]|[1-9][0-9]|11[0-9]|12[0-8]$`
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefixLength' is immutable"
 	PrefixLength string `json:"prefixLength"`
 

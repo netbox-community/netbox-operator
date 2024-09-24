@@ -95,9 +95,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		debugLogger.Info("ipaddress object matching ipaddress claim was not found, creating new ipaddress object")
 
 		// 2. check if lease for parent prefix is available
-		parentPrefixName := strings.ReplaceAll(o.Spec.ParentPrefix, "/", "-")
-
-		leaseLockerNSN := types.NamespacedName{Name: parentPrefixName, Namespace: r.OperatorNamespace}
+		leaseLockerNSN := types.NamespacedName{
+			Name:      convertCIDRToLeaseLockName(o.Spec.ParentPrefix),
+			Namespace: r.OperatorNamespace,
+		}
 		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.Namespace+"/"+ipAddressName)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -110,21 +111,24 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefixName))
-			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s", parentPrefixName)
+			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix))
+			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+				o.Spec.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", parentPrefixName))
+		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 
 		// 4. try to reclaim ip address
 		h := generateIpAddressRestorationHash(o)
 		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(config.GetOperatorConfig().NetboxRestorationHashFieldName, h)
 		if err != nil {
+			if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+				return ctrl.Result{}, fmt.Errorf("error updating status: %w, looking up ip by hash failed: %w", setConditionErr, err)
+			}
 			return ctrl.Result{}, err
 		}
-		// TODO: set condition for each error
 
 		if ipAddressModel == nil {
 			// ip address cannot be restored from netbox
@@ -137,12 +141,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					},
 				})
 			if err != nil {
-				setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error())
-				if setConditionErr != nil {
-					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when getting an available IP address failed: %w", setConditionErr, err)
+				if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when assignment of ip address failed: %w", setConditionErr, err)
 				}
-
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{}, err
 			}
 			debugLogger.Info(fmt.Sprintf("ip address is not reserved in netbox, assigned new ip address: %s", ipAddressModel.IpAddress))
 		} else {

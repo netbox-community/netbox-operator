@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -91,8 +90,10 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		debugLogger.Info("the prefix was not found, will create a new prefix object now")
 
 		/* 2. check if the lease for parent prefix is available */
-		parentPrefixName := strings.ReplaceAll(prefixClaim.Spec.ParentPrefix, "/", "-")
-		leaseLockerNSN := types.NamespacedName{Name: parentPrefixName, Namespace: r.OperatorNamespace}
+		leaseLockerNSN := types.NamespacedName{
+			Name:      convertCIDRToLeaseLockName(prefixClaim.Spec.ParentPrefix),
+			Namespace: r.OperatorNamespace,
+		}
 		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.Namespace+"/"+prefixName)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -105,18 +106,22 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefixName))
-			r.Recorder.Eventf(prefixClaim, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s", parentPrefixName)
+			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Spec.ParentPrefix))
+			r.Recorder.Eventf(prefixClaim, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+				prefixClaim.Spec.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", parentPrefixName))
+		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", prefixClaim.Spec.ParentPrefix))
 
 		// 4. try to reclaim Prefix using restorationHash
 		h := generatePrefixRestorationHash(prefixClaim)
 		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h)
 		if err != nil {
+			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+				return ctrl.Result{}, fmt.Errorf("error updating status: %w, when look up of prefix by hash failed: %w", setConditionErr, err)
+			}
 			return ctrl.Result{}, err
 		}
 		// TODO: set condition for each error
@@ -135,12 +140,19 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					},
 				})
 			if err != nil {
+<<<<<<< HEAD
 				setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error())
 				if setConditionErr != nil {
 					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when getting an available Prefix failed: %w", setConditionErr, err)
 				}
 
 				return ctrl.Result{Requeue: true}, nil
+=======
+				if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when failed to get matching prefix: %w", setConditionErr, err)
+				}
+				return ctrl.Result{}, err
+>>>>>>> aa825f3 (add support for IPv6)
 			}
 			debugLogger.Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
 		} else {
@@ -218,38 +230,6 @@ func (r *PrefixClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&netboxv1.PrefixClaim{}).
 		Owns(&netboxv1.Prefix{}).
 		Complete(r)
-}
-
-func (r *PrefixClaimReconciler) GetAvailablePrefix(o *netboxv1.PrefixClaim) (*models.Prefix, error) {
-	var availablePrefix *models.Prefix
-	var err error
-	if availablePrefix, err = r.NetboxClient.GetAvailablePrefixByClaim(
-		&models.PrefixClaim{
-			ParentPrefix: o.Spec.ParentPrefix,
-			PrefixLength: o.Spec.PrefixLength,
-			Metadata: &models.NetboxMetadata{
-				Tenant: o.Spec.Tenant,
-			},
-		},
-	); err != nil {
-		return nil, err
-	}
-
-	if _, err = r.NetboxClient.ReserveOrUpdatePrefix(
-		&models.Prefix{
-			Prefix: availablePrefix.Prefix,
-			Metadata: &models.NetboxMetadata{
-				Comments:    o.Spec.Comments,
-				Custom:      map[string]string{},
-				Description: o.Spec.Description,
-				Site:        o.Spec.Site,
-				Tenant:      o.Spec.Tenant,
-			},
-		}); err != nil {
-		return nil, err
-	}
-
-	return availablePrefix, nil
 }
 
 // TODO(henrybear327): Duplicated code, consider refactoring this

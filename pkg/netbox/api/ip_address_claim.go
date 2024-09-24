@@ -26,8 +26,17 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
+type IPFamily int64
+
 const (
-	ipMask = "/32"
+	IPv4Familiy IPFamily = iota + 4
+	_                    // Skip 5
+	IPv6Familiy
+)
+
+const (
+	ipMaskIPv4 = "/32"
+	ipMaskIPv6 = "/128"
 )
 
 func (r *NetboxClient) RestoreExistingIpByHash(customFieldName string, hash string) (*models.IPAddress, error) {
@@ -78,6 +87,15 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
+	}
+
+	var ipMask string
+	if responseAvailableIPs.Payload[0].Family == int64(IPv4Familiy) {
+		ipMask = ipMaskIPv4
+	} else if responseAvailableIPs.Payload[0].Family == int64(IPv6Familiy) {
+		ipMask = ipMaskIPv6
+	} else {
+		return nil, errors.New("available ip has unknown IP family")
 	}
 
 	ipAddress, err := r.SetIpAddressMask(responseAvailableIPs.Payload[0].Address, ipMask)

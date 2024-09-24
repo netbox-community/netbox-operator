@@ -53,16 +53,31 @@ func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix,
 	}, nil
 }
 
-func isRequestingTheEntireParentPrefix(prefixClaim *models.PrefixClaim) (bool, error) {
+func isRequestingInvalidPrefixLength(prefixClaim *models.PrefixClaim, prefixFamily int64) (bool, string, error) {
 	parentPrefixSplit := strings.Split(prefixClaim.ParentPrefix, "/")
 	if len(parentPrefixSplit) != 2 {
-		return false, errors.New("invalid parent prefix format")
+		return false, "", errors.New("invalid parent prefix format")
 	}
 
-	if "/"+parentPrefixSplit[1] /* e.g. /24 */ == prefixClaim.PrefixLength /* e.g. /24 */ {
-		return true, nil
+	parentPrefixLength, err := strconv.Atoi(parentPrefixSplit[1])
+	if err != nil {
+		return false, "", err
 	}
-	return false, nil
+
+	requestedPrefixLength, err := strconv.Atoi(strings.TrimPrefix(prefixClaim.PrefixLength, "/"))
+	if err != nil {
+		return false, "", err
+	}
+
+	if parentPrefixLength == requestedPrefixLength {
+		return true, "requesting the entire parent prefix range is disallowed", nil
+	} else if parentPrefixLength > requestedPrefixLength {
+		return true, "requested prefix size must be smaller than the parent prefix size", nil
+	} else if prefixFamily == int64(IPv4Familiy) && requestedPrefixLength > 32 {
+		return true, "requested prefix length must be smaller than 32 for IPv4", nil
+	}
+
+	return false, "", nil
 }
 
 // GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
@@ -83,16 +98,14 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 		return nil, errors.New("parent prefix not found")
 	}
 
-	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
-
-	// We reject target prefix size == parent prefix size
-	if ret, err := isRequestingTheEntireParentPrefix(prefixClaim); err != nil {
+	if ret, message, err := isRequestingInvalidPrefixLength(prefixClaim,
+		*responseParentPrefix.Payload.Results[0].Family.Value); err != nil {
 		return nil, err
 	} else if ret {
-		// The issue lies in the prefix deletion.
-		// We do not want the operator to delete the parent prefix as a side effect of deleting any allocated prefixes
-		return nil, errors.New("requesting for the entire parent prefix range is disallowed")
+		return nil, errors.New("invalid prefix length: " + message)
 	}
+
+	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
 
 	/* Notes regarding the available prefix returned by netbox
 
