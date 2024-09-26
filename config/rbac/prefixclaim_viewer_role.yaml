@@ -8,7 +8,7 @@ metadata:
   name: prefixclaim-viewer-role
 rules:
 - apiGroups:
-  - ipam.netboxlabs.com
+  - ipam.netbox.dev
   resources:
   - prefixclaims
   verbs:
@@ -16,7 +16,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - ipam.netboxlabs.com
+  - ipam.netbox.dev
   resources:
   - prefixclaims/status
   verbs:

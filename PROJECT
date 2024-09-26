@@ -2,7 +2,7 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-domain: netboxlabs.com
+domain: netbox.dev
 layout:
 - go.kubebuilder.io/v4
 projectName: netbox-operator
@@ -12,7 +12,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: netboxlabs.com
+  domain: netbox.dev
   group: ipam
   kind: IpAddress
   path: github.com/netbox-community/netbox-operator/api/v1
@@ -21,7 +21,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: netboxlabs.com
+  domain: netbox.dev
   group: ipam
   kind: IpAddressClaim
   path: github.com/netbox-community/netbox-operator/api/v1
@@ -30,7 +30,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: netboxlabs.com
+  domain: netbox.dev
   group: ipam
   kind: Prefix
   path: github.com/netbox-community/netbox-operator/api/v1
@@ -39,7 +39,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: netboxlabs.com
+  domain: netbox.dev
   group: ipam
   kind: PrefixClaim
   path: github.com/netbox-community/netbox-operator/api/v1

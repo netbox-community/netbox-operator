@@ -44,8 +44,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const IpAddressFinalizerName = "ipaddress.ipam.netboxlabs.com/finalizer"
-const LastIpAddressMetadataAnnotationName = "ipaddress.ipam.netboxlabs.com/last-ip-address-metadata"
+const IpAddressFinalizerName = "ipaddress.ipam.netbox.dev/finalizer"
+const LastIpAddressMetadataAnnotationName = "ipaddress.ipam.netbox.dev/last-ip-address-metadata"
 
 // IpAddressReconciler reconciles a IpAddress object
 type IpAddressReconciler struct {
@@ -57,9 +57,9 @@ type IpAddressReconciler struct {
 	RestConfig        *rest.Config
 }
 
-//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddresses,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddresses/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddresses/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ipam.netbox.dev,resources=ipaddresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ipam.netbox.dev,resources=ipaddresses/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ipam.netbox.dev,resources=ipaddresses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

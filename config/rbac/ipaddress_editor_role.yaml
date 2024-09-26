@@ -12,7 +12,7 @@ metadata:
   name: ipaddress-editor-role
 rules:
 - apiGroups:
-  - ipam.netboxlabs.com
+  - ipam.netbox.dev
   resources:
   - ipaddresses
   verbs:
@@ -24,7 +24,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ipam.netboxlabs.com
+  - ipam.netbox.dev
   resources:
   - ipaddresses/status
   verbs:

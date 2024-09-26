@@ -51,9 +51,9 @@ type IpAddressClaimReconciler struct {
 	RestConfig        *rest.Config
 }
 
-//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddressclaims,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddressclaims/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=ipaddressclaims/finalizers,verbs=update
+//+kubebuilder:rbac:groups=ipam.netbox.dev,resources=ipaddressclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=ipam.netbox.dev,resources=ipaddressclaims/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ipam.netbox.dev,resources=ipaddressclaims/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

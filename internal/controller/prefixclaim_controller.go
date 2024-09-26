@@ -50,9 +50,9 @@ type PrefixClaimReconciler struct {
 	RestConfig        *rest.Config
 }
 
-// +kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=prefixclaims,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=prefixclaims/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=prefixclaims/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ipam.netbox.dev,resources=prefixclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ipam.netbox.dev,resources=prefixclaims/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ipam.netbox.dev,resources=prefixclaims/finalizers,verbs=update
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to

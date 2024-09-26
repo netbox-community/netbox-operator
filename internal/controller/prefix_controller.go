@@ -45,8 +45,8 @@ import (
 	"github.com/swisscom/leaselocker"
 )
 
-const PrefixFinalizerName = "prefix.ipam.netboxlabs.com/finalizer"
-const LastPrefixMetadataAnnotationName = "prefix.ipam.netboxlabs.com/last-prefix-metadata"
+const PrefixFinalizerName = "prefix.ipam.netbox.dev/finalizer"
+const LastPrefixMetadataAnnotationName = "prefix.ipam.netbox.dev/last-prefix-metadata"
 
 // PrefixReconciler reconciles a Prefix object
 type PrefixReconciler struct {
@@ -58,9 +58,9 @@ type PrefixReconciler struct {
 	RestConfig        *rest.Config
 }
 
-// +kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=prefixes,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=prefixes/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=ipam.netboxlabs.com,resources=prefixes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=ipam.netbox.dev,resources=prefixes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ipam.netbox.dev,resources=prefixes/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=ipam.netbox.dev,resources=prefixes/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

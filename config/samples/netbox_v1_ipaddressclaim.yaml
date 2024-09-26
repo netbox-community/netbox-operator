@@ -1,4 +1,4 @@
-apiVersion: ipam.netboxlabs.com/v1
+apiVersion: ipam.netbox.dev/v1
 kind: IpAddressClaim
 metadata:
   labels:

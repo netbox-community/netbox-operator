@@ -8,7 +8,7 @@ metadata:
   name: prefix-editor-role
 rules:
 - apiGroups:
-  - ipam.netboxlabs.com
+  - ipam.netbox.dev
   resources:
   - prefixes
   verbs:
@@ -20,7 +20,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ipam.netboxlabs.com
+  - ipam.netbox.dev
   resources:
   - prefixes/status
   verbs:

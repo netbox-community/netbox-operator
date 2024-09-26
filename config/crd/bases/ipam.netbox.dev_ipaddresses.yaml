@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: ipaddresses.ipam.netboxlabs.com
+  name: ipaddresses.ipam.netbox.dev
 spec:
-  group: ipam.netboxlabs.com
+  group: ipam.netbox.dev
   names:
     kind: IpAddress
     listKind: IpAddressList
