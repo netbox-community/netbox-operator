@@ -161,6 +161,19 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			"after reservation of ip in netbox failed: %w", updateStatusErr, err)
 	}
 
+	// 3. unlock lease of parent prefix
+	if ll != nil {
+		ll.Unlock()
+	}
+
+	// 4. update status fields
+	o.Status.IpAddressId = netboxIpAddressModel.ID
+	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
+	err = r.Client.Status().Update(ctx, o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// update lastIpAddressMetadata annotation
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -204,14 +217,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	debugLogger.Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
 
-	// 3. unlock lease of parent prefix
-	if ll != nil {
-		ll.Unlock()
-	}
-
-	// 4. update status conditions
-	o.Status.IpAddressId = netboxIpAddressModel.ID
-	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 	err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, "")
 	if err != nil {
 		return ctrl.Result{}, err

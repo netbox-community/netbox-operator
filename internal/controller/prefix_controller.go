@@ -159,6 +159,19 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, fmt.Errorf("failed at update prefix status: %w, "+"after reservation of prefix in netbox failed: %w", updateStatusErr, err)
 	}
 
+	/* 3. unlock lease of parent prefix */
+	if ll != nil {
+		ll.Unlock()
+	}
+
+	/* 4. update status fields */
+	prefix.Status.PrefixId = netboxPrefixModel.ID
+	prefix.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
+	err = r.Client.Status().Update(ctx, prefix)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// update lastPrefixMetadata annotation
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -199,14 +212,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	debugLogger.Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", prefix.Spec.Prefix))
 
-	/* 3. unlock lease of parent prefix */
-	if ll != nil {
-		ll.Unlock()
-	}
-
-	/* 4. update status conditions */
-	prefix.Status.PrefixId = netboxPrefixModel.ID
-	prefix.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
 	if err = r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, ""); err != nil {
 		return ctrl.Result{}, err
 	}
