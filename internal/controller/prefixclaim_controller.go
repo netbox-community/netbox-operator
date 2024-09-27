@@ -122,7 +122,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, when look up of prefix by hash failed: %w", setConditionErr, err)
 			}
-			return ctrl.Result{}, err
+			return ctrl.Result{Requeue: true}, nil
 		}
 		// TODO: set condition for each error
 
@@ -151,8 +151,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when failed to get matching prefix: %w", setConditionErr, err)
 				}
+<<<<<<< HEAD
 				return ctrl.Result{}, err
 >>>>>>> aa825f3 (add support for IPv6)
+=======
+				return ctrl.Result{Requeue: true}, nil
+>>>>>>> 81fbe16 (apply suggestions and improve error handing in controller)
 			}
 			debugLogger.Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
 		} else {

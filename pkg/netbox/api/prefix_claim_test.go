@@ -46,11 +46,11 @@ func TestPrefixClaim_GetAvailablePrefixesByParentPrefix(t *testing.T) {
 		Payload: []*netboxModels.AvailablePrefix{
 			{
 				Prefix: childPrefix1,
-				Family: 4,
+				Family: int64(IPv4Familiy),
 			},
 			{
 				Prefix: childPrefix2,
-				Family: 4,
+				Family: int64(IPv4Familiy),
 			},
 		},
 	}
@@ -174,7 +174,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -232,7 +232,7 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -276,7 +276,7 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -320,7 +320,7 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -381,7 +381,7 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(6)
+	prefixFamily := int64(IPv6Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV6
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -455,7 +455,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -536,7 +536,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -612,7 +612,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{
@@ -693,7 +693,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 		NewIpamPrefixesListParams().
 		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(4)
+	prefixFamily := int64(IPv4Familiy)
 	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
 	prefixListOutput := &ipam.IpamPrefixesListOK{
 		Payload: &ipam.IpamPrefixesListOKBody{

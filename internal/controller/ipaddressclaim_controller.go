@@ -127,7 +127,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, looking up ip by hash failed: %w", setConditionErr, err)
 			}
-			return ctrl.Result{}, err
+			return ctrl.Result{Requeue: true}, nil
 		}
 
 		if ipAddressModel == nil {
@@ -144,7 +144,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when assignment of ip address failed: %w", setConditionErr, err)
 				}
-				return ctrl.Result{}, err
+				return ctrl.Result{Requeue: true}, nil
 			}
 			debugLogger.Info(fmt.Sprintf("ip address is not reserved in netbox, assigned new ip address: %s", ipAddressModel.IpAddress))
 		} else {

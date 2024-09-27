@@ -53,31 +53,31 @@ func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix,
 	}, nil
 }
 
-func isRequestingInvalidPrefixLength(prefixClaim *models.PrefixClaim, prefixFamily int64) (bool, string, error) {
+func validatePrefixLengthOrError(prefixClaim *models.PrefixClaim, prefixFamily int64) error {
 	parentPrefixSplit := strings.Split(prefixClaim.ParentPrefix, "/")
 	if len(parentPrefixSplit) != 2 {
-		return false, "", errors.New("invalid parent prefix format")
+		return errors.New("invalid parent prefix format")
 	}
 
 	parentPrefixLength, err := strconv.Atoi(parentPrefixSplit[1])
 	if err != nil {
-		return false, "", err
+		return err
 	}
 
 	requestedPrefixLength, err := strconv.Atoi(strings.TrimPrefix(prefixClaim.PrefixLength, "/"))
 	if err != nil {
-		return false, "", err
+		return err
 	}
 
 	if parentPrefixLength == requestedPrefixLength {
-		return true, "requesting the entire parent prefix range is disallowed", nil
+		return errors.New("requesting the entire parent prefix range is disallowed")
 	} else if parentPrefixLength > requestedPrefixLength {
-		return true, "requested prefix size must be smaller than the parent prefix size", nil
+		return errors.New("requested prefix size must be smaller than the parent prefix size")
 	} else if prefixFamily == int64(IPv4Familiy) && requestedPrefixLength > 32 {
-		return true, "requested prefix length must be smaller than 32 for IPv4", nil
+		return errors.New("requested prefix length must be smaller than 32 for IPv4")
 	}
 
-	return false, "", nil
+	return nil
 }
 
 // GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
@@ -98,11 +98,8 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 		return nil, errors.New("parent prefix not found")
 	}
 
-	if ret, message, err := isRequestingInvalidPrefixLength(prefixClaim,
-		*responseParentPrefix.Payload.Results[0].Family.Value); err != nil {
+	if err := validatePrefixLengthOrError(prefixClaim, *responseParentPrefix.Payload.Results[0].Family.Value); err != nil {
 		return nil, err
-	} else if ret {
-		return nil, errors.New("invalid prefix length: " + message)
 	}
 
 	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
