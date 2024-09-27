@@ -24,6 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -40,7 +41,7 @@ var comments = "integration test comment"
 var siteSlug = "mars-ip-claim"
 
 var ipAddress = "1.0.0.1/32"
-var ipAddressFamily = int64(4)
+var ipAddressFamily = int64(api.IPv4Family)
 var parentPrefix = "1.0.0.0/28"
 
 var siteId = int64(2)

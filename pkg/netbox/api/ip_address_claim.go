@@ -29,9 +29,9 @@ import (
 type IPFamily int64
 
 const (
-	IPv4Familiy IPFamily = iota + 4
-	_                    // Skip 5
-	IPv6Familiy
+	IPv4Family IPFamily = iota + 4
+	_                   // Skip 5
+	IPv6Family
 )
 
 const (
@@ -90,9 +90,9 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 	}
 
 	var ipMask string
-	if responseAvailableIPs.Payload[0].Family == int64(IPv4Familiy) {
+	if responseAvailableIPs.Payload[0].Family == int64(IPv4Family) {
 		ipMask = ipMaskIPv4
-	} else if responseAvailableIPs.Payload[0].Family == int64(IPv6Familiy) {
+	} else if responseAvailableIPs.Payload[0].Family == int64(IPv6Family) {
 		ipMask = ipMaskIPv6
 	} else {
 		return nil, errors.New("available ip has unknown IP family")

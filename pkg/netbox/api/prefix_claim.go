@@ -73,7 +73,7 @@ func validatePrefixLengthOrError(prefixClaim *models.PrefixClaim, prefixFamily i
 		return errors.New("requesting the entire parent prefix range is disallowed")
 	} else if parentPrefixLength > requestedPrefixLength {
 		return errors.New("requested prefix size must be smaller than the parent prefix size")
-	} else if prefixFamily == int64(IPv4Familiy) && requestedPrefixLength > 32 {
+	} else if prefixFamily == int64(IPv4Family) && requestedPrefixLength > 32 {
 		return errors.New("requested prefix length must be smaller than 32 for IPv4")
 	}
 

@@ -48,11 +48,11 @@ func TestIPAddressClaim(t *testing.T) {
 		return []*netboxModels.AvailableIP{
 			{
 				Address: ipAddressV4_1,
-				Family:  int64(IPv4Familiy),
+				Family:  int64(IPv4Family),
 			},
 			{
 				Address: ipAddressV4_2,
-				Family:  int64(IPv4Familiy),
+				Family:  int64(IPv4Family),
 			},
 		}
 	}
@@ -177,7 +177,7 @@ func TestIPAddressClaim(t *testing.T) {
 			Payload: []*netboxModels.AvailableIP{
 				{
 					Address: ipAddressV6,
-					Family:  int64(IPv6Familiy),
+					Family:  int64(IPv6Family),
 				},
 			}}
 
