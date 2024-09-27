@@ -127,7 +127,7 @@ func TestIPAddressClaim(t *testing.T) {
 			Payload: []*netboxModels.AvailableIP{
 				{
 					Address: ipAddressV4_2,
-					Family:  int64(4),
+					Family:  int64(IPv4Family),
 				},
 			}}
 
