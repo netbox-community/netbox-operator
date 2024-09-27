@@ -21,13 +21,13 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func generateIpAddressFromIpAddressClaim(claim *ipamv1.IpAddressClaim, ip string, logger logr.Logger) *ipamv1.IpAddress {
-	ipAddressResource := &ipamv1.IpAddress{
+func generateIpAddressFromIpAddressClaim(claim *netboxv1.IpAddressClaim, ip string, logger logr.Logger) *netboxv1.IpAddress {
+	ipAddressResource := &netboxv1.IpAddress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claim.Name,
 			Namespace: claim.ObjectMeta.Namespace,
@@ -37,7 +37,7 @@ func generateIpAddressFromIpAddressClaim(claim *ipamv1.IpAddressClaim, ip string
 	return ipAddressResource
 }
 
-func generateIpAddressSpec(claim *ipamv1.IpAddressClaim, ip string, logger logr.Logger) ipamv1.IpAddressSpec {
+func generateIpAddressSpec(claim *netboxv1.IpAddressClaim, ip string, logger logr.Logger) netboxv1.IpAddressSpec {
 	// log a warning if the netboxOperatorRestorationHash name is a key in the customFields map of the IpAddressClaim
 	_, ok := claim.Spec.CustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName]
 	if ok {
@@ -52,7 +52,7 @@ func generateIpAddressSpec(claim *ipamv1.IpAddressClaim, ip string, logger logr.
 
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generateIpAddressRestorationHash(claim)
 
-	return ipamv1.IpAddressSpec{
+	return netboxv1.IpAddressSpec{
 		IpAddress:        ip,
 		Tenant:           claim.Spec.Tenant,
 		CustomFields:     customFields,
@@ -62,7 +62,7 @@ func generateIpAddressSpec(claim *ipamv1.IpAddressClaim, ip string, logger logr.
 	}
 }
 
-func generateIpAddressRestorationHash(claim *ipamv1.IpAddressClaim) string {
+func generateIpAddressRestorationHash(claim *netboxv1.IpAddressClaim) string {
 	rd := IpAddressClaimRestorationData{
 		Namespace:    claim.Namespace,
 		Name:         claim.Name,

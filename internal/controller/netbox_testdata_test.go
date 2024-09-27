@@ -23,7 +23,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -63,13 +63,13 @@ var value = "active"
 // default CRs
 // -----------------------------
 
-func defaultIpAddressCR(preserveInNetbox bool) *ipamv1.IpAddress {
-	return &ipamv1.IpAddress{
+func defaultIpAddressCR(preserveInNetbox bool) *netboxv1.IpAddress {
+	return &netboxv1.IpAddress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: ipamv1.IpAddressSpec{
+		Spec: netboxv1.IpAddressSpec{
 			IpAddress:        ipAddress,
 			Tenant:           tenant,
 			CustomFields:     customFields,
@@ -80,13 +80,13 @@ func defaultIpAddressCR(preserveInNetbox bool) *ipamv1.IpAddress {
 	}
 }
 
-func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *ipamv1.IpAddress {
-	return &ipamv1.IpAddress{
+func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *netboxv1.IpAddress {
+	return &netboxv1.IpAddress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: ipamv1.IpAddressSpec{
+		Spec: netboxv1.IpAddressSpec{
 			IpAddress:        ipAddress,
 			Tenant:           tenant,
 			CustomFields:     customFieldsWithHash,
@@ -97,13 +97,13 @@ func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *ipamv1.IpAddress {
 	}
 }
 
-func defaultIpAddressClaimCR() *ipamv1.IpAddressClaim {
-	return &ipamv1.IpAddressClaim{
+func defaultIpAddressClaimCR() *netboxv1.IpAddressClaim {
+	return &netboxv1.IpAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: ipamv1.IpAddressClaimSpec{
+		Spec: netboxv1.IpAddressClaimSpec{
 			ParentPrefix:     parentPrefix,
 			Tenant:           tenant,
 			CustomFields:     customFields,
@@ -274,13 +274,13 @@ var ExpectedDeleteParams = ipam.NewIpamIPAddressesDeleteParams().WithID(expected
 // expected inputs for ipam.IpamIPAddressesDelete method when update fails
 var ExpectedDeleteFailParams = ipam.NewIpamIPAddressesDeleteParams().WithID(expectedIpAddressFailID)
 
-var ExpectedIpAddressStatus = ipamv1.IpAddressStatus{IpAddressId: 1}
+var ExpectedIpAddressStatus = netboxv1.IpAddressStatus{IpAddressId: 1}
 
-var ExpectedIpAddressFailedStatus = ipamv1.IpAddressStatus{IpAddressId: 0}
+var ExpectedIpAddressFailedStatus = netboxv1.IpAddressStatus{IpAddressId: 0}
 
 var OperatorNamespace = "default"
 
-var ExpectedIpAddressClaimStatus = ipamv1.IpAddressClaimStatus{
+var ExpectedIpAddressClaimStatus = netboxv1.IpAddressClaimStatus{
 	IpAddress:           ipAddress,
 	IpAddressDotDecimal: "1.0.0.1",
 	IpAddressName:       name,

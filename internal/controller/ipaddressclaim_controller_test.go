@@ -31,7 +31,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
-	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 var _ = Describe("IpAddressClaim Controller", Ordered, func() {
@@ -54,15 +54,15 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 	})
 
 	DescribeTable("Reconciler (ip address claim CR)", func(
-		cr *ipamv1.IpAddressClaim, // our CR as typed object
-		ipcr *ipamv1.IpAddress, // ip address CR expected to be created by ip address claim controller
-		ipcrMockStatus ipamv1.IpAddressStatus, // the that will be added to mock the ip address controller
+		cr *netboxv1.IpAddressClaim, // our CR as typed object
+		ipcr *netboxv1.IpAddress, // ip address CR expected to be created by ip address claim controller
+		ipcrMockStatus netboxv1.IpAddressStatus, // the that will be added to mock the ip address controller
 		IpamMocksIpAddressClaim []func(*mock_interfaces.MockIpamInterface, chan error),
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
 		expectedConditionIpAssigned bool, // Expected state of the ConditionReady condition
-		expectedCRStatus ipamv1.IpAddressClaimStatus, // Expected status of the CR
+		expectedCRStatus netboxv1.IpAddressClaimStatus, // Expected status of the CR
 		prefixLockedByOtherOwner bool, // If prefix is locked by other owner when ipaddress claim CR is created
 	) {
 		By("Setting up mocks")
@@ -110,7 +110,7 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
 
 		// check that ip address claim CR was created
-		createdCR := &ipamv1.IpAddressClaim{}
+		createdCR := &netboxv1.IpAddressClaim{}
 		Eventually(func() bool {
 			// the created ip address CR has the same namespacedname as the ip address claim CR
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
@@ -121,10 +121,10 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 			return err == nil &&
-				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, ipamv1.ConditionIpAssignedFalse.Type) == expectedConditionIpAssigned
+				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpAssignedFalse.Type) == expectedConditionIpAssigned
 		}, timeout, interval).Should(BeTrue())
 
-		createdIpCR := &ipamv1.IpAddress{}
+		createdIpCR := &netboxv1.IpAddress{}
 		if expectedConditionIpAssigned {
 			// check that ip address CR was created
 			Eventually(func() bool {
@@ -141,7 +141,7 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 			return err == nil &&
-				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, ipamv1.ConditionIpClaimReadyTrue.Type) == expectedConditionReady
+				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpClaimReadyTrue.Type) == expectedConditionReady
 		}, timeout, interval).Should(BeTrue())
 
 		// Check that the expected ip address is present in the status
@@ -202,6 +202,6 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 			nil,
 			nil,
 			nil,
-			false, false, ipamv1.IpAddressClaimStatus{}, true),
+			false, false, netboxv1.IpAddressClaimStatus{}, true),
 	)
 })

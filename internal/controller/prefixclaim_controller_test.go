@@ -27,7 +27,7 @@ package controller
 
 // 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// 	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
+// 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 // )
 
 // var _ = Describe("PrefixClaim Controller", func() {
@@ -40,13 +40,13 @@ package controller
 // 			Name:      resourceName,
 // 			Namespace: "default", // TODO(user):Modify as needed
 // 		}
-// 		prefixclaim := &ipamv1.PrefixClaim{}
+// 		prefixclaim := &netboxv1.PrefixClaim{}
 
 // 		BeforeEach(func() {
 // 			By("creating the custom resource for the Kind PrefixClaim")
 // 			err := k8sClient.Get(ctx, typeNamespacedName, prefixclaim)
 // 			if err != nil && errors.IsNotFound(err) {
-// 				resource := &ipamv1.PrefixClaim{
+// 				resource := &netboxv1.PrefixClaim{
 // 					ObjectMeta: metav1.ObjectMeta{
 // 						Name:      resourceName,
 // 						Namespace: "default",
@@ -59,7 +59,7 @@ package controller
 
 // 		AfterEach(func() {
 // 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-// 			resource := &ipamv1.PrefixClaim{}
+// 			resource := &netboxv1.PrefixClaim{}
 // 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 // 			Expect(err).NotTo(HaveOccurred())
 

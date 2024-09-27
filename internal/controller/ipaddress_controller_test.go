@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 var _ = Describe("IpAddress Controller", Ordered, func() {
@@ -48,11 +48,11 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 	})
 
 	DescribeTable("Reconciler (ip address CR without owner reference)", func(
-		cr *ipamv1.IpAddress, // our CR as typed object
+		cr *netboxv1.IpAddress, // our CR as typed object
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
-		expectedCRStatus ipamv1.IpAddressStatus, // Expected status of the CR
+		expectedCRStatus netboxv1.IpAddressStatus, // Expected status of the CR
 	) {
 		By("Setting up mocks")
 		for _, mock := range IpamMocksIpAddress {
@@ -82,7 +82,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
 
 		// check that reconcile loop did run a least once by checking that conditions are set
-		createdCR := &ipamv1.IpAddress{}
+		createdCR := &netboxv1.IpAddress{}
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 			return err == nil && len(createdCR.Status.Conditions) > 0
@@ -92,7 +92,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		Eventually(func() bool {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 			return err == nil &&
-				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, ipamv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
+				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
 		}, timeout, interval).Should(BeTrue())
 
 		// Check that the expected ip address is present in the status
