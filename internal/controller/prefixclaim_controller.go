@@ -124,7 +124,6 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 			return ctrl.Result{Requeue: true}, nil
 		}
-		// TODO: set condition for each error
 
 		if prefixModel == nil {
 			// Prefix cannot be restored from netbox
