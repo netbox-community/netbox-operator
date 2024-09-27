@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/swisscom/leaselocker"
 )
@@ -71,7 +71,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	logger.Info("prefix reconcile loop started")
 
 	/* 0. check if the matching Prefix object exists */
-	prefix := &netboxv1.Prefix{}
+	prefix := &ipamv1.Prefix{}
 	if err := r.Client.Get(ctx, req.NamespacedName, prefix); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -81,7 +81,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
 			if !prefix.Spec.PreserveInNetbox {
 				if err := r.NetboxClient.DeletePrefix(prefix.Status.PrefixId); err != nil {
-					setConditionErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err.Error())
+					setConditionErr := r.SetConditionAndCreateEvent(ctx, prefix, ipamv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err.Error())
 					if setConditionErr != nil {
 						return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting Prefix failed: %w", setConditionErr, err)
 					}
@@ -127,7 +127,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			Name:      ownerReferences[0].Name, // TODO(henrybear327): Under what condition would we have more than 1 ownerReferences? What should we do with it?
 			Namespace: req.Namespace,
 		}
-		prefixClaim := &netboxv1.PrefixClaim{}
+		prefixClaim := &ipamv1.PrefixClaim{}
 		if err := r.Client.Get(ctx, ownerReferencesLookupKey, prefixClaim); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -171,7 +171,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(prefixModel)
 	if err != nil {
-		updateStatusErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, prefix.Spec.Prefix)
+		updateStatusErr := r.SetConditionAndCreateEvent(ctx, prefix, ipamv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, prefix.Spec.Prefix)
 		return ctrl.Result{}, fmt.Errorf("failed at update prefix status: %w, "+"after reservation of prefix in netbox failed: %w", updateStatusErr, err)
 	}
 
@@ -227,7 +227,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	/* 4. update status conditions */
 	prefix.Status.PrefixId = netboxPrefixModel.ID
 	prefix.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
-	if err = r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, ""); err != nil {
+	if err = r.SetConditionAndCreateEvent(ctx, prefix, ipamv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, ""); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -239,12 +239,12 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // SetupWithManager sets up the controller with the Manager.
 func (r *PrefixReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&netboxv1.Prefix{}).
+		For(&ipamv1.Prefix{}).
 		Complete(r)
 }
 
 // TODO(henrybear327): Duplicated code, consider refactoring this
-func (r *PrefixReconciler) SetConditionAndCreateEvent(ctx context.Context, o *netboxv1.Prefix, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
+func (r *PrefixReconciler) SetConditionAndCreateEvent(ctx context.Context, o *ipamv1.Prefix, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
 	if len(conditionMessageAppend) > 0 {
 		condition.Message = condition.Message + ". " + conditionMessageAppend
 	}
@@ -259,7 +259,7 @@ func (r *PrefixReconciler) SetConditionAndCreateEvent(ctx context.Context, o *ne
 	return nil
 }
 
-func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl.Request, lastPrefixMetadata string) (*models.Prefix, error) {
+func generateNetboxPrefixModelFromPrefixSpec(spec *ipamv1.PrefixSpec, req ctrl.Request, lastPrefixMetadata string) (*models.Prefix, error) {
 	// unmarshal lastPrefixMetadata json string to map[string]string
 	lastAppliedCustomFields := make(map[string]string)
 	if lastPrefixMetadata != "" {

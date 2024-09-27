@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 )
 
@@ -64,7 +64,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	logger.Info("prefixClaim reconcile loop started")
 
 	/* 0. check if the matching PrefixClaim object exists */
-	prefixClaim := &netboxv1.PrefixClaim{}
+	prefixClaim := &ipamv1.PrefixClaim{}
 	if err := r.Client.Get(ctx, req.NamespacedName, prefixClaim); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -76,7 +76,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	/* 1. check if the matching Prefix object exists */
-	prefix := &netboxv1.Prefix{}
+	prefix := &ipamv1.Prefix{}
 	prefixName := prefixClaim.ObjectMeta.Name
 	prefixLookupKey := types.NamespacedName{
 		Name:      prefixName,
@@ -119,7 +119,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		h := generatePrefixRestorationHash(prefixClaim)
 		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h)
 		if err != nil {
-			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, ipamv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, when look up of prefix by hash failed: %w", setConditionErr, err)
 			}
 			return ctrl.Result{Requeue: true}, nil
@@ -139,7 +139,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					},
 				})
 			if err != nil {
-				if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+				if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, ipamv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when failed to get matching prefix: %w", setConditionErr, err)
 				}
 				return ctrl.Result{Requeue: true}, nil
@@ -160,13 +160,13 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		err = r.Client.Create(ctx, prefixResource)
 		if err != nil {
-			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, ""); setConditionErr != nil {
+			if setConditionErr := r.SetConditionAndCreateEvent(ctx, prefixClaim, ipamv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, ""); setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, when creation of prefix object failed: %w", setConditionErr, err)
 			}
 			return ctrl.Result{}, err
 		}
 
-		if err = r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedTrue, corev1.EventTypeNormal, ""); err != nil {
+		if err = r.SetConditionAndCreateEvent(ctx, prefixClaim, ipamv1.ConditionPrefixAssignedTrue, corev1.EventTypeNormal, ""); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else { // Prefix object exists
@@ -197,13 +197,13 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		prefixClaim.Status.Prefix = prefix.Spec.Prefix
 		prefixClaim.Status.PrefixName = prefix.Name
 
-		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixClaimReadyTrue, corev1.EventTypeNormal, ""); err != nil {
+		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, ipamv1.ConditionPrefixClaimReadyTrue, corev1.EventTypeNormal, ""); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
 		debugLogger.Info("prefix status ready false")
 
-		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, ""); err != nil {
+		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, ipamv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, ""); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{Requeue: true}, nil
@@ -217,12 +217,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 // SetupWithManager sets up the controller with the Manager.
 func (r *PrefixClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&netboxv1.PrefixClaim{}).
-		Owns(&netboxv1.Prefix{}).
+		For(&ipamv1.PrefixClaim{}).
+		Owns(&ipamv1.Prefix{}).
 		Complete(r)
 }
 
-func (r *PrefixClaimReconciler) GetAvailablePrefix(o *netboxv1.PrefixClaim) (*models.Prefix, error) {
+func (r *PrefixClaimReconciler) GetAvailablePrefix(o *ipamv1.PrefixClaim) (*models.Prefix, error) {
 	var availablePrefix *models.Prefix
 	var err error
 	if availablePrefix, err = r.NetboxClient.GetAvailablePrefixByClaim(
@@ -255,7 +255,7 @@ func (r *PrefixClaimReconciler) GetAvailablePrefix(o *netboxv1.PrefixClaim) (*mo
 }
 
 // TODO(henrybear327): Duplicated code, consider refactoring this
-func (r *PrefixClaimReconciler) SetConditionAndCreateEvent(ctx context.Context, o *netboxv1.PrefixClaim, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
+func (r *PrefixClaimReconciler) SetConditionAndCreateEvent(ctx context.Context, o *ipamv1.PrefixClaim, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
 	if len(conditionMessageAppend) > 0 {
 		condition.Message = condition.Message + ". " + conditionMessageAppend
 	}
