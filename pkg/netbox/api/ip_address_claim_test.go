@@ -36,19 +36,32 @@ func TestIPAddressClaim(t *testing.T) {
 	mockIPAddress := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
-	parentPrefixId := int64(3)
-	parentPrefix := "10.114.0.0"
-	ipAddress1 := "10.112.140.1/24"
-	ipAddress2 := "10.112.140.2/24"
-	singleIpAddress2 := "10.112.140.2/32"
+	// test data for IPv4 ip address claim
+	parentPrefixIdV4 := int64(3)
+	parentPrefixV4 := "10.114.0.0"
+	ipAddressV4_1 := "10.112.140.1/24"
+	ipAddressV4_2 := "10.112.140.2/24"
+	singleIpAddressV4_2 := "10.112.140.2/32"
 
-	// example of available IP address
-	availAddress := func() []*netboxModels.AvailableIP {
+	// example of available IPv4 IP addresses
+	availAddressesIPv4 := func() []*netboxModels.AvailableIP {
 		return []*netboxModels.AvailableIP{
-			{Address: ipAddress1},
-			{Address: ipAddress2},
+			{
+				Address: ipAddressV4_1,
+				Family:  int64(IPv4Family),
+			},
+			{
+				Address: ipAddressV4_2,
+				Family:  int64(IPv4Family),
+			},
 		}
 	}
+
+	// test data for IPv6 ip address claim
+	parentPrefixIdV6 := int64(4)
+	parentPrefixV6 := "2001:db8:85a3:8d3::/64"
+	ipAddressV6 := "2001:db8:85a3:8d3::2/64"
+	singleIpAddressV6 := "2001:db8:85a3:8d3::2/128"
 
 	// example of tenant
 	tenantId := int64(2)
@@ -69,10 +82,10 @@ func TestIPAddressClaim(t *testing.T) {
 	t.Run("Fetch available IP address's claim by parent prefix.", func(t *testing.T) {
 
 		// ip address mock input
-		input := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
+		input := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV4)
 		// ip address mock output
 		output := &ipam.IpamPrefixesAvailableIpsListOK{
-			Payload: availAddress(),
+			Payload: availAddressesIPv4(),
 		}
 
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(input, nil).Return(output, nil)
@@ -82,37 +95,40 @@ func TestIPAddressClaim(t *testing.T) {
 			Ipam: mockIPAddress,
 		}
 
-		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
+		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error return
 		AssertNil(t, err)
 		assert.Len(t, actual.Payload, 2)
-		assert.Equal(t, ipAddress1, actual.Payload[0].Address)
-		assert.Equal(t, ipAddress2, actual.Payload[1].Address)
+		assert.Equal(t, ipAddressV4_1, actual.Payload[0].Address)
+		assert.Equal(t, ipAddressV4_2, actual.Payload[1].Address)
 	})
 
-	t.Run("Fetch first available IP address by claim.", func(t *testing.T) {
+	t.Run("Fetch first available IP address by claim (IPv4).", func(t *testing.T) {
 
 		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
 		// ip address mock input
-		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
+		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefixV4)
 		// ip address mock output
 		output := &ipam.IpamPrefixesListOK{
 			Payload: &ipam.IpamPrefixesListOKBody{
 				Results: []*netboxModels.Prefix{
 					{
-						ID:     parentPrefixId,
-						Prefix: &parentPrefix,
+						ID:     parentPrefixIdV4,
+						Prefix: &parentPrefixV4,
 					},
 				},
 			},
 		}
 
-		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV4)
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: []*netboxModels.AvailableIP{
-				{Address: ipAddress2},
+				{
+					Address: ipAddressV4_2,
+					Family:  int64(IPv4Family),
+				},
 			}}
 
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -126,7 +142,7 @@ func TestIPAddressClaim(t *testing.T) {
 		}
 
 		actual, err := client.GetAvailableIpAddressByClaim(&models.IPAddressClaim{
-			ParentPrefix: parentPrefix,
+			ParentPrefix: parentPrefixV4,
 			Metadata: &models.NetboxMetadata{
 				Tenant: tenantName,
 			},
@@ -135,7 +151,109 @@ func TestIPAddressClaim(t *testing.T) {
 		// assert error
 		AssertNil(t, err)
 		// assert nil output
-		assert.Equal(t, singleIpAddress2, actual.IpAddress)
+		assert.Equal(t, singleIpAddressV4_2, actual.IpAddress)
+	})
+
+	t.Run("Fetch first available IP address by claim (IPv6).", func(t *testing.T) {
+
+		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
+		// ip address mock input
+		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefixV6)
+		// ip address mock output
+		output := &ipam.IpamPrefixesListOK{
+			Payload: &ipam.IpamPrefixesListOKBody{
+				Results: []*netboxModels.Prefix{
+					{
+						ID:     parentPrefixIdV6,
+						Prefix: &parentPrefixV6,
+					},
+				},
+			},
+		}
+
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV6)
+		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
+			Payload: []*netboxModels.AvailableIP{
+				{
+					Address: ipAddressV6,
+					Family:  int64(IPv6Family),
+				},
+			}}
+
+		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+		mockIPAddress.EXPECT().IpamPrefixesList(input, nil).Return(output, nil)
+		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
+
+		// init client
+		client := &NetboxClient{
+			Tenancy: mockTenancy,
+			Ipam:    mockIPAddress,
+		}
+
+		actual, err := client.GetAvailableIpAddressByClaim(&models.IPAddressClaim{
+			ParentPrefix: parentPrefixV6,
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
+
+		// assert error
+		AssertNil(t, err)
+		// assert nil output
+		assert.Equal(t, singleIpAddressV6, actual.IpAddress)
+	})
+
+	t.Run("Fetch first available IP address by claim (invalid IP family).", func(t *testing.T) {
+
+		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
+		// ip address mock input
+		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefixV6)
+		// ip address mock output
+		output := &ipam.IpamPrefixesListOK{
+			Payload: &ipam.IpamPrefixesListOKBody{
+				Results: []*netboxModels.Prefix{
+					{
+						ID:     parentPrefixIdV6,
+						Prefix: &parentPrefixV6,
+					},
+				},
+			},
+		}
+
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV6)
+		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
+			Payload: []*netboxModels.AvailableIP{
+				{
+					Address: ipAddressV6,
+					Family:  int64(5),
+				},
+			}}
+
+		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+		mockIPAddress.EXPECT().IpamPrefixesList(input, nil).Return(output, nil)
+		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
+
+		// init client
+		client := &NetboxClient{
+			Tenancy: mockTenancy,
+			Ipam:    mockIPAddress,
+		}
+
+		actual, err := client.GetAvailableIpAddressByClaim(&models.IPAddressClaim{
+			ParentPrefix: parentPrefixV6,
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
+
+		// assert error
+		AssertError(t, err, "available ip has unknown IP family")
+
+		var expected *models.IPAddress
+
+		assert.Equal(t, expected, actual)
 	})
 
 	t.Run("Fetch IP address's claim with incorrect parent prefix.", func(t *testing.T) {
@@ -143,7 +261,7 @@ func TestIPAddressClaim(t *testing.T) {
 		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
 		// ip address mock input
-		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
+		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefixV4)
 		// ip address mock output
 		output := &ipam.IpamPrefixesListOK{
 			Payload: &ipam.IpamPrefixesListOKBody{
@@ -161,7 +279,7 @@ func TestIPAddressClaim(t *testing.T) {
 		}
 
 		actual, err := client.GetAvailableIpAddressByClaim(&models.IPAddressClaim{
-			ParentPrefix: parentPrefix,
+			ParentPrefix: parentPrefixV4,
 			Metadata: &models.NetboxMetadata{
 				Tenant: tenantName,
 			},
@@ -178,7 +296,7 @@ func TestIPAddressClaim(t *testing.T) {
 	t.Run("Fetch IP address's claim with exhausted parent prefix.", func(t *testing.T) {
 
 		// ip address mock input
-		input := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
+		input := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV4)
 		// ip address mock output
 		output := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: []*netboxModels.AvailableIP{},
@@ -191,7 +309,7 @@ func TestIPAddressClaim(t *testing.T) {
 			Ipam: mockIPAddress,
 		}
 
-		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
+		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error
 		AssertError(t, err, "parent prefix exhausted")
