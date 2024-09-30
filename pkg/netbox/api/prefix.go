@@ -17,6 +17,8 @@ limitations under the License.
 package api
 
 import (
+	"strings"
+
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 
@@ -98,9 +100,17 @@ func (r *NetboxClient) UpdatePrefix(prefixId int64, prefix *netboxModels.Writabl
 }
 
 func (r *NetboxClient) DeletePrefix(prefixId int64) error {
+	// assuming id starts from 1 when Prefix is created so 0 means that Prefix doesn't exist
+	if prefixId == 0 {
+		return nil
+	}
+
 	requestDeletePrefix := ipam.NewIpamPrefixesDeleteParams().WithID(prefixId)
 	_, err := r.Ipam.IpamPrefixesDelete(requestDeletePrefix, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "No Prefix matches the given query.") {
+			return utils.NetboxNotFoundError("Prefix")
+		}
 		return utils.NetboxError("failed to delete Prefix", err)
 	}
 	return nil

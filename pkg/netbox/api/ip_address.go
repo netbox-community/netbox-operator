@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"strings"
 	"unicode/utf8"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
@@ -97,9 +98,16 @@ func (r *NetboxClient) UpdateIpAddress(ipAddressId int64, ipAddress *netboxModel
 }
 
 func (r *NetboxClient) DeleteIpAddress(ipAddressId int64) error {
+	// assuming id starts from 1 when IPAdress is created so 0 means that IPAddress doesn't exist
+	if ipAddressId == 0 {
+		return nil
+	}
 	requestDeleteIp := ipam.NewIpamIPAddressesDeleteParams().WithID(ipAddressId)
 	_, err := r.Ipam.IpamIPAddressesDelete(requestDeleteIp, nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "No IPAddress matches the given query.") {
+			return utils.NetboxNotFoundError("IPAddress")
+		}
 		return utils.NetboxError("Failed to delete IP Address from Netbox", err)
 	}
 	return nil

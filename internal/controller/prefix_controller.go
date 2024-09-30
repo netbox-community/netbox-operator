@@ -28,6 +28,7 @@ import (
 
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 	corev1 "k8s.io/api/core/v1"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,8 +80,16 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// if being deleted
 	if !prefix.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
-			if prefix.Status.PrefixId != 0 {
+			if !prefix.Spec.PreserveInNetbox {
 				if err := r.NetboxClient.DeletePrefix(prefix.Status.PrefixId); err != nil {
+					if errors.Is(err, utils.ErrNotFound) {
+						setConditionErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, err.Error())
+						if setConditionErr != nil {
+							return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting Prefix failed: %w", setConditionErr, err)
+						}
+
+						return ctrl.Result{Requeue: true}, nil
+					}
 					return ctrl.Result{}, err
 				}
 			}
