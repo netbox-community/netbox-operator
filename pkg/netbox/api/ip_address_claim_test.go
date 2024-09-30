@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
@@ -166,8 +167,10 @@ func TestIPAddressClaim(t *testing.T) {
 			},
 		})
 
+		expectedErrMsg := "failed to fetch parent prefix: not found"
+
 		// assert error
-		AssertError(t, err, "parent prefix not found")
+		AssertError(t, err, expectedErrMsg)
 		// assert nil output
 		assert.Nil(t, actual)
 	})
@@ -229,5 +232,80 @@ func TestIPAddressClaim(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, ipAddressRestore, actual.IpAddress)
+	})
+}
+
+func TestIPAddressClaim_GetNoAvailableIPAddressWithTenancyChecks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+	parentPrefix := "10.112.140.0/24"
+	t.Run("No IP address asigned with an error when getting the tenant list", func(t *testing.T) {
+
+		tenantName := "Tenant1"
+
+		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
+		// expected error
+		expectedErrorMsg := "cannot get the list" // testcase-defined error
+
+		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(nil, errors.New(expectedErrorMsg)).AnyTimes()
+
+		// init client
+		client := &NetboxClient{
+			Tenancy: mockTenancy,
+		}
+
+		actual, err := client.GetAvailableIpAddressByClaim(&models.IPAddressClaim{
+			ParentPrefix: parentPrefix,
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
+
+		// assert error
+		assert.Containsf(t, err.Error(), expectedErrorMsg, "Error should contain: %v, got: %v", expectedErrorMsg, err.Error())
+		// assert nil output
+		assert.Equal(t, actual, (*models.IPAddress)(nil))
+	})
+
+	t.Run("No IP address asigned with non-existing tenant", func(t *testing.T) {
+
+		// non existing tenant
+		nonExistingTenant := "non-existing-tenant"
+
+		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&nonExistingTenant)
+
+		// empty tenant list
+		emptyTenantList := &tenancy.TenancyTenantsListOK{
+			Payload: &tenancy.TenancyTenantsListOKBody{
+				Results: []*netboxModels.Tenant{},
+			},
+		}
+
+		// expected error
+		expectedErrorMsg := "failed to fetch tenant: not found"
+
+		// mock empty list call
+		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(emptyTenantList, nil).AnyTimes()
+
+		// init client
+		client := &NetboxClient{
+			Tenancy: mockTenancy,
+		}
+
+		actual, err := client.GetAvailableIpAddressByClaim(&models.IPAddressClaim{
+			ParentPrefix: parentPrefix,
+			Metadata: &models.NetboxMetadata{
+				Tenant: nonExistingTenant,
+			},
+		})
+
+		// assert error
+		assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+		// assert nil output
+		assert.Equal(t, actual, (*models.IPAddress)(nil))
 	})
 }

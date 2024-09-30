@@ -137,9 +137,14 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					},
 				})
 			if err != nil {
-				return ctrl.Result{}, err
+				setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error())
+				if setConditionErr != nil {
+					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when getting an available IP address failed: %w", setConditionErr, err)
+				}
+
+				return ctrl.Result{Requeue: true}, nil
 			}
-			debugLogger.Info(fmt.Sprintf("ip address is not reserved in netbox, assignined new ip address: %s", ipAddressModel.IpAddress))
+			debugLogger.Info(fmt.Sprintf("ip address is not reserved in netbox, assigned new ip address: %s", ipAddressModel.IpAddress))
 		} else {
 			// 5.b reassign reserved ip address from netbox
 			// do nothing, ip address restored

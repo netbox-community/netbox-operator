@@ -67,6 +67,11 @@ func isRequestingTheEntireParentPrefix(prefixClaim *models.PrefixClaim) (bool, e
 
 // GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
 func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
+	_, err := r.GetTenantDetails(prefixClaim.Metadata.Tenant)
+	if err != nil {
+		return nil, err
+	}
+
 	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
 		Prefix:   prefixClaim.ParentPrefix,
 		Metadata: prefixClaim.Metadata,

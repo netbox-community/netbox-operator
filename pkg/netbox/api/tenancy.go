@@ -17,8 +17,6 @@ limitations under the License.
 package api
 
 import (
-	"errors"
-
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -32,7 +30,7 @@ func (r *NetboxClient) GetTenantDetails(name string) (*models.Tenant, error) {
 		return nil, utils.NetboxError("failed to fetch Tenant details", err)
 	}
 	if len(response.Payload.Results) == 0 {
-		return nil, errors.New("tenant not found")
+		return nil, utils.NetboxNotFoundError("tenant")
 	}
 
 	return &models.Tenant{

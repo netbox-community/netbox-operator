@@ -38,6 +38,7 @@ func TestPrefixClaim_GetAvailablePrefixesByParentPrefix(t *testing.T) {
 	//prefix mock input
 	parentPrefixId := int64(3)
 	availablePrefixListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+
 	//prefix mock output
 	childPrefix1 := "10.112.140.0/24"
 	childPrefix2 := "10.120.180.0/24"
@@ -129,6 +130,9 @@ func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: prefix,
 		PrefixLength: "/28",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "parent prefix not found")
@@ -196,6 +200,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/28",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	assert.Nil(t, err)
@@ -272,6 +279,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/28",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	assert.Nil(t, err)
@@ -340,6 +350,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 	_, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/28",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	assert.True(t, errors.Is(err, ErrNoPrefixMatchsSizeCriteria))
@@ -415,6 +428,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/28",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	assert.Nil(t, err)
@@ -483,7 +499,92 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 	_, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/28.",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	assert.True(t, errors.Is(err, strconv.ErrSyntax))
+}
+
+func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingTenant(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+	// non-existing tenant
+	tenantName := "non-existing-tenant"
+
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
+	// expected error
+	expectedErrorMsg := "failed to fetch tenant: not found"
+
+	// empty tenant list
+	emptyTenantList := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{},
+		},
+	}
+
+	parentPrefix := "10.112.140.0/24"
+
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(emptyTenantList, nil).AnyTimes()
+
+	netboxClient := &NetboxClient{
+		Tenancy: mockTenancy,
+	}
+
+	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
+		ParentPrefix: parentPrefix,
+		PrefixLength: "/28.",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
+	})
+
+	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+	assert.Equal(t, prefix, (*models.Prefix)(nil))
+}
+
+func TestPrefixClaim_GetNoAvailablePrefixesWithErrorWhenGettingTenantList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+	// non-existing tenant
+	tenantName := "non-existing tenant"
+
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
+	// expected errors
+	getTenantDetailsErrorMsg := "failed to fetch Tenant details"
+	tenancyTenantsListErrorMsg := "cannot get the list" // testcase defined error
+
+	parentPrefix := "10.112.140.0/24"
+
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(nil, errors.New(tenancyTenantsListErrorMsg)).AnyTimes()
+
+	netboxClient := &NetboxClient{
+		Tenancy: mockTenancy,
+	}
+
+	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
+		ParentPrefix: parentPrefix,
+		PrefixLength: "/28.",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
+	})
+
+	// assert 1st level error - GetTenantDetails()
+	assert.Containsf(t, err.Error(), getTenantDetailsErrorMsg, "expected error containing %q, got %s", getTenantDetailsErrorMsg, err)
+
+	// assert 2nd level error - TenanyTenantsList()
+	assert.Containsf(t, err.Error(), tenancyTenantsListErrorMsg, "expected error containing %q, got %s", tenancyTenantsListErrorMsg, err)
+
+	// assert nil output
+	assert.Equal(t, prefix, (*models.Prefix)(nil))
 }
