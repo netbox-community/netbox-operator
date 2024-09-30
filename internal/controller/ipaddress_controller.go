@@ -30,7 +30,6 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
-	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
@@ -82,15 +81,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
 				if err != nil {
-					if errors.Is(err, utils.ErrNotFound) {
-						setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, err.Error())
-						if setConditionErr != nil {
-							return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting IPAddress failed: %w", setConditionErr, err)
-						}
-
-						return ctrl.Result{Requeue: true}, nil
+					setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err.Error())
+					if setConditionErr != nil {
+						return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting IPAddress failed: %w", setConditionErr, err)
 					}
-					return ctrl.Result{}, err
+
+					return ctrl.Result{Requeue: true}, nil
 				}
 			}
 

@@ -146,6 +146,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
 				mockIpamIPAddressesUpdateFail,
+				mockIpAddressesDeleteFail,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,

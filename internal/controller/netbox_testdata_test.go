@@ -219,6 +219,7 @@ func mockedResponseTenancyTenantsList() *tenancy.TenancyTenantsListOKBody {
 var nsn = namespace + "/" + name + " // "
 var warningComment = " // managed by netbox-operator, please don't edit it in Netbox unless you know what you're doing"
 var expectedIpAddressID = int64(1)
+var expectedIpAddressFailID = int64(0)
 
 var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
@@ -269,6 +270,9 @@ var ExpectedIpAddressesCreateWithHashParams = ipam.NewIpamIPAddressesCreateParam
 
 // expected inputs for ipam.IpamIPAddressesDelete method
 var ExpectedDeleteParams = ipam.NewIpamIPAddressesDeleteParams().WithID(expectedIpAddressID)
+
+// expected inputs for ipam.IpamIPAddressesDelete method when update fails
+var ExpectedDeleteFailParams = ipam.NewIpamIPAddressesDeleteParams().WithID(expectedIpAddressFailID)
 
 var ExpectedIpAddressStatus = netboxv1.IpAddressStatus{IpAddressId: 1}
 
