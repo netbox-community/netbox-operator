@@ -226,6 +226,22 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
+	// example of tenant
+	tenantId := int64(2)
+	tenantName := "Tenant1"
+	tenantOutputSlug := "tenant1"
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
 	parentPrefix := "10.112.140.0/24"
 	parentPrefixId := int64(1)
 	prefixListInput := ipam.
@@ -246,7 +262,10 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 		},
 	}
 
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
 	netboxClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
@@ -256,6 +275,9 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/33",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	var expectedPrefix *models.Prefix
@@ -270,6 +292,22 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
+	// example of tenant
+	tenantId := int64(2)
+	tenantName := "Tenant1"
+	tenantOutputSlug := "tenant1"
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
 	parentPrefix := "10.112.140.0/24"
 	parentPrefixId := int64(1)
 	prefixListInput := ipam.
@@ -290,7 +328,10 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 		},
 	}
 
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
 	netboxClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
@@ -300,6 +341,9 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/24",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	var expectedPrefix *models.Prefix
@@ -314,6 +358,22 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
+	// example of tenant
+	tenantId := int64(2)
+	tenantName := "Tenant1"
+	tenantOutputSlug := "tenant1"
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
 	parentPrefix := "10.112.140.0/24"
 	parentPrefixId := int64(1)
 	prefixListInput := ipam.
@@ -334,7 +394,10 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 		},
 	}
 
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
 	netboxClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
@@ -344,6 +407,9 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/20",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	var expectedPrefix *models.Prefix
@@ -418,6 +484,9 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
 		ParentPrefix: parentPrefix,
 		PrefixLength: "/33",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+		},
 	})
 
 	assert.Nil(t, err)
