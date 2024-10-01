@@ -63,8 +63,9 @@ type IpAddressClaimStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="IpAddress",type=string,JSONPath=`.status.ipAddress`
-//+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="IpAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPAssigned")].status`
+//+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=ipc
 
 // IpAddressClaim is the Schema for the ipaddressclaims API

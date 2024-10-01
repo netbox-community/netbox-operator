@@ -20,12 +20,15 @@ spec:
     - jsonPath: .status.prefix
       name: Prefix
       type: string
-    - jsonPath: .status.conditions[?(@.type=="Ready")].status
-      name: Ready
-      type: string
     - jsonPath: .status.conditions[?(@.type=="PrefixAssigned")].status
       name: PrefixAssigned
       type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1
     schema:
       openAPIV3Schema:
