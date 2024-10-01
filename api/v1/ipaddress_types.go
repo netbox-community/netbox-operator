@@ -63,6 +63,7 @@ type IpAddressStatus struct {
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=ip
 
 // IpAddress is the Schema for the ipaddresses API
