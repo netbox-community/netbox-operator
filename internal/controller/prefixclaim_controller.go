@@ -75,7 +75,49 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	/* 1. check if the matching Prefix object exists */
+	/* 1. compute and assign the parent prefix if required */
+	// The current design will use prefixClaim.Status.ParentPrefix for storing the computed parent prefix, and as the source of truth for future parent prefix references
+	if prefixClaim.Status.ParentPrefix == "" /* parent prefix not yet computed/assigned */ {
+		if prefixClaim.Spec.ParentPrefix != "" {
+			// ParentPrefix takes precedence over ParentPrefixSelector
+			prefixClaim.Status.ParentPrefix = prefixClaim.Spec.ParentPrefix
+		} else if len(prefixClaim.Spec.ParentPrefixSelector) > 0 {
+			// The main idea is that we select one of the available parent prefixes as the ParentPrefix for all subsequent computation
+			//
+			// The existing algorithm for prefix allocation within a ParentPrefix remains unchanged
+
+			// fetch available prefixes from netbox
+			parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixByParentPrefixSelector(prefixClaim.Spec.ParentPrefixSelector, prefixClaim.Spec.Tenant, prefixClaim.Spec.PrefixLength)
+			if err != nil || len(parentPrefixCandidates) == 0 {
+				logger.Info(fmt.Sprintf("no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = %v, number of candidates = %v", err, len(parentPrefixCandidates)))
+				if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, ""); err != nil {
+					return ctrl.Result{}, err
+				}
+
+				// we requeue as this might be a temporary exhausation
+				return ctrl.Result{Requeue: true}, nil
+			}
+
+			// set prefixClaim.Spec.ParentPrefix
+			// TODO(henrybear327): use best-fit algorithm to pick a parent prefix
+			parentPrefixCandidate := parentPrefixCandidates[0]
+			prefixClaim.Status.ParentPrefix = parentPrefixCandidate.Prefix
+		} else {
+			logger.Info("either ParentPrefixSelector or ParentPrefix needs to be set")
+			if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, ""); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{Requeue: false}, nil
+		}
+
+		// set status, and condition field
+		logger.Info(fmt.Sprintf("parentPrefix is computed: %v", prefixClaim.Status.ParentPrefix))
+		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedTrue, corev1.EventTypeWarning, ""); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	/* 2. check if the matching Prefix object exists */
 	prefix := &netboxv1.Prefix{}
 	prefixName := prefixClaim.ObjectMeta.Name
 	prefixLookupKey := types.NamespacedName{
@@ -89,9 +131,9 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		debugLogger.Info("the prefix was not found, will create a new prefix object now")
 
-		/* 2. check if the lease for parent prefix is available */
+		/* 3. check if the lease for parent prefix is available */
 		leaseLockerNSN := types.NamespacedName{
-			Name:      convertCIDRToLeaseLockName(prefixClaim.Spec.ParentPrefix),
+			Name:      convertCIDRToLeaseLockName(prefixClaim.Status.ParentPrefix),
 			Namespace: r.OperatorNamespace,
 		}
 		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.Namespace+"/"+prefixName)
@@ -102,20 +144,19 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		lockCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
-		/* 3. try to lock the lease for the parent prefix */
+		/* 4. try to lock the lease for the parent prefix */
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Spec.ParentPrefix))
-			r.Recorder.Eventf(prefixClaim, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-				prefixClaim.Spec.ParentPrefix)
+			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix))
+			r.Recorder.Eventf(prefixClaim, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", prefixClaim.Spec.ParentPrefix))
+		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", prefixClaim.Status.ParentPrefix))
 
-		// 4. try to reclaim Prefix using restorationHash
+		// 5. try to reclaim Prefix using restorationHash
 		h := generatePrefixRestorationHash(prefixClaim)
 		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h)
 		if err != nil {
@@ -127,12 +168,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		if prefixModel == nil {
 			// Prefix cannot be restored from netbox
-			// 5.a assign new available Prefix
+			// 6.a assign new available Prefix
 
 			// get available Prefix under parent prefix in netbox with equal mask length
 			prefixModel, err = r.NetboxClient.GetAvailablePrefixByClaim(
 				&models.PrefixClaim{
-					ParentPrefix: prefixClaim.Spec.ParentPrefix,
+					ParentPrefix: prefixClaim.Status.ParentPrefix,
 					PrefixLength: prefixClaim.Spec.PrefixLength,
 					Metadata: &models.NetboxMetadata{
 						Tenant: prefixClaim.Spec.Tenant,
@@ -146,13 +187,13 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			}
 			debugLogger.Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
 		} else {
-			// 5.b reassign reserved Prefix from netbox
+			// 6.b reassign reserved Prefix from netbox
 
 			// do nothing, Prefix restored
 			debugLogger.Info(fmt.Sprintf("reassign reserved prefix from netbox, prefix: %s", prefixModel.Prefix))
 		}
 
-		/* 6-1, create the Prefix object */
+		/* 7.a create the Prefix object */
 		prefixResource := generatePrefixFromPrefixClaim(prefixClaim, prefixModel.Prefix, logger)
 		err = controllerutil.SetControllerReference(prefixClaim, prefixResource, r.Scheme)
 		if err != nil {
@@ -170,7 +211,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 	} else { // Prefix object exists
-		/* 6-2. update fields of the Prefix object */
+		/* 7.b update fields of the Prefix object */
 		debugLogger.Info("update prefix resource")
 		if err := r.Client.Get(ctx, prefixLookupKey, prefix); err != nil {
 			return ctrl.Result{}, err

@@ -65,7 +65,7 @@ func generatePrefixRestorationHash(claim *netboxv1.PrefixClaim) string {
 	rd := PrefixClaimRestorationData{
 		Namespace:    claim.Namespace,
 		Name:         claim.Name,
-		ParentPrefix: claim.Spec.ParentPrefix,
+		ParentPrefix: claim.Status.ParentPrefix,
 		PrefixLength: claim.Spec.PrefixLength,
 		Tenant:       claim.Spec.Tenant,
 	}
