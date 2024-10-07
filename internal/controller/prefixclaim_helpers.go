@@ -19,6 +19,7 @@ package controller
 import (
 	"crypto/sha1"
 	"fmt"
+	"sort"
 
 	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -63,21 +64,51 @@ func generatePrefixSpec(claim *netboxv1.PrefixClaim, prefix string, logger logr.
 }
 
 func generatePrefixRestorationHash(claim *netboxv1.PrefixClaim) string {
-	rd := PrefixClaimRestorationData{
-		Namespace:    claim.Namespace,
-		Name:         claim.Name,
-		ParentPrefix: claim.Spec.ParentPrefix,
-		PrefixLength: claim.Spec.PrefixLength,
-		Tenant:       claim.Spec.Tenant,
+	parentPrefixSelectorStr := ""
+	if len(claim.Spec.ParentPrefixSelector) > 0 {
+		// we generate the string by
+		// a) sort all keys in non-decreasing order (to avoid reordering the field in the CR causing a different hash to be generated)
+		// b) concat all the keys and values in the sequence of key1_value1_..._keyN_valueN
+
+		keyList := make([]string, 0, len(claim.Spec.ParentPrefixSelector))
+		for key := range claim.Spec.ParentPrefixSelector {
+			keyList = append(keyList, key)
+		}
+		sort.Strings(keyList)
+
+		for _, key := range keyList {
+			if len(parentPrefixSelectorStr) > 0 {
+				parentPrefixSelectorStr += "_"
+			}
+			parentPrefixSelectorStr += key + "_" + claim.Spec.ParentPrefixSelector[key]
+		}
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.PrefixLength+rd.Tenant)))
+
+	rd := PrefixClaimRestorationData{
+		Namespace:            claim.Namespace,
+		Name:                 claim.Name,
+		ParentPrefix:         claim.Spec.ParentPrefix,
+		PrefixLength:         claim.Spec.PrefixLength,
+		Tenant:               claim.Spec.Tenant,
+		ParentPrefixSelector: parentPrefixSelectorStr,
+	}
+
+	return rd.ComputeHash()
 }
 
 type PrefixClaimRestorationData struct {
 	// only use immutable fields
-	Namespace    string
-	Name         string
-	ParentPrefix string
-	PrefixLength string
-	Tenant       string
+	Namespace            string
+	Name                 string
+	ParentPrefix         string
+	PrefixLength         string
+	Tenant               string
+	ParentPrefixSelector string
+}
+
+func (rd *PrefixClaimRestorationData) ComputeHash() string {
+	if rd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.PrefixLength+rd.Tenant+rd.ParentPrefixSelector)))
 }

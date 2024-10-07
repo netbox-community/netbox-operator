@@ -4,4 +4,6 @@ resources:
 - netbox_v1_ipaddressclaim.yaml
 - netbox_v1_prefix.yaml
 - netbox_v1_prefixclaim.yaml
+- netbox_v1_prefixclaim_parentprefixselector_bool_int.yaml
+- netbox_v1_prefixclaim_parentprefixselector.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

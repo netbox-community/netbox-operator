@@ -22,13 +22,26 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-openapi/runtime"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+)
+
+var (
+	// TODO(henrybear327): centralize errors
+	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criterias")
 )
 
 func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix, error) {
-	customPrefixSearch := newCustomFieldStringFilterOperation(config.GetOperatorConfig().NetboxRestorationHashFieldName, hash)
+	customPrefixSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
+		{
+			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
+			value: hash,
+		},
+	})
 	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, customPrefixSearch)
 	if err != nil {
 		return nil, err
@@ -80,6 +93,75 @@ func validatePrefixLengthOrError(prefixClaim *models.PrefixClaim, prefixFamily i
 	return nil
 }
 
+func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(prefixClaimSpec *netboxv1.PrefixClaimSpec) ([]*models.Prefix, error) {
+	fieldEntries := make(map[string]string)
+
+	if tenant, ok := prefixClaimSpec.ParentPrefixSelector["tenant"]; ok {
+		details, err := r.GetTenantDetails(tenant)
+		if err != nil {
+			return nil, err
+		}
+
+		fieldEntries["tenant_id"] = strconv.Itoa(int(details.Id))
+	}
+
+	if site, ok := prefixClaimSpec.ParentPrefixSelector["site"]; ok {
+		details, err := r.GetSiteDetails(site)
+		if err != nil {
+			return nil, err
+		}
+
+		fieldEntries["site_id"] = strconv.Itoa(int(details.Id))
+	}
+
+	var conditions func(co *runtime.ClientOperation)
+	parentPrefixSelectorEntries := make([]CustomFieldEntry, 0, len(prefixClaimSpec.ParentPrefixSelector))
+	for k, v := range prefixClaimSpec.ParentPrefixSelector {
+		parentPrefixSelectorEntries = append(parentPrefixSelectorEntries, CustomFieldEntry{
+			key:   k,
+			value: v,
+		})
+	}
+
+	conditions = newQueryFilterOperation(fieldEntries, parentPrefixSelectorEntries)
+
+	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, conditions)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: find a better way?
+	if list.Payload.Count != nil && *list.Payload.Count == 0 {
+		return nil, nil
+	}
+
+	prefixes := make([]*models.Prefix, 0)
+	for _, prefix := range list.Payload.Results {
+		if prefix.Prefix != nil && r.isParentPrefixCandidate(prefixClaimSpec, *prefix.Prefix) {
+			prefixes = append(prefixes, &models.Prefix{
+				Prefix: *prefix.Prefix,
+			})
+		}
+	}
+
+	return prefixes, nil
+}
+
+func (r *NetboxClient) isParentPrefixCandidate(prefixClaimSpec *netboxv1.PrefixClaimSpec, prefix string) bool {
+	// if we can allocate a prefix from it, we can take it as a parent prefix
+	if _, err := r.GetAvailablePrefixByClaim(&models.PrefixClaim{
+		ParentPrefix: prefix,
+		PrefixLength: prefixClaimSpec.PrefixLength,
+		Metadata: &models.NetboxMetadata{
+			Tenant: prefixClaimSpec.Tenant,
+			Site:   prefixClaimSpec.Site,
+		},
+	}); err == nil {
+		return true
+	}
+	return false
+}
+
 // GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
 func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
 	_, err := r.GetTenantDetails(prefixClaim.Metadata.Tenant)
@@ -103,7 +185,7 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 		return nil, err
 	}
 	if len(responseParentPrefix.Payload.Results) == 0 {
-		return nil, errors.New("parent prefix not found")
+		return nil, ErrParentPrefixNotFound
 	}
 
 	if err := validatePrefixLengthOrError(prefixClaim, *responseParentPrefix.Payload.Results[0].Family.Value); err != nil {
@@ -143,7 +225,7 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 		// [2] https://github.com/netbox-community/go-netbox/v3/commits/hack/v3.4.5-0/
 		matchingPrefixSplit := strings.Split(matchingPrefix, "/")
 		if len(matchingPrefixSplit) != 2 {
-			return nil, errors.New("wrong matchingPrefix subnet format")
+			return nil, ErrWrongMatchingPrefixSubnetFormat
 		}
 		matchingPrefix = matchingPrefixSplit[0] + prefixClaim.PrefixLength
 	} // else {
@@ -162,12 +244,10 @@ func (r *NetboxClient) GetAvailablePrefixesByParentPrefix(parentPrefixId int64) 
 		return nil, err
 	}
 	if len(responseAvailablePrefixes.Payload) == 0 {
-		return nil, errors.New("parent prefix exhausted")
+		return nil, ErrParentPrefixExhausted
 	}
 	return responseAvailablePrefixes, nil
 }
-
-var ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criterias")
 
 func getSmallestMatchingPrefix(prefixList *ipam.IpamPrefixesAvailablePrefixesListOK, prefixClaimLengthString string) (string, bool, error) {
 	// input valiation

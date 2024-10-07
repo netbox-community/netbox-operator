@@ -24,7 +24,6 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
-	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -312,7 +311,7 @@ func TestIPAddressClaim(t *testing.T) {
 		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error
-		AssertError(t, err, "parent prefix exhausted")
+		AssertError(t, err, ErrParentPrefixExhausted.Error())
 		// assert nil output
 		AssertNil(t, actual)
 	})
@@ -346,7 +345,7 @@ func TestIPAddressClaim(t *testing.T) {
 
 		mockIPAddress.EXPECT().IpamIPAddressesList(ipam.NewIpamIPAddressesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		actual, err := client.RestoreExistingIpByHash(config.GetOperatorConfig().NetboxRestorationHashFieldName, input)
+		actual, err := client.RestoreExistingIpByHash(input)
 
 		assert.Nil(t, err)
 		assert.Equal(t, ipAddressRestore, actual.IpAddress)
