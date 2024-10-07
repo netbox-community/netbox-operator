@@ -132,9 +132,17 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, err
 		}
 
+		if prefixClaim.Status.ParentPrefix == "" {
+			// the parent prefix is not computed
+			logger.Info("the parent prefix is not computed")
+			return ctrl.Result{
+				Requeue: true,
+			}, nil
+		}
+
 		// get the name of the parent prefix
 		leaseLockerNSN := types.NamespacedName{
-			Name:      convertCIDRToLeaseLockName(prefixClaim.Spec.ParentPrefix),
+			Name:      convertCIDRToLeaseLockName(prefixClaim.Status.ParentPrefix),
 			Namespace: r.OperatorNamespace,
 		}
 		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
@@ -147,14 +155,13 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		// create lock
 		if locked := ll.TryLock(lockCtx); !locked {
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Spec.ParentPrefix))
-			r.Recorder.Eventf(prefix, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-				prefixClaim.Spec.ParentPrefix)
+			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix))
+			r.Recorder.Eventf(prefix, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info("successfully locked parent prefix %s", prefixClaim.Spec.ParentPrefix)
+		debugLogger.Info("successfully locked parent prefix %s", prefixClaim.Status.ParentPrefix)
 	}
 
 	/* 2. reserve or update Prefix in netbox */
