@@ -17,6 +17,9 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.parentPrefix
+      name: ParentPrefix
+      type: string
     - jsonPath: .status.prefix
       name: Prefix
       type: string
@@ -63,10 +66,18 @@ spec:
               description:
                 type: string
               parentPrefix:
+                description: parentPrefix will take precedence over parentPrefixSelector
                 format: cidr
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'parentPrefix' is immutable
+                  rule: self == oldSelf
+              parentPrefixSelector:
+                additionalProperties:
+                  type: string
+                type: object
+                x-kubernetes-validations:
+                - message: Field 'parentPrefixSelector' is immutable
                   rule: self == oldSelf
               prefixLength:
                 pattern: ^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$
@@ -84,7 +95,6 @@ spec:
                 - message: Field 'tenant' is immutable
                   rule: self == oldSelf
             required:
-            - parentPrefix
             - prefixLength
             type: object
           status:
@@ -159,11 +169,9 @@ spec:
                   - type
                   type: object
                 type: array
+              parentPrefix:
+                type: string
               prefix:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                  Prefix status: container, active, reserved , deprecated
                 type: string
               prefixName:
                 type: string
