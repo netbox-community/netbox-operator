@@ -139,6 +139,21 @@ func mockIpAddressesDelete(ipamMock *mock_interfaces.MockIpamInterface, catchUne
 		}).MinTimes(1)
 }
 
+func mockIpAddressesDeleteFail(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).
+		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesDeleteNoContent, error) {
+			got := params.(*ipam.IpamIPAddressesDeleteParams)
+			diff := deep.Equal(got, ExpectedDeleteFailParams)
+			if len(diff) > 0 {
+				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesDelete, diff to expected params diff: %+v", diff)
+				catchUnexpectedParams <- err
+				return &ipam.IpamIPAddressesDeleteNoContent{}, err
+			}
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesDelete was called with mock input\n")
+			return nil, ipam.NewIpamIPAddressesDeleteDefault(404)
+		}).MinTimes(1)
+}
+
 func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {

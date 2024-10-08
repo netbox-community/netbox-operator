@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"net/http"
 	"unicode/utf8"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
@@ -100,7 +101,14 @@ func (r *NetboxClient) DeleteIpAddress(ipAddressId int64) error {
 	requestDeleteIp := ipam.NewIpamIPAddressesDeleteParams().WithID(ipAddressId)
 	_, err := r.Ipam.IpamIPAddressesDelete(requestDeleteIp, nil)
 	if err != nil {
-		return utils.NetboxError("Failed to delete IP Address from Netbox", err)
+		switch typedErr := err.(type) {
+		case *ipam.IpamIPAddressesDeleteDefault:
+			if typedErr.IsCode(http.StatusNotFound) {
+				return nil
+			}
+		default:
+			return utils.NetboxError("Failed to delete IP Address from Netbox", err)
+		}
 	}
 	return nil
 }

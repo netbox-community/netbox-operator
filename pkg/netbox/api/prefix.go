@@ -17,6 +17,8 @@ limitations under the License.
 package api
 
 import (
+	"net/http"
+
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 
@@ -101,7 +103,14 @@ func (r *NetboxClient) DeletePrefix(prefixId int64) error {
 	requestDeletePrefix := ipam.NewIpamPrefixesDeleteParams().WithID(prefixId)
 	_, err := r.Ipam.IpamPrefixesDelete(requestDeletePrefix, nil)
 	if err != nil {
-		return utils.NetboxError("failed to delete Prefix", err)
+		switch typedErr := err.(type) {
+		case *ipam.IpamPrefixesDeleteDefault:
+			if typedErr.IsCode(http.StatusNotFound) {
+				return nil
+			}
+		default:
+			return utils.NetboxError("Failed to delete IP Address from Netbox", err)
+		}
 	}
 	return nil
 }

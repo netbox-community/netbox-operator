@@ -101,3 +101,10 @@ var ConditionIpaddressReadyFalse = metav1.Condition{
 	Reason:  "FailedToReserveIpInNetbox",
 	Message: "Failed to reserve IP in NetBox",
 }
+
+var ConditionIpaddressReadyFalseDeletionFailed = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "FailedToDeleteIpInNetbox",
+	Message: "Failed to delete IP in NetBox",
+}
