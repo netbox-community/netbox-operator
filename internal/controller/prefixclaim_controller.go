@@ -89,8 +89,8 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			// fetch available prefixes from netbox
 			parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixByParentPrefixSelector(prefixClaim.Spec.ParentPrefixSelector, prefixClaim.Spec.Tenant, prefixClaim.Spec.PrefixLength)
 			if err != nil || len(parentPrefixCandidates) == 0 {
-				logger.Info(fmt.Sprintf("no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = %v, number of candidates = %v", err, len(parentPrefixCandidates)))
-				if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, ""); err != nil {
+				errorMsg := fmt.Sprintf("no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = %v, number of candidates = %v", err, len(parentPrefixCandidates))
+				if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, errorMsg); err != nil {
 					return ctrl.Result{}, err
 				}
 
@@ -103,16 +103,16 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			parentPrefixCandidate := parentPrefixCandidates[0]
 			prefixClaim.Status.ParentPrefix = parentPrefixCandidate.Prefix
 		} else {
-			logger.Info("either ParentPrefixSelector or ParentPrefix needs to be set")
-			if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, ""); err != nil {
+			// TODO(henrybear327): add a validation rule on the CR
+			if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, "either ParentPrefixSelector or ParentPrefix needs to be set"); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{Requeue: false}, nil
 		}
 
 		// set status, and condition field
-		logger.Info(fmt.Sprintf("parentPrefix is computed: %v", prefixClaim.Status.ParentPrefix))
-		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedTrue, corev1.EventTypeWarning, ""); err != nil {
+		msg := fmt.Sprintf("parentPrefix is computed: %v", prefixClaim.Status.ParentPrefix)
+		if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedTrue, corev1.EventTypeNormal, msg); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -148,8 +148,8 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix))
-			r.Recorder.Eventf(prefixClaim, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix)
+			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Status.ParentPrefix)
+			r.Recorder.Eventf(prefixClaim, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
