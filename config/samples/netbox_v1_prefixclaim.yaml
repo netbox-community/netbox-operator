@@ -1,4 +1,4 @@
-apiVersion: netbox.dev/v1
+apiVersion: ipam.netbox.dev/v1
 kind: PrefixClaim
 metadata:
   labels:

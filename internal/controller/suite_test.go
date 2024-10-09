@@ -30,7 +30,7 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -89,7 +89,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = netboxv1.AddToScheme(scheme.Scheme)
+	err = ipamv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("defining k8sManager option to disable metrics server")

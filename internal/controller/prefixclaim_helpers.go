@@ -21,13 +21,13 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	ipamv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func generatePrefixFromPrefixClaim(claim *netboxv1.PrefixClaim, prefix string, logger logr.Logger) *netboxv1.Prefix {
-	return &netboxv1.Prefix{
+func generatePrefixFromPrefixClaim(claim *ipamv1.PrefixClaim, prefix string, logger logr.Logger) *ipamv1.Prefix {
+	return &ipamv1.Prefix{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claim.Name,
 			Namespace: claim.ObjectMeta.Namespace,
@@ -36,7 +36,7 @@ func generatePrefixFromPrefixClaim(claim *netboxv1.PrefixClaim, prefix string, l
 	}
 }
 
-func generatePrefixSpec(claim *netboxv1.PrefixClaim, prefix string, logger logr.Logger) netboxv1.PrefixSpec {
+func generatePrefixSpec(claim *ipamv1.PrefixClaim, prefix string, logger logr.Logger) ipamv1.PrefixSpec {
 	// log a warning if the netboxOperatorRestorationHash name is a key in the customFields map of the IpAddressClaim
 	_, ok := claim.Spec.CustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName]
 	if ok {
@@ -51,7 +51,7 @@ func generatePrefixSpec(claim *netboxv1.PrefixClaim, prefix string, logger logr.
 
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generatePrefixRestorationHash(claim)
 
-	return netboxv1.PrefixSpec{
+	return ipamv1.PrefixSpec{
 		Prefix:           prefix,
 		Tenant:           claim.Spec.Tenant,
 		CustomFields:     customFields,
@@ -61,7 +61,7 @@ func generatePrefixSpec(claim *netboxv1.PrefixClaim, prefix string, logger logr.
 	}
 }
 
-func generatePrefixRestorationHash(claim *netboxv1.PrefixClaim) string {
+func generatePrefixRestorationHash(claim *ipamv1.PrefixClaim) string {
 	rd := PrefixClaimRestorationData{
 		Namespace:    claim.Namespace,
 		Name:         claim.Name,
