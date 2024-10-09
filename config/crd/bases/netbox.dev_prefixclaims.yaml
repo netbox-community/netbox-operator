@@ -17,14 +17,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.parentPrefix
-      name: ParentPrefix
-      type: string
     - jsonPath: .status.prefix
       name: Prefix
       type: string
     - jsonPath: .status.conditions[?(@.type=="PrefixAssigned")].status
       name: PrefixAssigned
+      type: string
+    - jsonPath: .status.parentPrefix
+      name: ParentPrefix
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -55,7 +55,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: PrefixClaimSpec defines the desired state of PrefixClaim
+            description: |-
+              PrefixClaimSpec defines the desired state of PrefixClaim
+              TODO: The reason for using a workaround please see https://github.com/netbox-community/netbox-operator/pull/90#issuecomment-2402112475
             properties:
               comments:
                 type: string
@@ -66,7 +68,6 @@ spec:
               description:
                 type: string
               parentPrefix:
-                description: parentPrefix will take precedence over parentPrefixSelector
                 format: cidr
                 type: string
                 x-kubernetes-validations:
@@ -75,6 +76,8 @@ spec:
               parentPrefixSelector:
                 additionalProperties:
                   type: string
+                description: 'TODO(henrybear327): validate the key and value are all
+                  of type string'
                 type: object
                 x-kubernetes-validations:
                 - message: Field 'parentPrefixSelector' is immutable
@@ -97,6 +100,9 @@ spec:
             required:
             - prefixLength
             type: object
+            x-kubernetes-validations:
+            - rule: (!has(self.parentPrefix) && has(self.parentPrefixSelector)) ||
+                (has(self.parentPrefix) && !has(self.parentPrefixSelector))
           status:
             description: PrefixClaimStatus defines the observed state of PrefixClaim
             properties:

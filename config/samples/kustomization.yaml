@@ -4,4 +4,5 @@ resources:
 - netbox_v1_ipaddressclaim.yaml
 - netbox_v1_prefix.yaml
 - netbox_v1_prefixclaim.yaml
+- netbox_v1_prefixclaim_customfields.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

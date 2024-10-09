@@ -18,30 +18,43 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 )
 
-type CustomFieldStringFilter struct {
-	CustomFieldName  string
-	CustomFieldValue string
+type CustomFieldEntry struct {
+	key   string
+	value string
 }
 
-func newCustomFieldStringFilterOperation(name string, value string) func(co *runtime.ClientOperation) {
+type CustomFieldStringFilter struct {
+	entries []CustomFieldEntry
+}
+
+func newCustomFieldStringFilterOperation(entries []CustomFieldEntry) func(co *runtime.ClientOperation) {
 	return func(co *runtime.ClientOperation) {
 		co.Params = &CustomFieldStringFilter{
-			CustomFieldName:  name,
-			CustomFieldValue: value,
+			entries: entries,
 		}
 	}
 }
 
 func (o *CustomFieldStringFilter) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
-	err := r.SetQueryParam(fmt.Sprintf("cf_%s", url.QueryEscape(o.CustomFieldName)), o.CustomFieldValue)
-	if err != nil {
-		return err
+	// We currently write the request by ANDing all the custom fields
+
+	// The custom field query format is like the following: http://localhost:8080/ipam/prefixes/?q=&cf_poolName=Pool+2&cf_environment=Production
+	// The GitHub issue related to supporting multiple custom field in a query: https://github.com/netbox-community/netbox/issues/7163
+	for _, entry := range o.entries {
+		err := r.SetQueryParam(fmt.Sprintf("cf_%s", url.QueryEscape(entry.key)), entry.value)
+		if err != nil {
+			return err
+		}
 	}
+
+	log.Println("GetQueryParams", r.GetQueryParams())
+
 	return nil
 }

@@ -34,7 +34,12 @@ var (
 )
 
 func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix, error) {
-	customPrefixSearch := newCustomFieldStringFilterOperation(config.GetOperatorConfig().NetboxRestorationHashFieldName, hash)
+	customPrefixSearch := newCustomFieldStringFilterOperation([]CustomFieldEntry{
+		{
+			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
+			value: hash,
+		},
+	})
 	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, customPrefixSearch)
 	if err != nil {
 		return nil, err
@@ -87,11 +92,15 @@ func validatePrefixLengthOrError(prefixClaim *models.PrefixClaim, prefixFamily i
 }
 
 func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(customFields map[string]string, tenant, prefixLength string) ([]*models.Prefix, error) {
-	// TODO(henrybear327): extend to support multiple custom fields
 	var conditions func(co *runtime.ClientOperation)
+	customFieldEntries := make([]CustomFieldEntry, 0, len(customFields))
 	for k, v := range customFields {
-		conditions = newCustomFieldStringFilterOperation(k, v)
+		customFieldEntries = append(customFieldEntries, CustomFieldEntry{
+			key:   k,
+			value: v,
+		})
 	}
+	conditions = newCustomFieldStringFilterOperation(customFieldEntries)
 
 	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, conditions)
 	if err != nil {

@@ -12,7 +12,6 @@ spec:
   comments: "your comments"
   preserveInNetbox: true
   prefixLength: "/31"
-  # parentPrefix will take precedence over parentPrefixSelector
   # parentPrefix: "2.0.0.0/16"
   parentPrefixSelector:
     environment: "Production"
