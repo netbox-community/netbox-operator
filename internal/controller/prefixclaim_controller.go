@@ -103,7 +103,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			parentPrefixCandidate := parentPrefixCandidates[0]
 			prefixClaim.Status.ParentPrefix = parentPrefixCandidate.Prefix
 		} else {
-			// TODO(henrybear327): add a validation rule on the CR
+			// this case should not be triggered anymore, as we have validation rules put in place on the CR
 			if err := r.SetConditionAndCreateEvent(ctx, prefixClaim, netboxv1.ConditionParentPrefixComputedFalse, corev1.EventTypeWarning, "either ParentPrefixSelector or ParentPrefix needs to be set"); err != nil {
 				return ctrl.Result{}, err
 			}
