@@ -23,7 +23,6 @@ import (
 	"time"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
-	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/swisscom/leaselocker"
@@ -121,7 +120,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// 4. try to reclaim ip address
 		h := generateIpAddressRestorationHash(o)
-		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(config.GetOperatorConfig().NetboxRestorationHashFieldName, h)
+		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(h)
 		if err != nil {
 			if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, looking up ip by hash failed: %w", setConditionErr, err)
