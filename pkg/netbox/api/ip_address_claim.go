@@ -40,7 +40,12 @@ const (
 )
 
 func (r *NetboxClient) RestoreExistingIpByHash(customFieldName string, hash string) (*models.IPAddress, error) {
-	customIpSearch := newCustomFieldStringFilterOperation(customFieldName, hash)
+	customIpSearch := newCustomFieldStringFilterOperation([]CustomFieldEntry{
+		{
+			key:   customFieldName,
+			value: hash,
+		},
+	})
 	list, err := r.Ipam.IpamIPAddressesList(ipam.NewIpamIPAddressesListParams(), nil, customIpSearch)
 	if err != nil {
 		return nil, err

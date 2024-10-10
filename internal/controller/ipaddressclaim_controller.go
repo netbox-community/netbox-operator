@@ -111,9 +111,8 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix))
-			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-				o.Spec.ParentPrefix)
+			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix)
+			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
