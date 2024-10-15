@@ -12,7 +12,8 @@ spec:
   comments: "your comments"
   preserveInNetbox: true
   prefixLength: "/31"
-  # parentPrefix: "2.0.0.0/16"
-  parentPrefixSelector:
+  parentPrefixSelector: # notice that the keys and values are case-sensitive
     environment: "Production"
     poolName: "Pool 1"
+    # environment: "production"
+    # poolName: "pool 3"
