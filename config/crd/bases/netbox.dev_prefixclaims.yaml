@@ -23,6 +23,9 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="PrefixAssigned")].status
       name: PrefixAssigned
       type: string
+    - jsonPath: .status.parentPrefix
+      name: ParentPrefix
+      type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
@@ -52,7 +55,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: PrefixClaimSpec defines the desired state of PrefixClaim
+            description: |-
+              PrefixClaimSpec defines the desired state of PrefixClaim
+              TODO: The reason for using a workaround please see https://github.com/netbox-community/netbox-operator/pull/90#issuecomment-2402112475
             properties:
               comments:
                 type: string
@@ -67,6 +72,15 @@ spec:
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'parentPrefix' is immutable
+                  rule: self == oldSelf
+              parentPrefixSelector:
+                additionalProperties:
+                  type: string
+                description: 'TODO(henrybear327): validate the key and value are all
+                  of type string'
+                type: object
+                x-kubernetes-validations:
+                - message: Field 'parentPrefixSelector' is immutable
                   rule: self == oldSelf
               prefixLength:
                 pattern: ^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$
@@ -84,9 +98,11 @@ spec:
                 - message: Field 'tenant' is immutable
                   rule: self == oldSelf
             required:
-            - parentPrefix
             - prefixLength
             type: object
+            x-kubernetes-validations:
+            - rule: (!has(self.parentPrefix) && has(self.parentPrefixSelector)) ||
+                (has(self.parentPrefix) && !has(self.parentPrefixSelector))
           status:
             description: PrefixClaimStatus defines the observed state of PrefixClaim
             properties:
@@ -159,11 +175,9 @@ spec:
                   - type
                   type: object
                 type: array
+              parentPrefix:
+                type: string
               prefix:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                  Prefix status: container, active, reserved , deprecated
                 type: string
               prefixName:
                 type: string

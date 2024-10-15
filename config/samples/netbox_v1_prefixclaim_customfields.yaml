@@ -1,0 +1,19 @@
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-customfields-sample
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  site: "DataCenter"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  prefixLength: "/31"
+  parentPrefixSelector: # notice that the keys and values are case-sensitive
+    environment: "Production"
+    poolName: "Pool 1"
+    # environment: "production"
+    # poolName: "pool 3"
