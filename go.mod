@@ -20,7 +20,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/swisscom/leaselocker v0.0.0-20240802123043-a0ec9fe2499d
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
