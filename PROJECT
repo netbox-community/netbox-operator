@@ -13,7 +13,7 @@ resources:
     namespaced: true
   controller: true
   domain: netbox.dev
-  group: netbox
+  group: ipam
   kind: IpAddress
   path: github.com/netbox-community/netbox-operator/api/v1
   version: v1
@@ -22,7 +22,7 @@ resources:
     namespaced: true
   controller: true
   domain: netbox.dev
-  group: netbox
+  group: ipam
   kind: IpAddressClaim
   path: github.com/netbox-community/netbox-operator/api/v1
   version: v1
@@ -31,7 +31,7 @@ resources:
     namespaced: true
   controller: true
   domain: netbox.dev
-  group: netbox
+  group: ipam
   kind: Prefix
   path: github.com/netbox-community/netbox-operator/api/v1
   version: v1
@@ -40,7 +40,7 @@ resources:
     namespaced: true
   controller: true
   domain: netbox.dev
-  group: netbox
+  group: ipam
   kind: PrefixClaim
   path: github.com/netbox-community/netbox-operator/api/v1
   version: v1
