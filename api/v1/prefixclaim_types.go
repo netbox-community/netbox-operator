@@ -24,14 +24,20 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // PrefixClaimSpec defines the desired state of PrefixClaim
+// TODO: The reason for using a workaround please see https://github.com/netbox-community/netbox-operator/pull/90#issuecomment-2402112475
+// +kubebuilder:validation:XValidation:rule="(!has(self.parentPrefix) && has(self.parentPrefixSelector)) || (has(self.parentPrefix) && !has(self.parentPrefixSelector))"
 type PrefixClaimSpec struct {
+
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
-	ParentPrefix string `json:"parentPrefix"`
+	ParentPrefix string `json:"parentPrefix,omitempty"`
+
+	// TODO(henrybear327): validate the key and value are all of type string
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefixSelector' is immutable"
+	ParentPrefixSelector map[string]string `json:"parentPrefixSelector,omitempty"`
 
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Pattern=`^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$`
@@ -56,16 +62,19 @@ type PrefixClaimSpec struct {
 type PrefixClaimStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	// Prefix status: container, active, reserved , deprecated
-	Prefix     string             `json:"prefix,omitempty"`
-	PrefixName string             `json:"prefixName,omitempty"`
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	// Prefix status: container, active, reserved, deprecated
+
+	ParentPrefix string             `json:"parentPrefix,omitempty"` // Due to the fact that we can use ParentPrefixSelector to assign parent prefixes, we use this field to store exactly which parent prefix we are using for prefix allocation
+	Prefix       string             `json:"prefix,omitempty"`
+	PrefixName   string             `json:"prefixName,omitempty"`
+	Conditions   []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Prefix",type=string,JSONPath=`.status.prefix`
 // +kubebuilder:printcolumn:name="PrefixAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="PrefixAssigned")].status`
+// +kubebuilder:printcolumn:name="ParentPrefix",type=string,JSONPath=`.status.parentPrefix`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=pxc
@@ -117,4 +126,18 @@ var ConditionPrefixAssignedFalse = metav1.Condition{
 	Status:  "False",
 	Reason:  "PrefixCRNotCreated",
 	Message: "Failed to fetch new Prefix from NetBox",
+}
+
+var ConditionParentPrefixComputedTrue = metav1.Condition{
+	Type:    "ParentPrefixComputed",
+	Status:  "True",
+	Reason:  "ParentPrefixComputed",
+	Message: "The parent prefix was computed successfully",
+}
+
+var ConditionParentPrefixComputedFalse = metav1.Condition{
+	Type:    "ParentPrefixComputed",
+	Status:  "False",
+	Reason:  "ParentPrefixNotComputed",
+	Message: "The parent prefix was not able to be computed",
 }
