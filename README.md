@@ -85,7 +85,7 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/netbox-operator/<tag or
 
 We cordially invite collaboration from the community to enhance the quality and functionality of this project. Whether you are addressing bugs, introducing new features, refining documentation, or assisting with items on our to-do list, your contributions are highly valued and greatly appreciated. Please take a look at [Contribution guide] for more details.
 
-[Contribution guide]: https://github.com/henrybear327/netbox-operator/CONTRIBUTING.md
+[Contribution guide]: ./CONTRIBUTING.md
 
 # License
 
