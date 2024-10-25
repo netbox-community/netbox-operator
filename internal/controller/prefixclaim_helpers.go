@@ -54,6 +54,7 @@ func generatePrefixSpec(claim *netboxv1.PrefixClaim, prefix string, logger logr.
 	return netboxv1.PrefixSpec{
 		Prefix:           prefix,
 		Tenant:           claim.Spec.Tenant,
+		Site:             claim.Spec.Site,
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,
 		Comments:         claim.Spec.Comments,

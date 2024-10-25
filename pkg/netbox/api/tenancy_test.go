@@ -80,5 +80,5 @@ func TestTenancy_GetWrongTenantDetails(t *testing.T) {
 
 	actual, err := netboxClient.GetTenantDetails(wrongTenant)
 	assert.Nil(t, actual)
-	assert.EqualError(t, err, "failed to fetch tenant: not found")
+	assert.EqualError(t, err, "failed to fetch tenant 'wrongTenant': not found")
 }

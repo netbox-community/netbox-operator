@@ -18,6 +18,7 @@ package interfaces
 
 import (
 	"github.com/go-openapi/runtime"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
@@ -43,4 +44,8 @@ type TenancyInterface interface {
 
 type ExtrasInterface interface {
 	ExtrasCustomFieldsList(params *extras.ExtrasCustomFieldsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...extras.ClientOption) (*extras.ExtrasCustomFieldsListOK, error)
+}
+
+type DcimInterface interface {
+	DcimSitesList(params *dcim.DcimSitesListParams, authInfo runtime.ClientAuthInfoWriter, opts ...dcim.ClientOption) (*dcim.DcimSitesListOK, error)
 }

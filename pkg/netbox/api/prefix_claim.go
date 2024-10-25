@@ -87,6 +87,14 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 		return nil, err
 	}
 
+	// Don't assign an prefix if the requested site doesn't exist in netbox
+	if prefixClaim.Metadata.Site != "" {
+		_, err := r.GetSiteDetails(prefixClaim.Metadata.Site)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
 		Prefix:   prefixClaim.ParentPrefix,
 		Metadata: prefixClaim.Metadata,
