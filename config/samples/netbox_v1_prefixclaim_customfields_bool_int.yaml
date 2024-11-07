@@ -1,0 +1,28 @@
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-customfields-sample-4
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  site: "DataCenter"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  prefixLength: "/31"
+  parentPrefixSelector: # notice that the keys and values are case-sensitive
+    # should return a prefix in 3.0.0.0/24
+    environment: "Production"
+    poolName: "Pool 1"
+    # same condition as above, should return a prefix in 3.0.0.0/24
+    # cfDataTypeBool: "true"
+    # cfDataTypeInteger: "1"
+
+    # should return a prefix in 3.0.2.0/24
+    # environment: "Development"
+    # poolName: "Pool 1"
+    # same condition as above, should return a prefix in 3.0.0.0/24
+    # cfDataTypeBool: "false"
+    # cfDataTypeInteger: "2"
