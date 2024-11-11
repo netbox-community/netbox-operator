@@ -79,8 +79,8 @@ spec:
               site:
                 type: string
                 x-kubernetes-validations:
-                - message: Field 'site' is required once set
-                  rule: self == oldSelf || self != ''
+                - message: Field 'site' is immutable
+                  rule: self == oldSelf
               tenant:
                 type: string
                 x-kubernetes-validations:
