@@ -19,6 +19,7 @@ package api
 import (
 	"testing"
 
+	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
@@ -315,4 +316,183 @@ func TestPrefix_DeletePrefix(t *testing.T) {
 
 	err := netboxClient.DeletePrefix(prefixId)
 	assert.Nil(t, err)
+}
+
+func TestPrefix_ReserveOrUpdate(t *testing.T) {
+	// tenant mock input
+	tenant := "Tenant1"
+	tenantListRequestInput := tenancy.NewTenancyTenantsListParams().WithName(&tenant)
+
+	// tenant mock output
+	tenantOutputId := int64(1)
+	tenantOutputSlug := "tenant1"
+	tenantListRequestOutput := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantOutputId,
+					Name: &tenant,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
+	// site mock input
+	site := "Site3"
+	siteListRequestInput := dcim.NewDcimSitesListParams().WithName(&site)
+
+	// site mock output
+	siteOutputId := int64(3)
+	siteOutputSlug := "site3"
+	siteListRequestOutput := &dcim.DcimSitesListOK{
+		Payload: &dcim.DcimSitesListOKBody{
+			Results: []*netboxModels.Site{
+				{
+					ID:   siteOutputId,
+					Name: &site,
+					Slug: &siteOutputSlug,
+				},
+			},
+		},
+	}
+
+	// prefix mock input
+	prefix := "10.112.140.0/24"
+	prefixPtr := &prefix
+	prefixListRequestInput := ipam.
+		NewIpamPrefixesListParams().
+		WithPrefix(prefixPtr)
+
+	//prefix mock output
+	prefixId := int64(4)
+	comments := "blabla"
+	description := "very useful prefix"
+
+	emptyPrefixListOutput := &ipam.IpamPrefixesListOK{
+		Payload: &ipam.IpamPrefixesListOKBody{
+			Results: []*netboxModels.Prefix{},
+		},
+	}
+
+	t.Run("reserve with tenant and site", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+
+		//prefix mock input
+		prefixToCreate := &netboxModels.WritablePrefix{
+			Comments:     comments + warningComment,
+			Description:  description + warningComment,
+			CustomFields: make(map[string]string),
+			Prefix:       prefixPtr,
+			Site:         &siteOutputId,
+			Tenant:       &tenantOutputId,
+			Status:       "active",
+		}
+
+		createPrefixInput := ipam.
+			NewIpamPrefixesCreateParams().
+			WithDefaults().
+			WithData(prefixToCreate)
+
+		//prefix mock output
+		createPrefixOutput := &ipam.IpamPrefixesCreateCreated{
+			Payload: &netboxModels.Prefix{
+				ID:          int64(1),
+				Comments:    comments + warningComment,
+				Description: description + warningComment,
+				Display:     prefix,
+				Prefix:      prefixPtr,
+				Site: &netboxModels.NestedSite{
+					ID: siteOutputId,
+				},
+				Tenant: &netboxModels.NestedTenant{
+					ID: tenantOutputId,
+				},
+			},
+		}
+
+		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
+		mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes()
+		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(emptyPrefixListOutput, nil)
+		mockIpam.EXPECT().IpamPrefixesCreate(createPrefixInput, nil).Return(createPrefixOutput, nil)
+
+		netboxClient := &NetboxClient{
+			Ipam:    mockIpam,
+			Tenancy: mockTenancy,
+			Dcim:    mockDcim,
+		}
+
+		prefixModel := models.Prefix{
+			Prefix: prefix,
+			Metadata: &models.NetboxMetadata{
+				Comments:    comments,
+				Description: description,
+				Site:        site,
+				Custom:      make(map[string]string),
+				Tenant:      tenant,
+			},
+		}
+
+		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
+		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returened
+		// without manipulation by the code
+		assert.Nil(t, err)
+	})
+
+	t.Run("update without tenant and site", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+		prefixListOutput := &ipam.IpamPrefixesListOK{
+			Payload: &ipam.IpamPrefixesListOKBody{
+				Results: []*netboxModels.Prefix{
+					{
+						ID:          prefixId,
+						Comments:    comments + warningComment,
+						Description: description + warningComment,
+						Display:     prefix,
+						Prefix:      prefixPtr,
+					},
+				},
+			},
+		}
+
+		//prefix mock output
+		updatePrefixOutput := &ipam.IpamPrefixesUpdateOK{
+			Payload: &netboxModels.Prefix{
+				ID:          prefixId,
+				Comments:    comments + warningComment,
+				Description: description + warningComment,
+				Display:     prefix,
+				Prefix:      prefixPtr,
+			},
+		}
+
+		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(prefixListOutput, nil)
+		mockIpam.EXPECT().IpamPrefixesUpdate(gomock.Any(), nil).Return(updatePrefixOutput, nil)
+
+		netboxClient := &NetboxClient{
+			Ipam:    mockIpam,
+			Tenancy: mockTenancy,
+		}
+
+		prefixModel := models.Prefix{
+			Prefix: prefix,
+			Metadata: &models.NetboxMetadata{
+				Comments:    comments,
+				Description: description,
+			},
+		}
+
+		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
+		// skip assertion on retured values as the payload of IpamPrefixesUpdate() is returened
+		// without manipulation by the code
+		assert.Nil(t, err)
+	})
 }

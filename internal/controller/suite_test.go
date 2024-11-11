@@ -58,6 +58,7 @@ var mockCtrl *gomock.Controller
 var ipamMockIpAddress *mock_interfaces.MockIpamInterface
 var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
 var tenancyMock *mock_interfaces.MockTenancyInterface
+var dcimMock *mock_interfaces.MockDcimInterface
 var ctx context.Context
 var cancel context.CancelFunc
 
@@ -111,6 +112,7 @@ var _ = BeforeSuite(func() {
 	ipamMockIpAddress = mock_interfaces.NewMockIpamInterface(mockCtrl)
 	ipamMockIpAddressClaim = mock_interfaces.NewMockIpamInterface(mockCtrl)
 	tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
+	dcimMock = mock_interfaces.NewMockDcimInterface(mockCtrl)
 
 	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
 	Expect(k8sManager.GetConfig()).NotTo(BeNil())
@@ -123,6 +125,7 @@ var _ = BeforeSuite(func() {
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddress,
 			Tenancy: tenancyMock,
+			Dcim:    dcimMock,
 		},
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
@@ -136,6 +139,7 @@ var _ = BeforeSuite(func() {
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddressClaim,
 			Tenancy: tenancyMock,
+			Dcim:    dcimMock,
 		},
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),

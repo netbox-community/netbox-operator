@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	runtime "github.com/go-openapi/runtime"
+	dcim "github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	extras "github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	ipam "github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	tenancy "github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
@@ -23,6 +24,7 @@ import (
 type MockIpamInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockIpamInterfaceMockRecorder
+	isgomock struct{}
 }
 
 // MockIpamInterfaceMockRecorder is the mock recorder for MockIpamInterface.
@@ -246,6 +248,7 @@ func (mr *MockIpamInterfaceMockRecorder) IpamPrefixesUpdate(params, authInfo any
 type MockTenancyInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockTenancyInterfaceMockRecorder
+	isgomock struct{}
 }
 
 // MockTenancyInterfaceMockRecorder is the mock recorder for MockTenancyInterface.
@@ -289,6 +292,7 @@ func (mr *MockTenancyInterfaceMockRecorder) TenancyTenantsList(params, authInfo 
 type MockExtrasInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockExtrasInterfaceMockRecorder
+	isgomock struct{}
 }
 
 // MockExtrasInterfaceMockRecorder is the mock recorder for MockExtrasInterface.
@@ -326,4 +330,48 @@ func (mr *MockExtrasInterfaceMockRecorder) ExtrasCustomFieldsList(params, authIn
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{params, authInfo}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExtrasCustomFieldsList", reflect.TypeOf((*MockExtrasInterface)(nil).ExtrasCustomFieldsList), varargs...)
+}
+
+// MockDcimInterface is a mock of DcimInterface interface.
+type MockDcimInterface struct {
+	ctrl     *gomock.Controller
+	recorder *MockDcimInterfaceMockRecorder
+	isgomock struct{}
+}
+
+// MockDcimInterfaceMockRecorder is the mock recorder for MockDcimInterface.
+type MockDcimInterfaceMockRecorder struct {
+	mock *MockDcimInterface
+}
+
+// NewMockDcimInterface creates a new mock instance.
+func NewMockDcimInterface(ctrl *gomock.Controller) *MockDcimInterface {
+	mock := &MockDcimInterface{ctrl: ctrl}
+	mock.recorder = &MockDcimInterfaceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDcimInterface) EXPECT() *MockDcimInterfaceMockRecorder {
+	return m.recorder
+}
+
+// DcimSitesList mocks base method.
+func (m *MockDcimInterface) DcimSitesList(params *dcim.DcimSitesListParams, authInfo runtime.ClientAuthInfoWriter, opts ...dcim.ClientOption) (*dcim.DcimSitesListOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DcimSitesList", varargs...)
+	ret0, _ := ret[0].(*dcim.DcimSitesListOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DcimSitesList indicates an expected call of DcimSitesList.
+func (mr *MockDcimInterfaceMockRecorder) DcimSitesList(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DcimSitesList", reflect.TypeOf((*MockDcimInterface)(nil).DcimSitesList), varargs...)
 }

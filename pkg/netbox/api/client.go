@@ -40,6 +40,7 @@ type NetboxClient struct {
 	Ipam    interfaces.IpamInterface
 	Tenancy interfaces.TenancyInterface
 	Extras  interfaces.ExtrasInterface
+	Dcim    interfaces.DcimInterface
 }
 
 // Checks that the Netbox host is properly configured for the operator to function.
@@ -108,6 +109,7 @@ func GetNetboxClient() (*NetboxClient, error) {
 		Ipam:    auxNetboxClient.Ipam,
 		Tenancy: auxNetboxClient.Tenancy,
 		Extras:  auxNetboxClient.Extras,
+		Dcim:    auxNetboxClient.Dcim,
 	}
 
 	return netboxClient, nil

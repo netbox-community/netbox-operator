@@ -17,23 +17,23 @@ limitations under the License.
 package api
 
 import (
-	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) GetTenantDetails(name string) (*models.Tenant, error) {
-	request := tenancy.NewTenancyTenantsListParams().WithName(&name)
-	response, err := r.Tenancy.TenancyTenantsList(request, nil)
+func (r *NetboxClient) GetSiteDetails(name string) (*models.Site, error) {
+	request := dcim.NewDcimSitesListParams().WithName(&name)
+	response, err := r.Dcim.DcimSitesList(request, nil)
 	if err != nil {
-		return nil, utils.NetboxError("failed to fetch Tenant details", err)
+		return nil, utils.NetboxError("failed to fetch Site details", err)
 	}
 	if len(response.Payload.Results) == 0 {
-		return nil, utils.NetboxNotFoundError("tenant '" + name + "'")
+		return nil, utils.NetboxNotFoundError("site '" + name + "'")
 	}
 
-	return &models.Tenant{
+	return &models.Site{
 		Id:   response.Payload.Results[0].ID,
 		Slug: *response.Payload.Results[0].Slug,
 		Name: *response.Payload.Results[0].Name,

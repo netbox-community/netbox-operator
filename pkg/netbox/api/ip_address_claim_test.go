@@ -404,7 +404,7 @@ func TestIPAddressClaim_GetNoAvailableIPAddressWithTenancyChecks(t *testing.T) {
 		}
 
 		// expected error
-		expectedErrorMsg := "failed to fetch tenant: not found"
+		expectedErrorMsg := "failed to fetch tenant 'non-existing-tenant': not found"
 
 		// mock empty list call
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(emptyTenantList, nil).AnyTimes()

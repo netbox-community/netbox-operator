@@ -51,6 +51,14 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 		desiredPrefix.Tenant = &tenantDetails.Id
 	}
 
+	if prefix.Metadata.Site != "" {
+		siteDetails, err := r.GetSiteDetails(prefix.Metadata.Site)
+		if err != nil {
+			return nil, err
+		}
+		desiredPrefix.Site = &siteDetails.Id
+	}
+
 	// create prefix since it doesn't exist
 	if len(responsePrefix.Payload.Results) == 0 {
 		return r.CreatePrefix(desiredPrefix)

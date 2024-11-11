@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
@@ -150,6 +151,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	defer ctrl.Finish()
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
 	// example of tenant
 	tenantId := int64(2)
@@ -166,6 +168,24 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 			},
 		},
 	}
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+
+	// example of site
+	siteId := int64(3)
+	siteName := "Site1"
+	siteOutputSlug := "site1"
+	expectedSite := &dcim.DcimSitesListOK{
+		Payload: &dcim.DcimSitesListOKBody{
+			Results: []*netboxModels.Site{
+				{
+					ID:   siteId,
+					Name: &siteName,
+					Slug: &siteOutputSlug,
+				},
+			},
+		},
+	}
+	inputSite := dcim.NewDcimSitesListParams().WithName(&siteName)
 
 	parentPrefix := "10.112.140.0/24"
 	parentPrefixId := int64(1)
@@ -188,8 +208,6 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 		},
 	}
 
-	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
-
 	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
@@ -202,10 +220,12 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 
 	netboxClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
+		Dcim:    mockDcim,
 	}
 
 	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
@@ -213,6 +233,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 		PrefixLength: "/28",
 		Metadata: &models.NetboxMetadata{
 			Tenant: tenantName,
+			Site:   siteName,
 		},
 	})
 
@@ -819,7 +840,7 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingTenant(t *testing.T) {
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
 	// expected error
-	expectedErrorMsg := "failed to fetch tenant: not found"
+	expectedErrorMsg := "failed to fetch tenant 'non-existing-tenant': not found"
 
 	// empty tenant list
 	emptyTenantList := &tenancy.TenancyTenantsListOK{
@@ -887,4 +908,142 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithErrorWhenGettingTenantList(t *tes
 
 	// assert nil output
 	assert.Equal(t, prefix, (*models.Prefix)(nil))
+}
+
+func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingSite(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+	// tenant
+	tenantName := "tenant"
+	tenantId := int64(2)
+	tenantOutputSlug := "tenant1"
+
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
+	// non-existing site
+	siteName := "non-existing-site"
+	inputSite := dcim.NewDcimSitesListParams().WithName(&siteName)
+	// empty site list
+	emptySiteList := &dcim.DcimSitesListOK{
+		Payload: &dcim.DcimSitesListOKBody{
+			Results: []*netboxModels.Site{},
+		},
+	}
+
+	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(emptySiteList, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+
+	// expected error
+	expectedErrorMsg := "failed to fetch site 'non-existing-site': not found"
+
+	parentPrefix := "10.112.140.0/24"
+
+	netboxClient := &NetboxClient{
+		Dcim:    mockDcim,
+		Tenancy: mockTenancy,
+	}
+
+	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
+		ParentPrefix: parentPrefix,
+		PrefixLength: "/28.",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+			Site:   siteName,
+		},
+	})
+
+	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+	assert.Equal(t, prefix, (*models.Prefix)(nil))
+}
+
+func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+
+	// tenant
+	tenantName := "tenant"
+	tenantId := int64(2)
+	tenantOutputSlug := "tenant1"
+
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
+	parentPrefix := "10.112.140.0/24"
+	parentPrefixId := int64(1)
+	prefix := "10.112.140.14/28"
+	prefixListInput := ipam.
+		NewIpamPrefixesListParams().
+		WithPrefix(&parentPrefix)
+
+	prefixFamily := int64(IPv4Family)
+	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
+	prefixListOutput := &ipam.IpamPrefixesListOK{
+		Payload: &ipam.IpamPrefixesListOKBody{
+			Results: []*netboxModels.Prefix{
+				{
+					ID:     parentPrefixId,
+					Prefix: &parentPrefix,
+					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
+				},
+			},
+		},
+	}
+
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
+		Payload: []*netboxModels.AvailablePrefix{
+			{
+				Prefix: prefix,
+			},
+		},
+	}
+
+	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+
+	netboxClient := &NetboxClient{
+		Ipam:    mockPrefixIpam,
+		Tenancy: mockTenancy,
+	}
+
+	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
+		ParentPrefix: parentPrefix,
+		PrefixLength: "/28",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+			Site:   "",
+		},
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, prefix, actual.Prefix)
 }

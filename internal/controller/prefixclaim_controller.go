@@ -136,6 +136,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					PrefixLength: prefixClaim.Spec.PrefixLength,
 					Metadata: &models.NetboxMetadata{
 						Tenant: prefixClaim.Spec.Tenant,
+						Site:   prefixClaim.Spec.Site,
 					},
 				})
 			if err != nil {

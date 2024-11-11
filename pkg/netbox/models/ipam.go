@@ -22,6 +22,12 @@ type Tenant struct {
 	Slug string `json:"slug,omitempty"`
 }
 
+type Site struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
 type NetboxMetadata struct {
 	Comments    string            `json:"comments,omitempty"`
 	Custom      map[string]string `json:"customFields,omitempty"`
