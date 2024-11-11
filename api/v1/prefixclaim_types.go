@@ -39,7 +39,7 @@ type PrefixClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefixLength' is immutable"
 	PrefixLength string `json:"prefixLength"`
 
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf || self != ''",message="Field 'site' is required once set"
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'site' is immutable"
 	Site string `json:"site,omitempty"`
 
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
