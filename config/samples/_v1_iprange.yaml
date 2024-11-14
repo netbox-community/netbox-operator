@@ -1,0 +1,9 @@
+apiVersion: netbox.dev/v1
+kind: IpRange
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: iprange-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,27 @@
+# permissions for end users to view iprangeclaims.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: iprangeclaim-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: netbox-operator
+    app.kubernetes.io/part-of: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: iprangeclaim-viewer-role
+rules:
+- apiGroups:
+  - netbox.dev
+  resources:
+  - iprangeclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - iprangeclaims/status
+  verbs:
+  - get

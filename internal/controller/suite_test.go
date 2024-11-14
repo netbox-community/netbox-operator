@@ -35,6 +35,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	netboxdevv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -100,6 +101,9 @@ var _ = BeforeSuite(func() {
 			BindAddress: "0", // Disable the metrics server
 		},
 	}
+
+	err = netboxdevv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
