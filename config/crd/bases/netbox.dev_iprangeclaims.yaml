@@ -21,7 +21,7 @@ spec:
       name: IpRange
       type: string
     - jsonPath: .status.conditions[?(@.type=="IPAssigned")].status
-      name: IpAssigned
+      name: IpRangeAssigned
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -70,6 +70,11 @@ spec:
                   rule: self == oldSelf
               preserveInNetbox:
                 type: boolean
+              size:
+                type: integer
+                x-kubernetes-validations:
+                - message: Field 'size' is immutable
+                  rule: self == oldSelf
               tenant:
                 type: string
                 x-kubernetes-validations:
@@ -150,11 +155,9 @@ spec:
                   - type
                   type: object
                 type: array
-              ipAddress:
-                type: string
-              ipAddressDotDecimal:
-                type: string
               ipAddressName:
+                type: string
+              ipRange:
                 type: string
             type: object
         type: object

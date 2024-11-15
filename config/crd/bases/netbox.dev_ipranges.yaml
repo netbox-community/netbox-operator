@@ -17,8 +17,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.ipRange
-      name: IpRange
+    - jsonPath: .spec.startAddress
+      name: StartAddress
+      type: string
+    - jsonPath: .spec.endAddress
+      name: EndAddress
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
@@ -65,21 +68,28 @@ spec:
                 type: object
               description:
                 type: string
-              ipRange:
+              endAddress:
                 format: cidr
                 type: string
                 x-kubernetes-validations:
-                - message: Field 'ipRange' is immutable
+                - message: Field 'endAddress' is immutable
                   rule: self == oldSelf
               preserveInNetbox:
                 type: boolean
+              startAddress:
+                format: cidr
+                type: string
+                x-kubernetes-validations:
+                - message: Field 'startAddress' is immutable
+                  rule: self == oldSelf
               tenant:
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'tenant' is immutable
                   rule: self == oldSelf
             required:
-            - ipRange
+            - endAddress
+            - startAddress
             type: object
           status:
             description: IpRangeStatus defines the observed state of IpRange

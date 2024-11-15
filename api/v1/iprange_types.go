@@ -26,9 +26,14 @@ import (
 // IpRangeSpec defines the desired state of IpRange
 type IpRangeSpec struct {
 	//+kubebuilder:validation:Format=cidr
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'ipRange' is immutable"
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'startAddress' is immutable"
 	//+kubebuilder:validation:Required
-	IpRange string `json:"ipRange"`
+	StartAddress string `json:"startAddress"`
+
+	//+kubebuilder:validation:Format=cidr
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'endAddress' is immutable"
+	//+kubebuilder:validation:Required
+	EndAddress string `json:"endAddress"`
 
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
@@ -54,7 +59,8 @@ type IpRangeStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
-//+kubebuilder:printcolumn:name="IpRange",type=string,JSONPath=`.spec.ipRange`
+//+kubebuilder:printcolumn:name="StartAddress",type=string,JSONPath=`.spec.startAddress`
+//+kubebuilder:printcolumn:name="EndAddress",type=string,JSONPath=`.spec.endAddress`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
@@ -94,12 +100,12 @@ var ConditionIpRangeReadyFalse = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
 	Reason:  "FailedToReserveIpInNetbox",
-	Message: "Failed to reserve IP in NetBox",
+	Message: "Failed to reserve IP Range in NetBox",
 }
 
 var ConditionIpRangeReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
 	Reason:  "FailedToDeleteIpInNetbox",
-	Message: "Failed to delete IP in NetBox",
+	Message: "Failed to delete IP Range in NetBox",
 }

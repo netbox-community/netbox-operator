@@ -19,6 +19,7 @@ package api
 import (
 	"fmt"
 	"net/url"
+	"unicode/utf8"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -64,4 +65,24 @@ func (o *QueryFilter) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registr
 	}
 
 	return nil
+}
+
+func truncateDescription(description string) string {
+
+	// Calculate the remaining space for the comment
+	remainingSpace := maxAllowedDescriptionLength - minWarningCommentLength
+
+	// Check if the description length exceeds the maximum allowed length
+	if utf8.RuneCountInString(description+warningComment) > maxAllowedDescriptionLength {
+		// Truncate the description to fit the remaining space
+		if utf8.RuneCountInString(description) > remainingSpace {
+			description = string([]rune(description)[:remainingSpace])
+			warning := string([]rune(warningComment)[:minWarningCommentLength])
+			return description + warning
+		}
+		// Only truncate the warning
+		return string([]rune(description + warningComment)[:maxAllowedDescriptionLength])
+	}
+
+	return description + warningComment
 }

@@ -6,4 +6,9 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: iprangeclaim-sample
 spec:
-  # TODO(user): Add fields here
+  tenant: "Dunder-Mifflin, Inc."
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  parentPrefix: "2.0.0.0/16"
+  size: 3

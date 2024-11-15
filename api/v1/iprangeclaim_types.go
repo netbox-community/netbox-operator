@@ -30,6 +30,11 @@ type IpRangeClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix"`
 
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:XValisation:Minimum=1
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'size' is immutable"
+	Size int `json:"size,omitempty"`
+
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
@@ -44,9 +49,7 @@ type IpRangeClaimSpec struct {
 
 // IpRangeClaimStatus defines the observed state of IpRangeClaim
 type IpRangeClaimStatus struct {
-	IpRange string `json:"ipAddress,omitempty"`
-
-	IpRangeDotDecimal string `json:"ipAddressDotDecimal,omitempty"`
+	IpRange string `json:"ipRange,omitempty"`
 
 	IpRangeName string `json:"ipAddressName,omitempty"`
 
@@ -57,7 +60,7 @@ type IpRangeClaimStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="IpRange",type=string,JSONPath=`.status.ipRange`
-//+kubebuilder:printcolumn:name="IpAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPAssigned")].status`
+//+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPAssigned")].status`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=iprc
