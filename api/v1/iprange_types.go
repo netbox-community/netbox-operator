@@ -65,7 +65,7 @@ type IpRangeStatus struct {
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=ipr
+// +kubebuilder:resource:shortName=ir
 
 // IpRange is the Schema for the ipranges API
 type IpRange struct {

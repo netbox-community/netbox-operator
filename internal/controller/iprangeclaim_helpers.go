@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 
@@ -24,9 +25,11 @@ import (
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func generateIpRangeFromIpRangeClaim(claim *netboxv1.IpRangeClaim, startIp string, endIp string, logger logr.Logger) *netboxv1.IpRange {
+func generateIpRangeFromIpRangeClaim(ctx context.Context, claim *netboxv1.IpRangeClaim, startIp string, endIp string) *netboxv1.IpRange {
+	logger := log.FromContext(ctx)
 	ipRangeResource := &netboxv1.IpRange{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claim.Name,

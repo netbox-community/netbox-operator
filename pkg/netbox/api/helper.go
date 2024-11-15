@@ -67,7 +67,7 @@ func (o *QueryFilter) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registr
 	return nil
 }
 
-func truncateDescription(description string) string {
+func TruncateDescription(description string) string {
 
 	// Calculate the remaining space for the comment
 	remainingSpace := maxAllowedDescriptionLength - minWarningCommentLength

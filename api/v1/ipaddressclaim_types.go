@@ -117,3 +117,10 @@ var ConditionIpAssignedFalse = metav1.Condition{
 	Reason:  "IPAddressCRNotCreated",
 	Message: "Failed to fetch new IP from NetBox",
 }
+
+var ConditionIpAssignedFalseSizeMissmatch = metav1.Condition{
+	Type:    "IPAssigned",
+	Status:  "False",
+	Reason:  "IPAddressCRNotCreated",
+	Message: "Size of restored IpRange does not match the requested size",
+}

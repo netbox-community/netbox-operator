@@ -37,7 +37,7 @@ func (r *NetboxClient) ReserveOrUpdateIpRange(ipRange *models.IpRange) (*netboxM
 		EndAddress:   &ipRange.EndAddress,
 		Comments:     ipRange.Metadata.Comments + warningComment,
 		CustomFields: ipRange.Metadata.Custom,
-		Description:  truncateDescription(ipRange.Metadata.Description),
+		Description:  ipRange.Metadata.Description,
 		Status:       "active",
 	}
 

@@ -63,7 +63,7 @@ type IpRangeClaimStatus struct {
 //+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPAssigned")].status`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=iprc
+// +kubebuilder:resource:shortName=irc
 
 // IpRangeClaim is the Schema for the iprangeclaims API
 type IpRangeClaim struct {

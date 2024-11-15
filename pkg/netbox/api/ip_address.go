@@ -36,7 +36,7 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 		Address:      &ipAddress.IpAddress,
 		Comments:     ipAddress.Metadata.Comments + warningComment,
 		CustomFields: ipAddress.Metadata.Custom,
-		Description:  truncateDescription(ipAddress.Metadata.Description),
+		Description:  TruncateDescription(ipAddress.Metadata.Description),
 		Status:       "active",
 	}
 
