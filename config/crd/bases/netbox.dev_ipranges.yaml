@@ -12,7 +12,7 @@ spec:
     listKind: IpRangeList
     plural: ipranges
     shortNames:
-    - ipr
+    - ir
     singular: iprange
   scope: Namespaced
   versions:
@@ -69,6 +69,8 @@ spec:
               description:
                 type: string
               endAddress:
+                description: the endAddress is the last ip address included in the
+                  ip range
                 format: cidr
                 type: string
                 x-kubernetes-validations:
@@ -77,6 +79,8 @@ spec:
               preserveInNetbox:
                 type: boolean
               startAddress:
+                description: the startAddress is the first ip address included in
+                  the ip range
                 format: cidr
                 type: string
                 x-kubernetes-validations:

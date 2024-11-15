@@ -17,7 +17,7 @@ limitations under the License.
 package api
 
 import (
-	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -44,8 +44,8 @@ func (r *NetboxClient) RestoreExistingIpRangeByHash(customFieldName string, hash
 		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(list.Payload.Results))
 	}
 	res := list.Payload.Results[0]
-	if res.StartAddress == nil {
-		return nil, errors.New("iprange in netbox is nil")
+	if res.StartAddress == nil || res.EndAddress == nil {
+		return nil, errors.New("invalid IP range")
 	}
 
 	return &models.IpRange{
@@ -73,7 +73,7 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeCl
 	}
 
 	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
-	responseAvailableIPs, err := r.GetAvailableIpRangesByParentPrefix(parentPrefixId)
+	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
 	}
@@ -83,21 +83,12 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeCl
 		return nil, err
 	}
 
-	var ipMask string
-	if responseAvailableIPs.Payload[0].Family == int64(IPv4Family) {
-		ipMask = ipMaskIPv4
-	} else if responseAvailableIPs.Payload[0].Family == int64(IPv6Family) {
-		ipMask = ipMaskIPv6
-	} else {
-		return nil, errors.New("available ip has unknown IP family")
-	}
-
-	startAddress, err = r.SetIpRangeMask(startAddress, ipMask)
+	startAddress, err = r.SetIpAddressMask(startAddress, responseAvailableIPs.Payload[0].Family)
 	if err != nil {
 		return nil, err
 	}
 
-	endAddress, err = r.SetIpRangeMask(endAddress, ipMask)
+	endAddress, err = r.SetIpAddressMask(endAddress, responseAvailableIPs.Payload[0].Family)
 	if err != nil {
 		return nil, err
 	}
@@ -115,11 +106,12 @@ func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, r
 	var startAddress, endAddress string
 	consecutiveCount := 0
 
-	for i := 1; i < len(availableIps.Payload); i++ {
+	for i := 0; i < len(availableIps.Payload); i++ {
 		currentIp, _, err := net.ParseCIDR(availableIps.Payload[i].Address)
 		if err != nil {
 			return "", "", err
 		}
+
 		var previousIP net.IP
 		if i > 0 {
 			previousIP, _, err = net.ParseCIDR(availableIps.Payload[i-1].Address)
@@ -127,7 +119,7 @@ func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, r
 				return "", "", err
 			}
 		}
-		if i == 0 || bytes.Compare(currentIp, previousIP) == 1 {
+		if i == 0 || areConsecutiveIPs(previousIP, currentIp) {
 			consecutiveCount++
 			if consecutiveCount == requiredSize {
 				startAddress = availableIps.Payload[i-requiredSize+1].Address
@@ -146,23 +138,36 @@ func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, r
 	return startAddress, endAddress, nil
 }
 
-func (r *NetboxClient) GetAvailableIpRangesByParentPrefix(parentPrefixId int64) (*ipam.IpamPrefixesAvailableIpsListOK, error) {
-	requestAvailableIPs := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
-	responseAvailableIPs, err := r.Ipam.IpamPrefixesAvailableIpsList(requestAvailableIPs, nil)
-	if err != nil {
-		return nil, err
+// Check if two IP addresses (IPv4 or IPv6) are consecutive
+func areConsecutiveIPs(ip1, ip2 net.IP) bool {
+	if ip1.To4() != nil && ip2.To4() != nil {
+		return areConsecutiveIPv4(ip1, ip2)
 	}
-	if len(responseAvailableIPs.Payload) == 0 {
-		return nil, errors.New("parent prefix exhausted")
+	if ip1.To16() != nil && ip2.To16() != nil {
+		return areConsecutiveIPv6(ip1, ip2)
 	}
-	return responseAvailableIPs, nil
+	return false
 }
 
-func (r *NetboxClient) SetIpRangeMask(ip string, ipMask string) (string, error) {
-	ipRange, _, err := net.ParseCIDR(ip)
-	if err != nil {
-		return "", err
+func ipToUint32(ip net.IP) uint32 {
+	ip = ip.To4()
+	return binary.BigEndian.Uint32(ip)
+}
+
+func ipToUint128(ip net.IP) (uint64, uint64) {
+	ip = ip.To16()
+	return binary.BigEndian.Uint64(ip[:8]), binary.BigEndian.Uint64(ip[8:])
+}
+
+func areConsecutiveIPv4(ip1, ip2 net.IP) bool {
+	return ipToUint32(ip2)-ipToUint32(ip1) == 1
+}
+
+func areConsecutiveIPv6(ip1, ip2 net.IP) bool {
+	ip1High, ip1Low := ipToUint128(ip1)
+	ip2High, ip2Low := ipToUint128(ip2)
+	if ip1High == ip2High {
+		return ip2Low-ip1Low == 1
 	}
-	ipRangeWithNewMask := ipRange.String() + ipMask
-	return ipRangeWithNewMask, nil
+	return ip2High-ip1High == 1 && ip2Low == 0 && ip1Low == ^uint64(0)
 }

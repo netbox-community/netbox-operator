@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
@@ -134,7 +133,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			// 5.b reassign reserved ip range from netbox
 
 			// check if the restored ip range has the size requested by the claim
-			err = r.hasIpRangeCorrectSize(*ipRangeModel, o.Spec.Size)
+			err = correctSizeOrErr(*ipRangeModel, o.Spec.Size)
 			if err != nil {
 				ll.Unlock()
 				err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalseSizeMissmatch, corev1.EventTypeWarning, "", err)
@@ -255,32 +254,6 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 
 	return ll, ctrl.Result{}, nil
-}
-
-func (r *IpRangeClaimReconciler) hasIpRangeCorrectSize(ipRange models.IpRange, size int) error {
-	// check if the restored ip range has the size that was requested in the claim
-	// to detect if the ip range was restored correctly and was not edited in NetBox
-	startIP, _, err := net.ParseCIDR(ipRange.StartAddress)
-	if err != nil {
-		return fmt.Errorf("invalid IP address in IP range")
-	}
-
-	endIP, _, err := net.ParseCIDR(ipRange.EndAddress)
-	if err != nil {
-		return fmt.Errorf("invalid IP address in IP range")
-	}
-
-	if startIP == nil || endIP == nil {
-		return fmt.Errorf("invalid IP address in IP range")
-	}
-
-	// Calculate the size of the IP range
-	ipRangeSize := int(endIP.To4()[3]-startIP.To4()[3]) + 1
-	if ipRangeSize != size {
-		return fmt.Errorf("IP range size mismatch: requested size by claim %d, size of restored ip range %d",
-			size, ipRangeSize)
-	}
-	return nil
 }
 
 func (r *IpRangeClaimReconciler) updateIpRangeClaimReadyStatus(ctx context.Context, o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) error {

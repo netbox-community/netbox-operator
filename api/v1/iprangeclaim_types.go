@@ -90,27 +90,34 @@ func init() {
 var ConditionIpRangeClaimReadyTrue = metav1.Condition{
 	Type:    "Ready",
 	Status:  "True",
-	Reason:  "IPAddressResourceReady",
-	Message: "IPAddress Resource is ready",
+	Reason:  "IpRangeResourceReady",
+	Message: "Ip Range Resource is ready",
 }
 
 var ConditionIpRangeClaimReadyFalse = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "IPAddressResourceNotReady",
-	Message: "IPAddress Resource is not ready",
+	Reason:  "IpRangeResourceNotReady",
+	Message: "Ip Range Resource is not ready",
 }
 
 var ConditionIpRangeAssignedTrue = metav1.Condition{
-	Type:    "IPAssigned",
+	Type:    "IpRangeAssigned",
 	Status:  "True",
-	Reason:  "IPAddressCRCreated",
-	Message: "New IP fetched from NetBox and IPAddress CR was created",
+	Reason:  "IpRangeCRCreated",
+	Message: "New Ip Range fetched from NetBox and IpRange CR was created",
 }
 
 var ConditionIpRangeAssignedFalse = metav1.Condition{
-	Type:    "IPAssigned",
+	Type:    "IpRangeAssigned",
 	Status:  "False",
-	Reason:  "IPAddressCRNotCreated",
-	Message: "Failed to fetch new IP from NetBox",
+	Reason:  "IpRangeCRNotCreated",
+	Message: "Failed to fetch new Ip Range from NetBox",
+}
+
+var ConditionIpAssignedFalseSizeMissmatch = metav1.Condition{
+	Type:    "IpRangeAssigned",
+	Status:  "False",
+	Reason:  "IpRangeCRNotCreated",
+	Message: "Size of restored IpRange does not match the requested size",
 }

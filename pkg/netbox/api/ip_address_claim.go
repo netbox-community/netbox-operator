@@ -95,16 +95,7 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 		return nil, err
 	}
 
-	var ipMask string
-	if responseAvailableIPs.Payload[0].Family == int64(IPv4Family) {
-		ipMask = ipMaskIPv4
-	} else if responseAvailableIPs.Payload[0].Family == int64(IPv6Family) {
-		ipMask = ipMaskIPv6
-	} else {
-		return nil, errors.New("available ip has unknown IP family")
-	}
-
-	ipAddress, err := r.SetIpAddressMask(responseAvailableIPs.Payload[0].Address, ipMask)
+	ipAddress, err := r.SetIpAddressMask(responseAvailableIPs.Payload[0].Address, responseAvailableIPs.Payload[0].Family)
 	if err != nil {
 		return nil, err
 	}
@@ -126,11 +117,18 @@ func (r *NetboxClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int6
 	return responseAvailableIPs, nil
 }
 
-func (r *NetboxClient) SetIpAddressMask(ip string, ipMask string) (string, error) {
+func (r *NetboxClient) SetIpAddressMask(ip string, ipFamily int64) (string, error) {
 	ipAddress, _, err := net.ParseCIDR(ip)
 	if err != nil {
 		return "", err
 	}
-	ipAddressWithNewMask := ipAddress.String() + ipMask
-	return ipAddressWithNewMask, nil
+
+	switch ipFamily {
+	case int64(IPv4Family):
+		return ipAddress.String() + ipMaskIPv4, nil
+	case int64(IPv6Family):
+		return ipAddress.String() + ipMaskIPv6, nil
+	default:
+		return "", errors.New("unknown IP family")
+	}
 }

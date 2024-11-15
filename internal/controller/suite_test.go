@@ -32,12 +32,10 @@ import (
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
-	netboxdevv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,9 +99,6 @@ var _ = BeforeSuite(func() {
 			BindAddress: "0", // Disable the metrics server
 		},
 	}
-
-	err = netboxdevv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 

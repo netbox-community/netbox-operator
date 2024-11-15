@@ -21,64 +21,75 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	netboxdevv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 var _ = Describe("IpRangeClaim Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
-
-		ctx := context.Background()
-
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
-		}
-		iprangeclaim := &netboxdevv1.IpRangeClaim{}
-
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind IpRangeClaim")
-			err := k8sClient.Get(ctx, typeNamespacedName, iprangeclaim)
-			if err != nil && errors.IsNotFound(err) {
-				resource := &netboxdevv1.IpRangeClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					// TODO(user): Specify other spec details if needed.
-				}
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+	Context("When checking the ip range size", func() {
+		It("should succeed if correct size", func() {
+			ipRange := &models.IpRange{
+				StartAddress: "1.0.0.1/32",
+				EndAddress:   "1.0.0.3/32",
 			}
+			Expect(correctSizeOrErr(*ipRange, 3)).To(Succeed())
 		})
 
-		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &netboxdevv1.IpRangeClaim{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the specific resource instance IpRangeClaim")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-		})
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &IpRangeClaimReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+		It("should succeed if correct size IPv6", func() {
+			ipRange := &models.IpRange{
+				StartAddress: "2001:db8:85a3:8d3::1/128",
+				EndAddress:   "2001:db8:85a3:8d3::3/128",
 			}
+			Expect(correctSizeOrErr(*ipRange, 3)).To(Succeed())
+		})
 
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+		It("should fail if wrong size", func() {
+			ipRange := &models.IpRange{
+				StartAddress: "1.0.0.1/32",
+				EndAddress:   "1.0.0.2/32",
+			}
+			Expect(correctSizeOrErr(*ipRange, 3)).To(HaveOccurred())
+		})
+
+		It("should fail if ip adresses are invalid", func() {
+			ipRange := &models.IpRange{
+				StartAddress: "",
+				EndAddress:   "",
+			}
+			Expect(correctSizeOrErr(*ipRange, 3)).To(HaveOccurred())
+		})
+	})
+
+	Context("When generating the ip range spec", func() {
+		It("should create the correct spec", func() {
+			ctx := context.TODO()
+
+			claim := &netboxv1.IpRangeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+				},
+				Spec: netboxv1.IpRangeClaimSpec{
+					ParentPrefix: "1.0.0.1/28",
+					Comments:     "test",
+				}}
+
+			claim.Name = "test-claim"
+
+			ipRange := generateIpRangeFromIpRangeClaim(ctx, claim, "1.0.0.1/32", "1.0.0.3/32")
+			Expect(ipRange).To(Equal(&netboxv1.IpRange{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      claim.Name,
+					Namespace: claim.ObjectMeta.Namespace,
+				},
+				Spec: netboxv1.IpRangeSpec{
+					Comments:     "test",
+					StartAddress: "1.0.0.1/32",
+					EndAddress:   "1.0.0.3/32",
+					CustomFields: map[string]string{"netboxOperatorRestorationHash": "331f244f24c08ea3fc6fb7f16cbef20ef2bf02de"},
+				},
+			}))
 		})
 	})
 })

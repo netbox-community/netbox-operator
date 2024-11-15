@@ -12,7 +12,7 @@ spec:
     listKind: IpRangeClaimList
     plural: iprangeclaims
     shortNames:
-    - iprc
+    - irc
     singular: iprangeclaim
   scope: Namespaced
   versions:

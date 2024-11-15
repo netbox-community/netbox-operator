@@ -106,9 +106,11 @@ func (r *NetboxClient) DeleteIpRange(ipRangeId int64) error {
 		case *ipam.IpamIPRangesDeleteDefault:
 			if typedErr.IsCode(http.StatusNotFound) {
 				return nil
+			} else {
+				return utils.NetboxError("Failed to delete ip range from Netbox", err)
 			}
 		default:
-			return utils.NetboxError("Failed to delete IP Range from Netbox", err)
+			return utils.NetboxError("Failed to delete ip range from Netbox", err)
 		}
 	}
 	return nil

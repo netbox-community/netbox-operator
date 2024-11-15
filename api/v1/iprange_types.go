@@ -25,11 +25,13 @@ import (
 
 // IpRangeSpec defines the desired state of IpRange
 type IpRangeSpec struct {
+	// the startAddress is the first ip address included in the ip range
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'startAddress' is immutable"
 	//+kubebuilder:validation:Required
 	StartAddress string `json:"startAddress"`
 
+	// the endAddress is the last ip address included in the ip range
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'endAddress' is immutable"
 	//+kubebuilder:validation:Required
@@ -92,20 +94,20 @@ func init() {
 var ConditionIpRangeReadyTrue = metav1.Condition{
 	Type:    "Ready",
 	Status:  "True",
-	Reason:  "IpReservedInNetbox",
-	Message: "IP was reserved/updated in NetBox",
+	Reason:  "IpRangeReservedInNetbox",
+	Message: "Ip Range was reserved/updated in NetBox",
 }
 
 var ConditionIpRangeReadyFalse = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "FailedToReserveIpInNetbox",
-	Message: "Failed to reserve IP Range in NetBox",
+	Reason:  "FailedToReserveIpRangeInNetbox",
+	Message: "Failed to reserve Ip Range in NetBox",
 }
 
 var ConditionIpRangeReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "FailedToDeleteIpInNetbox",
-	Message: "Failed to delete IP Range in NetBox",
+	Reason:  "FailedToDeleteIpRangeInNetbox",
+	Message: "Failed to delete Ip Range in NetBox",
 }
