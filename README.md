@@ -58,6 +58,13 @@ Use Cases for this Restoration:
 - Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
 - Sticky IPs: Some services do not handle changes to IPs well. This ensures the IP/Prefix assigned to a Custom Resource is always the same.
 
+# `ParentPrefixSelector` in `PrefixClaim`
+
+Please read [ParentPrefixSelector guide] for more information!
+
+[ParentPrefixSelector guide]: ./ParentPrefixSelectorGuide.md
+
+
 # Project Distribution
 
 Following are the steps to build the installer and distribute this project to users.

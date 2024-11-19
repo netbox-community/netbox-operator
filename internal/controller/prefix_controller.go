@@ -132,29 +132,42 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, err
 		}
 
-		// get the name of the parent prefix
-		leaseLockerNSN := types.NamespacedName{
-			Name:      convertCIDRToLeaseLockName(prefixClaim.Spec.ParentPrefix),
-			Namespace: r.OperatorNamespace,
-		}
-		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		lockCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		// create lock
-		if locked := ll.TryLock(lockCtx); !locked {
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Spec.ParentPrefix))
-			r.Recorder.Eventf(prefix, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-				prefixClaim.Spec.ParentPrefix)
+		if prefixClaim.Status.SelectedParentPrefix == "" {
+			// the parent prefix is not selected
+			if err := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, "the parent prefix is not selected"); err != nil {
+				return ctrl.Result{}, err
+			}
 			return ctrl.Result{
-				RequeueAfter: 2 * time.Second,
+				Requeue: true,
 			}, nil
 		}
-		debugLogger.Info("successfully locked parent prefix %s", prefixClaim.Spec.ParentPrefix)
+
+		if prefixClaim.Status.SelectedParentPrefix != msgCanNotInferParentPrefix {
+			// we can't restore from the restoration hash
+
+			// get the name of the parent prefix
+			leaseLockerNSN := types.NamespacedName{
+				Name:      convertCIDRToLeaseLockName(prefixClaim.Status.SelectedParentPrefix),
+				Namespace: r.OperatorNamespace,
+			}
+			ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			lockCtx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			// create lock
+			if locked := ll.TryLock(lockCtx); !locked {
+				errorMsg := fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
+				r.Recorder.Eventf(prefix, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+				return ctrl.Result{
+					RequeueAfter: 2 * time.Second,
+				}, nil
+			}
+			debugLogger.Info("successfully locked parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
+		}
 	}
 
 	/* 2. reserve or update Prefix in netbox */
@@ -218,7 +231,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	debugLogger.Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", prefix.Spec.Prefix))
-
 	if err = r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, ""); err != nil {
 		return ctrl.Result{}, err
 	}

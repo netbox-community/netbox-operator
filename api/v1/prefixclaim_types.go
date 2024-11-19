@@ -24,24 +24,36 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // PrefixClaimSpec defines the desired state of PrefixClaim
+// TODO: The reason for using a workaround please see https://github.com/netbox-community/netbox-operator/pull/90#issuecomment-2402112475
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.site) || has(self.site)", message="Site is required once set"
+// +kubebuilder:validation:XValidation:rule="(!has(self.parentPrefix) && has(self.parentPrefixSelector)) || (has(self.parentPrefix) && !has(self.parentPrefixSelector))"
 type PrefixClaimSpec struct {
+
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
-	ParentPrefix string `json:"parentPrefix"`
+	ParentPrefix string `json:"parentPrefix,omitempty"`
+
+	// The `parentPrefixSelector` is a key-value map, where all the entries are of data type `<string-string>`
+	// The map contains a set of query conditions for selecting a set of prefixes that can be used as the parent prefix
+	// The query conditions will be chained by the AND operator, and exact match of the keys and values will be performed
+	// 2 built-in fields, namely `tenant` and `site`, along with custom fields, can be used
+	// For more information, please see ParentPrefixSelectorGuide.md
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefixSelector' is immutable"
+	ParentPrefixSelector map[string]string `json:"parentPrefixSelector,omitempty"`
 
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Pattern=`^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$`
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefixLength' is immutable"
 	PrefixLength string `json:"prefixLength"`
 
+	// Use the `name` value instead of the `slug` value
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'site' is immutable"
 	Site string `json:"site,omitempty"`
 
+	// Use the `name` value instead of the `slug` value
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
@@ -58,10 +70,15 @@ type PrefixClaimSpec struct {
 type PrefixClaimStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	// Prefix status: container, active, reserved , deprecated
-	Prefix     string             `json:"prefix,omitempty"`
-	PrefixName string             `json:"prefixName,omitempty"`
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	// Prefix status: container, active, reserved, deprecated
+
+	// Due to the fact that the parent prefix can be specified directly in `ParentPrefix` or selected from `ParentPrefixSelector`,
+	// we use this field to store exactly which parent prefix we are using for all subsequent reconcile loop calls,
+	// as Spec.ParentPrefix is an immutable field, we can't overwrite it
+	SelectedParentPrefix string             `json:"parentPrefix,omitempty"`
+	Prefix               string             `json:"prefix,omitempty"`
+	PrefixName           string             `json:"prefixName,omitempty"`
+	Conditions           []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // +kubebuilder:object:root=true
@@ -119,4 +136,18 @@ var ConditionPrefixAssignedFalse = metav1.Condition{
 	Status:  "False",
 	Reason:  "PrefixCRNotCreated",
 	Message: "Failed to fetch new Prefix from NetBox",
+}
+
+var ConditionParentPrefixSelectedTrue = metav1.Condition{
+	Type:    "ParentPrefixSelected",
+	Status:  "True",
+	Reason:  "ParentPrefixSelected",
+	Message: "The parent prefix was selected successfully",
+}
+
+var ConditionParentPrefixSelectedFalse = metav1.Condition{
+	Type:    "ParentPrefixSelected",
+	Status:  "False",
+	Reason:  "ParentPrefixNotSelected",
+	Message: "The parent prefix was not able to be selected",
 }

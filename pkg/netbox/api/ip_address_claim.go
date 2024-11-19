@@ -22,6 +22,7 @@ import (
 	"net"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
@@ -39,8 +40,13 @@ const (
 	ipMaskIPv6 = "/128"
 )
 
-func (r *NetboxClient) RestoreExistingIpByHash(customFieldName string, hash string) (*models.IPAddress, error) {
-	customIpSearch := newCustomFieldStringFilterOperation(customFieldName, hash)
+func (r *NetboxClient) RestoreExistingIpByHash(hash string) (*models.IPAddress, error) {
+	customIpSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
+		{
+			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
+			value: hash,
+		},
+	})
 	list, err := r.Ipam.IpamIPAddressesList(ipam.NewIpamIPAddressesListParams(), nil, customIpSearch)
 	if err != nil {
 		return nil, err
@@ -115,7 +121,7 @@ func (r *NetboxClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int6
 		return nil, err
 	}
 	if len(responseAvailableIPs.Payload) == 0 {
-		return nil, errors.New("parent prefix exhausted")
+		return nil, ErrParentPrefixExhausted
 	}
 	return responseAvailableIPs, nil
 }

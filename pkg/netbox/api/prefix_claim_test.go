@@ -89,7 +89,7 @@ func TestPrefixClaim_GetNoAvailablePrefixesByParentPrefix(t *testing.T) {
 
 	actual, err := netboxClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
 	assert.Nil(t, actual)
-	assert.EqualError(t, err, "parent prefix exhausted")
+	assert.ErrorIs(t, err, ErrParentPrefixExhausted)
 }
 
 func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
