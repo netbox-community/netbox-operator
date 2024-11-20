@@ -22,4 +22,5 @@ var (
 	ErrParentPrefixExhausted           = errors.New("parent prefix exhausted")
 	ErrParentPrefixNotFound            = errors.New("parent prefix not found")
 	ErrWrongMatchingPrefixSubnetFormat = errors.New("wrong matchingPrefix subnet format")
+	ErrInvalidIpFamily                 = errors.New("invalid IP Family")
 )

@@ -39,9 +39,10 @@ type PrefixClaimSpec struct {
 	// The `parentPrefixSelector` is a key-value map, where all the entries are of data type `<string-string>`
 	// The map contains a set of query conditions for selecting a set of prefixes that can be used as the parent prefix
 	// The query conditions will be chained by the AND operator, and exact match of the keys and values will be performed
-	// 2 built-in fields, namely `tenant` and `site`, along with custom fields, can be used
+	// The built-in fields `tenant`, `site`, and `family`, along with custom fields, can be used
 	// For more information, please see ParentPrefixSelectorGuide.md
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefixSelector' is immutable"
+	//+kubebuilder:validation:XValidation:rule="!has(self.family) || (self.family == 'IPv4' || self.family == 'IPv6')"
 	ParentPrefixSelector map[string]string `json:"parentPrefixSelector,omitempty"`
 
 	//+kubebuilder:validation:Required
