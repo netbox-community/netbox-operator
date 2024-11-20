@@ -114,6 +114,17 @@ func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(prefixClaimSpec 
 		fieldEntries["site_id"] = strconv.Itoa(int(details.Id))
 	}
 
+	if family, ok := prefixClaimSpec.ParentPrefixSelector["family"]; ok {
+		if family == "IPv4" {
+			family = "4"
+		} else if family == "IPv6" {
+			family = "6"
+		} else {
+			return nil, ErrInvalidIpFamily
+		}
+		fieldEntries["family"] = family
+	}
+
 	var conditions func(co *runtime.ClientOperation)
 	parentPrefixSelectorEntries := make([]CustomFieldEntry, 0, len(prefixClaimSpec.ParentPrefixSelector))
 	for k, v := range prefixClaimSpec.ParentPrefixSelector {
