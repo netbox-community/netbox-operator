@@ -20,12 +20,10 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
-	"net"
 
 	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
-	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -77,43 +75,6 @@ func generateIpRangeRestorationHash(claim *netboxv1.IpRangeClaim) string {
 		Size:         fmt.Sprintf("%d", claim.Spec.Size),
 	}
 	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant+rd.Size)))
-}
-
-func correctSizeOrErr(ipRange models.IpRange, size int) error {
-	// check if the restored ip range has the size that was requested in the claim
-	// to detect if the ip range was restored correctly and was not edited in NetBox
-	startIP, _, err := net.ParseCIDR(ipRange.StartAddress)
-	if err != nil {
-		return fmt.Errorf("invalid IP address in IP range")
-	}
-
-	endIP, _, err := net.ParseCIDR(ipRange.EndAddress)
-	if err != nil {
-		return fmt.Errorf("invalid IP address in IP range")
-	}
-
-	if startIP == nil || endIP == nil {
-		return fmt.Errorf("invalid IP address in IP range")
-	}
-
-	if startIP.To4() != nil && endIP.To4() != nil {
-		ipRangeSize := int(endIP.To4()[3]-startIP.To4()[3]) + 1
-		if ipRangeSize != size {
-			return fmt.Errorf("IP range size mismatch: requested size by claim %d, size of restored ip range %d",
-				size, ipRangeSize)
-		}
-	}
-	if startIP.To16() != nil && endIP.To16() != nil {
-		ipRangeSize := int(endIP.To16()[15]-startIP.To16()[15]) + 1
-		if ipRangeSize != size {
-			return fmt.Errorf("IP range size mismatch: requested size by claim %d, size of restored ip range %d",
-				size, ipRangeSize)
-		}
-	}
-
-	// Calculate the size of the IP range
-
-	return nil
 }
 
 type IpRangeClaimRestorationData struct {

@@ -20,7 +20,7 @@ spec:
     - jsonPath: .status.ipRange
       name: IpRange
       type: string
-    - jsonPath: .status.conditions[?(@.type=="IPAssigned")].status
+    - jsonPath: .status.conditions[?(@.type=="IpRangeAssigned")].status
       name: IpRangeAssigned
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
@@ -155,9 +155,27 @@ spec:
                   - type
                   type: object
                 type: array
+              endAddress:
+                type: string
+              endAddressDotDecimal:
+                type: string
               ipAddressName:
                 type: string
+              ipAddresses:
+                items:
+                  type: string
+                type: array
+              ipAddressesDotDecimal:
+                items:
+                  type: string
+                type: array
               ipRange:
+                type: string
+              ipRangeDotDecimal:
+                type: string
+              startAddress:
+                type: string
+              startAddressDotDecimal:
                 type: string
             type: object
         type: object

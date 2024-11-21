@@ -61,6 +61,7 @@ type PrefixClaim struct {
 type IpRange struct {
 	StartAddress string          `json:"startAddress,omitempty"`
 	EndAddress   string          `json:"endAddress,omitempty"`
+	Id           int64           `json:"id,omitempty"`
 	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
 }
 

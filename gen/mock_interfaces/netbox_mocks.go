@@ -124,6 +124,26 @@ func (mr *MockIpamInterfaceMockRecorder) IpamIPAddressesUpdate(params, authInfo 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIPAddressesUpdate", reflect.TypeOf((*MockIpamInterface)(nil).IpamIPAddressesUpdate), varargs...)
 }
 
+// IpamIPRangesAvailableIpsList mocks base method.
+func (m *MockIpamInterface) IpamIPRangesAvailableIpsList(params *ipam.IpamIPRangesAvailableIpsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamIPRangesAvailableIpsList", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamIPRangesAvailableIpsListOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamIPRangesAvailableIpsList indicates an expected call of IpamIPRangesAvailableIpsList.
+func (mr *MockIpamInterfaceMockRecorder) IpamIPRangesAvailableIpsList(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIPRangesAvailableIpsList", reflect.TypeOf((*MockIpamInterface)(nil).IpamIPRangesAvailableIpsList), varargs...)
+}
+
 // IpamIPRangesCreate mocks base method.
 func (m *MockIpamInterface) IpamIPRangesCreate(params *ipam.IpamIPRangesCreateParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesCreateCreated, error) {
 	m.ctrl.T.Helper()

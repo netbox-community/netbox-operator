@@ -24,7 +24,6 @@ import (
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 
-	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -230,7 +229,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		actual, err := client.RestoreExistingIpRangeByHash(config.GetOperatorConfig().NetboxRestorationHashFieldName, input)
+		actual, err := client.RestoreExistingIpRangeByHash(input)
 
 		assert.Nil(t, err)
 		assert.Equal(t, expectedIp_5, actual.StartAddress)
@@ -269,7 +268,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		_, err := client.RestoreExistingIpRangeByHash(config.GetOperatorConfig().NetboxRestorationHashFieldName, input)
+		_, err := client.RestoreExistingIpRangeByHash(input)
 
 		AssertError(t, err, "incorrect number of restoration results, number of results: 2")
 	})
@@ -297,7 +296,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		_, err := client.RestoreExistingIpRangeByHash(config.GetOperatorConfig().NetboxRestorationHashFieldName, input)
+		_, err := client.RestoreExistingIpRangeByHash(input)
 
 		AssertError(t, err, "invalid IP range")
 	})

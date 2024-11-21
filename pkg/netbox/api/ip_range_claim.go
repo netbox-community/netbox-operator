@@ -23,13 +23,19 @@ import (
 	"net"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) RestoreExistingIpRangeByHash(customFieldName string, hash string) (*models.IpRange, error) {
-	customIpSearch := newCustomFieldStringFilterOperation(customFieldName, hash)
-	list, err := r.Ipam.IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, customIpSearch)
+func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRange, error) {
+	customIpRangeSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
+		{
+			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
+			value: hash,
+		},
+	})
+	list, err := r.Ipam.IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, customIpRangeSearch)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +57,7 @@ func (r *NetboxClient) RestoreExistingIpRangeByHash(customFieldName string, hash
 	return &models.IpRange{
 		StartAddress: *res.StartAddress,
 		EndAddress:   *res.EndAddress,
+		Id:           res.ID,
 	}, nil
 }
 
@@ -97,6 +104,16 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeCl
 		StartAddress: startAddress,
 		EndAddress:   endAddress,
 	}, nil
+}
+
+// GetAvailableIpsByIpRange returns all available Ips in Netbox matching IpRangeClaim requirements
+func (r *NetboxClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
+	requestAvailableIPs := ipam.NewIpamIPRangesAvailableIpsListParams().WithID(ipRangeId)
+	responseAvailableIPs, err := r.Ipam.IpamIPRangesAvailableIpsList(requestAvailableIPs, nil)
+	if err != nil {
+		return nil, err
+	}
+	return responseAvailableIPs, nil
 }
 
 func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, requiredSize int) (string, string, error) {

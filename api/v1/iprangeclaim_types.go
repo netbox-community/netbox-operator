@@ -51,6 +51,20 @@ type IpRangeClaimSpec struct {
 type IpRangeClaimStatus struct {
 	IpRange string `json:"ipRange,omitempty"`
 
+	IpRangeDotDecimal string `json:"ipRangeDotDecimal,omitempty"`
+
+	IpAddresses []string `json:"ipAddresses,omitempty"`
+
+	IpAddressesDotDecimal []string `json:"ipAddressesDotDecimal,omitempty"`
+
+	StartAddress string `json:"startAddress,omitempty"`
+
+	StartAddressDotDecimal string `json:"startAddressDotDecimal,omitempty"`
+
+	EndAddress string `json:"endAddress,omitempty"`
+
+	EndAddressDotDecimal string `json:"endAddressDotDecimal,omitempty"`
+
 	IpRangeName string `json:"ipAddressName,omitempty"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
@@ -60,7 +74,7 @@ type IpRangeClaimStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="IpRange",type=string,JSONPath=`.status.ipRange`
-//+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPAssigned")].status`
+//+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IpRangeAssigned")].status`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=irc
@@ -115,9 +129,9 @@ var ConditionIpRangeAssignedFalse = metav1.Condition{
 	Message: "Failed to fetch new Ip Range from NetBox",
 }
 
-var ConditionIpAssignedFalseSizeMissmatch = metav1.Condition{
+var ConditionIpRangeAssignedFalseSizeMissmatch = metav1.Condition{
 	Type:    "IpRangeAssigned",
 	Status:  "False",
 	Reason:  "IpRangeCRNotCreated",
-	Message: "Size of restored IpRange does not match the requested size",
+	Message: "Assigned/Resored ip range has less available ip addresses than requested",
 }
