@@ -31,7 +31,7 @@ type IpRangeClaimSpec struct {
 	ParentPrefix string `json:"parentPrefix"`
 
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:XValisation:Minimum=1
+	//+kubebuilder:validation:Minimum=2
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'size' is immutable"
 	Size int `json:"size,omitempty"`
 

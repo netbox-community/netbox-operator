@@ -71,6 +71,7 @@ spec:
               preserveInNetbox:
                 type: boolean
               size:
+                minimum: 2
                 type: integer
                 x-kubernetes-validations:
                 - message: Field 'size' is immutable
