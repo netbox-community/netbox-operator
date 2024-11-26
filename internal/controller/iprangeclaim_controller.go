@@ -112,7 +112,8 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal, "", nil)
+		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
+			fmt.Sprintf(" , assigned ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress), nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -141,7 +142,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	if apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
 		logger.V(4).Info("iprange status ready true")
-		o.Status, err = r.generateIpRangeClaimStatus(ctx, o, ipRange)
+		o.Status, err = r.generateIpRangeClaimStatus(o, ipRange)
 		if err != nil {
 			logger.Error(err, "failed ot generate ip range status")
 			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, "", err)
@@ -158,14 +159,14 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 		logger.Info("reconcile loop finished")
 		return ctrl.Result{}, nil
-	} else {
-		err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, "", nil)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		logger.Info("reconcile loop finished")
-		return ctrl.Result{Requeue: true}, nil
 	}
+
+	err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, "", nil)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	logger.Info("reconcile loop finished")
+	return ctrl.Result{Requeue: true}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -237,7 +238,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	return ll, ctrl.Result{}, nil
 }
 
-func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(ctx context.Context, o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) (netboxv1.IpRangeClaimStatus, error) {
+func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) (netboxv1.IpRangeClaimStatus, error) {
 	startAddressDotDecimal := strings.Split(ipRange.Spec.StartAddress, "/")[0]
 	endAddressDotDecimal := strings.Split(ipRange.Spec.EndAddress, "/")[0]
 

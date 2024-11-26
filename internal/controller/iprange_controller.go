@@ -292,47 +292,6 @@ func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv
 	}, nil
 }
 
-func (r *IpRangeReconciler) tryLockOnParentPrefix(ctx context.Context, ll *leaselocker.LeaseLocker, o *netboxv1.IpRange) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
-
-	// determine NamespacedName of IpRangeClaim owning the IpRange CR
-	orLookupKey := types.NamespacedName{
-		Name:      o.ObjectMeta.OwnerReferences[0].Name,
-		Namespace: o.Namespace,
-	}
-
-	ipRangeClaim := &netboxv1.IpRangeClaim{}
-	err := r.Client.Get(ctx, orLookupKey, ipRangeClaim)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// get name of parent prefix
-	leaseLockerNSN := types.NamespacedName{
-		Name:      convertCIDRToLeaseLockName(ipRangeClaim.Spec.ParentPrefix),
-		Namespace: r.OperatorNamespace,
-	}
-	ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, orLookupKey.String())
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	lockCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// create lock
-	locked := ll.TryLock(lockCtx)
-	if !locked {
-		logger.Info(fmt.Sprintf("failed to lock parent prefix %s", ipRangeClaim.Spec.ParentPrefix))
-		r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-			ipRangeClaim.Spec.ParentPrefix)
-		return ctrl.Result{}, nil
-	}
-	logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", ipRangeClaim.Spec.ParentPrefix))
-
-	return ctrl.Result{}, nil
-}
-
 func (r *IpRangeReconciler) removeFinalizer(ctx context.Context, o *netboxv1.IpRange) error {
 	logger := log.FromContext(ctx)
 	if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
