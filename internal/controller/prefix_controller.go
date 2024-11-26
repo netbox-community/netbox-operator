@@ -202,19 +202,12 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// update lastPrefixMetadata annotation
-	if annotations == nil {
-		annotations = make(map[string]string)
+	annotations, err = updateLastMetadataAnnotation(annotations, prefix.Spec.CustomFields)
+	if err != nil {
+		logger.Error(err, "failed to update last metadata annotation")
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if len(prefix.Spec.CustomFields) > 0 {
-		lastPrefixMetadata, err := json.Marshal(prefix.Spec.CustomFields)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to marshal lastPrefixMetadata annotation: %w", err)
-		}
-		annotations[LastPrefixMetadataAnnotationName] = string(lastPrefixMetadata)
-	} else {
-		annotations[LastPrefixMetadataAnnotationName] = "{}"
-	}
 	err = accessor.SetAnnotations(prefix, annotations)
 	if err != nil {
 		return ctrl.Result{}, err

@@ -17,9 +17,31 @@ limitations under the License.
 package controller
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 )
 
 func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
+}
+
+func updateLastMetadataAnnotation(annotations map[string]string, cusotmFields map[string]string) (map[string]string, error) {
+	// update lastIpRangeMetadata annotation
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	if len(cusotmFields) > 0 {
+		lastIpRangeMetadata, err := json.Marshal(cusotmFields)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal lastIpRangeMetadata annotation: %w", err)
+		}
+
+		annotations[LastIpRangeMetadataAnnotationName] = string(lastIpRangeMetadata)
+	} else {
+		annotations[LastIpRangeMetadataAnnotationName] = "{}"
+	}
+
+	return annotations, nil
 }

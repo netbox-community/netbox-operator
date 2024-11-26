@@ -59,11 +59,9 @@ type IpRangeClaimReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	debugLogger := logger.V(4)
 
 	logger.Info("reconcile loop started")
 
-	/* 0. check if the matching IpRangeClaim object exists */
 	o := &netboxv1.IpRangeClaim{}
 	err := r.Client.Get(ctx, req.NamespacedName, o)
 	if err != nil {
@@ -76,7 +74,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
-	// 1. check if matching IpRange object already exists
+	//  check if matching IpRange object already exists
 	ipRange := &netboxv1.IpRange{}
 	ipRangeName := o.ObjectMeta.Name
 	ipRangeLookupKey := types.NamespacedName{
@@ -91,68 +89,37 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		debugLogger.Info("iprange object matching iprange claim was not found, creating new iprange object")
+		logger.V(4).Info("iprange object matching iprange claim was not found, creating new iprange object")
 
-		// 2. check if lease for parent prefix is available
-		ll, res, err := r.tryLockOnParentPrefix(ctx, o)
-		if err != nil {
+		ipRangeModel, res, err := r.restoreOrAssignIpRangeAndSetCondition(ctx, o)
+		if ipRangeModel == nil {
 			return res, err
 		}
 
-		// 4. try to reclaim ip range
-		h := generateIpRangeRestorationHash(o)
-		ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
+		// create the IpRange CR
+		ipRangeResource := generateIpRangeFromIpRangeClaim(ctx, o, ipRangeModel.StartAddress, ipRangeModel.EndAddress)
+		err = controllerutil.SetControllerReference(o, ipRangeResource, r.Scheme)
 		if err != nil {
-			if err := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		err = r.Client.Create(ctx, ipRangeResource)
+		if err != nil {
+			err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err)
+			if err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, err
 		}
 
-		if ipRangeModel == nil {
-			// ip range cannot be restored from netbox
-			// 5.a assign new available ip range
-			ipRangeModel, err = r.NetboxClient.GetAvailableIpRangeByClaim(
-				&models.IpRangeClaim{
-					ParentPrefix: o.Spec.ParentPrefix,
-					Size:         o.Spec.Size,
-					Metadata: &models.NetboxMetadata{
-						Tenant: o.Spec.Tenant,
-					},
-				},
-			)
-			if err != nil {
-				if err := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err); err != nil {
-					return ctrl.Result{}, err
-				}
-				return ctrl.Result{Requeue: true}, nil
-			}
-			debugLogger.Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
-		} else {
-			// 5.b reassign reserved ip range from netbox
-
-			// check if the restored ip range has the size requested by the claim
-			availableIps, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRangeModel.Id)
-			if len(availableIps.Payload) != o.Spec.Size {
-				ll.Unlock()
-				err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMissmatch, corev1.EventTypeWarning, "", err)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				return ctrl.Result{Requeue: true}, nil
-			}
-			debugLogger.Info(fmt.Sprintf("reassign reserved ip range from netbox, range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
-		}
-
-		// 6.a create the IpRange CR
-		err = r.createIpRangeCR(ctx, o, ipRangeModel)
+		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal, "", nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 	} else {
-		// 6.b update fields of IPRange object
-		debugLogger.Info("update iprange resource")
+		// update fields of IPRange object
+		logger.V(4).Info("update iprange resource")
 		err := r.Client.Get(ctx, ipRangeLookupKey, ipRange)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -172,17 +139,33 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
-	err = r.updateIpRangeClaimStatus(ctx, o, ipRange)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	if apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
+		logger.V(4).Info("iprange status ready true")
+		o.Status, err = r.generateIpRangeClaimStatus(ctx, o, ipRange)
+		if err != nil {
+			logger.Error(err, "failed ot generate ip range status")
+			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, "", err)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{Requeue: true}, nil
+		}
 
-	if apismeta.IsStatusConditionFalse(o.Status.Conditions, "Ready") {
+		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, "", nil)
+		if err != nil {
+			return ctrl.Result{}, err
+
+		}
+		logger.Info("reconcile loop finished")
+		return ctrl.Result{}, nil
+	} else {
+		err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, "", nil)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		logger.Info("reconcile loop finished")
 		return ctrl.Result{Requeue: true}, nil
 	}
-
-	logger.Info("reconcile loop finished")
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -193,8 +176,8 @@ func (r *IpRangeClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// SetConditionAndCreateEvent updates the condition and creates a log entry and event for this condition change
-func (r *IpRangeClaimReconciler) SetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpRangeClaim, condition metav1.Condition, eventType string, conditionMessageAppend string, errIn error) error {
+// logErrorSetConditionAndCreateEvent updates the condition and creates a log entry and event for this condition change and logs an error if errIn is not nil
+func (r *IpRangeClaimReconciler) logErrorSetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpRangeClaim, condition metav1.Condition, eventType string, conditionMessageAppend string, errIn error) error {
 	if len(conditionMessageAppend) > 0 {
 		condition.Message = condition.Message + ". " + conditionMessageAppend
 	}
@@ -221,7 +204,6 @@ func (r *IpRangeClaimReconciler) SetConditionAndCreateEvent(ctx context.Context,
 
 func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *netboxv1.IpRangeClaim) (*leaselocker.LeaseLocker, ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	debugLogger := logger.V(4)
 
 	leaseLockerNSN := types.NamespacedName{
 		Name:      convertCIDRToLeaseLockName(o.Spec.ParentPrefix),
@@ -241,7 +223,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	lockCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// 3. try to lock lease for parent prefix
+	// try to lock lease for parent prefix
 	locked := ll.TryLock(lockCtx)
 	if !locked {
 		// lock for parent prefix was not available, rescheduling
@@ -250,79 +232,91 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 			o.Spec.ParentPrefix)
 		return nil, ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 	}
-	debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
+	logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 
 	return ll, ctrl.Result{}, nil
 }
 
-func (r *IpRangeClaimReconciler) updateIpRangeClaimStatus(ctx context.Context, o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) error {
-	debugLogger := log.FromContext(ctx).V(4)
+func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(ctx context.Context, o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) (netboxv1.IpRangeClaimStatus, error) {
+	startAddressDotDecimal := strings.Split(ipRange.Spec.StartAddress, "/")[0]
+	endAddressDotDecimal := strings.Split(ipRange.Spec.EndAddress, "/")[0]
 
-	if apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
-		debugLogger.Info("iprange status ready true")
-
-		startAddressDotDecimal := strings.Split(ipRange.Spec.StartAddress, "/")[0]
-		endAddressDotDecimal := strings.Split(ipRange.Spec.EndAddress, "/")[0]
-
-		o.Status.IpRange = fmt.Sprintf("%s-%s", ipRange.Spec.StartAddress, ipRange.Spec.EndAddress)
-
-		o.Status.IpRangeDotDecimal = fmt.Sprintf("%s-%s", startAddressDotDecimal, endAddressDotDecimal)
-
-		availableIps, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRange.Status.IpRangeId)
-		if err != nil {
-			return err
-		}
-
-		o.Status.IpAddresses = []string{}
-		o.Status.IpAddressesDotDecimal = []string{}
-		for _, ip := range availableIps.Payload {
-			o.Status.IpAddresses = append(o.Status.IpAddresses, ip.Address)
-			o.Status.IpAddressesDotDecimal = append(o.Status.IpAddressesDotDecimal, strings.Split(ip.Address, "/")[0])
-		}
-
-		o.Status.StartAddress = ipRange.Spec.StartAddress
-		o.Status.StartAddressDotDecimal = startAddressDotDecimal
-
-		o.Status.EndAddress = ipRange.Spec.EndAddress
-		o.Status.EndAddressDotDecimal = endAddressDotDecimal
-
-		o.Status.IpRangeName = ipRange.Name
-
-		err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, "", nil)
-		if err != nil {
-			return err
-		}
-	} else {
-		debugLogger.Info("iprange status ready false")
-		err := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, "", nil)
-		if err != nil {
-			return err
-		}
-		return nil
+	availableIps, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRange.Status.IpRangeId)
+	if err != nil {
+		return netboxv1.IpRangeClaimStatus{}, err
 	}
-	return nil
+
+	ipAddresses := []string{}
+	ipAddressesDotDecimal := []string{}
+	for _, ip := range availableIps.Payload {
+		ipAddresses = append(ipAddresses, ip.Address)
+		ipAddressesDotDecimal = append(ipAddressesDotDecimal, strings.Split(ip.Address, "/")[0])
+	}
+
+	return netboxv1.IpRangeClaimStatus{
+		IpRange:                fmt.Sprintf("%s-%s", ipRange.Spec.StartAddress, ipRange.Spec.EndAddress),
+		IpRangeDotDecimal:      fmt.Sprintf("%s-%s", startAddressDotDecimal, endAddressDotDecimal),
+		IpAddresses:            ipAddresses,
+		IpAddressesDotDecimal:  ipAddressesDotDecimal,
+		StartAddress:           ipRange.Spec.StartAddress,
+		StartAddressDotDecimal: startAddressDotDecimal,
+		EndAddress:             ipRange.Spec.EndAddress,
+		EndAddressDotDecimal:   endAddressDotDecimal,
+		IpRangeName:            ipRange.Name,
+		Conditions:             o.Status.Conditions,
+	}, nil
 }
 
-func (r *IpRangeClaimReconciler) createIpRangeCR(ctx context.Context, o *netboxv1.IpRangeClaim, ipRangeModel *models.IpRange) error {
-	ipRangeResource := generateIpRangeFromIpRangeClaim(ctx, o, ipRangeModel.StartAddress, ipRangeModel.EndAddress)
-	err := controllerutil.SetControllerReference(o, ipRangeResource, r.Scheme)
+func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx context.Context, o *netboxv1.IpRangeClaim) (*models.IpRange, ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	ll, res, err := r.tryLockOnParentPrefix(ctx, o)
 	if err != nil {
-		return err
+		return nil, res, err
 	}
 
-	err = r.Client.Create(ctx, ipRangeResource)
+	h := generateIpRangeRestorationHash(o)
+	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		err := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err)
-		if err != nil {
-			return err
+		if err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err); err != nil {
+			return nil, ctrl.Result{}, err
 		}
-		return err
+		return nil, ctrl.Result{Requeue: true}, nil
 	}
 
-	err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal, "", nil)
-	if err != nil {
-		return err
-	}
+	if ipRangeModel == nil {
+		// ip range cannot be restored from netbox
+		// assign new available ip range
+		ipRangeModel, err = r.NetboxClient.GetAvailableIpRangeByClaim(
+			&models.IpRangeClaim{
+				ParentPrefix: o.Spec.ParentPrefix,
+				Size:         o.Spec.Size,
+				Metadata: &models.NetboxMetadata{
+					Tenant: o.Spec.Tenant,
+				},
+			},
+		)
+		if err != nil {
+			if err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err); err != nil {
+				return nil, ctrl.Result{}, err
+			}
+			return nil, ctrl.Result{Requeue: true}, nil
+		}
+		logger.V(4).Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
+	} else {
+		// reassign reserved ip range from netbox
 
-	return nil
+		// check if the restored ip range has the size requested by the claim
+		availableIpRanges, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRangeModel.Id)
+		if len(availableIpRanges.Payload) != o.Spec.Size {
+			ll.Unlock()
+			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMissmatch, corev1.EventTypeWarning, "", err)
+			if err != nil {
+				return nil, ctrl.Result{}, err
+			}
+			return nil, ctrl.Result{Requeue: true}, nil
+		}
+		logger.V(4).Info(fmt.Sprintf("reassign reserved ip range from netbox, range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
+	}
+	return ipRangeModel, ctrl.Result{}, nil
 }

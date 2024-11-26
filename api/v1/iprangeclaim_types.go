@@ -115,6 +115,13 @@ var ConditionIpRangeClaimReadyFalse = metav1.Condition{
 	Message: "Ip Range Resource is not ready",
 }
 
+var ConditionIpRangeClaimReadyFalseStatusGen = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "IpRangeClaimStatusGenerationFailed",
+	Message: "Failed to generate Ip Range Status",
+}
+
 var ConditionIpRangeAssignedTrue = metav1.Condition{
 	Type:    "IpRangeAssigned",
 	Status:  "True",
