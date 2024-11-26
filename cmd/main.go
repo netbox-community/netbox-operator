@@ -204,7 +204,7 @@ func main() {
 	if err = (&controller.IpRangeReconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
-		Recorder:          mgr.GetEventRecorderFor("ip-address-claim-controller"),
+		Recorder:          mgr.GetEventRecorderFor("ip-range-controller"),
 		NetboxClient:      netboxClient,
 		OperatorNamespace: operatorNamespace,
 		RestConfig:        mgr.GetConfig(),

@@ -144,7 +144,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		logger.V(4).Info("iprange status ready true")
 		o.Status, err = r.generateIpRangeClaimStatus(o, ipRange)
 		if err != nil {
-			logger.Error(err, "failed ot generate ip range status")
+			logger.Error(err, "failed to generate ip range status")
 			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, "", err)
 			if err != nil {
 				return ctrl.Result{}, err
