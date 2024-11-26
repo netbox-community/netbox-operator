@@ -172,7 +172,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
 			corev1.EventTypeWarning, fmt.Sprintf("%s-%s", o.Spec.StartAddress, o.Spec.EndAddress), err)
 		if err != nil {
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, err
 		}
 	}
 

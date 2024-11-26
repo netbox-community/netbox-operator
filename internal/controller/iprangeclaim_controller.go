@@ -105,9 +105,9 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		err = r.Client.Create(ctx, ipRangeResource)
 		if err != nil {
-			err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err)
-			if err != nil {
-				return ctrl.Result{}, err
+			errSetCondition := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err)
+			if errSetCondition != nil {
+				return ctrl.Result{}, errSetCondition
 			}
 			return ctrl.Result{}, err
 		}
