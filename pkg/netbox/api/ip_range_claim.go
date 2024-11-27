@@ -17,10 +17,12 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
+	"sort"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -85,17 +87,7 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeCl
 		return nil, err
 	}
 
-	startAddress, endAddress, err := searchAvailableIpRange(responseAvailableIPs, ipRangeClaim.Size)
-	if err != nil {
-		return nil, err
-	}
-
-	startAddress, err = r.SetIpAddressMask(startAddress, responseAvailableIPs.Payload[0].Family)
-	if err != nil {
-		return nil, err
-	}
-
-	endAddress, err = r.SetIpAddressMask(endAddress, responseAvailableIPs.Payload[0].Family)
+	startAddress, endAddress, err := searchAvailableIpRange(responseAvailableIPs, ipRangeClaim.Size, responseAvailableIPs.Payload[0].Family)
 	if err != nil {
 		return nil, err
 	}
@@ -116,31 +108,40 @@ func (r *NetboxClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.
 	return responseAvailableIPs, nil
 }
 
-func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, requiredSize int) (string, string, error) {
-	// this function receives a list of available IPs that can be either IPv4 or IPv6 IPs
+func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, requiredSize int, family int64) (string, string, error) {
+	// this function receives a list of available IPs it chan have IPv4 or IPv6 IPs
 	// it will search for the first available range of IPs with the required size
 	// it will return the start and end IP of the range
 	var startAddress, endAddress string
 	consecutiveCount := 0
 
+	ips := make([]net.IP, len(availableIps.Payload))
+	var err error
 	for i := 0; i < len(availableIps.Payload); i++ {
-		currentIp, _, err := net.ParseCIDR(availableIps.Payload[i].Address)
+		ips[i], _, err = net.ParseCIDR(availableIps.Payload[i].Address)
 		if err != nil {
-			return "", "", err
+			return "", "", fmt.Errorf("failed to parse IP address: %w", err)
 		}
+	}
+
+	// sort the IPs
+	sort.Slice(ips, func(i, j int) bool {
+		return bytes.Compare(ips[i], ips[j]) < 0
+	})
+
+	for i := range ips {
+		currentIp := ips[i]
 
 		var previousIP net.IP
 		if i > 0 {
-			previousIP, _, err = net.ParseCIDR(availableIps.Payload[i-1].Address)
-			if err != nil {
-				return "", "", err
-			}
+			previousIP = ips[i-1]
 		}
+
 		if i == 0 || areConsecutiveIPs(previousIP, currentIp) {
 			consecutiveCount++
 			if consecutiveCount == requiredSize {
-				startAddress = availableIps.Payload[i-requiredSize+1].Address
-				endAddress = availableIps.Payload[i].Address
+				startAddress = ips[i-requiredSize+1].String()
+				endAddress = ips[i].String()
 				break
 			}
 		} else {
@@ -150,6 +151,16 @@ func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, r
 
 	if consecutiveCount < requiredSize {
 		return "", "", errors.New("not enough consecutive IPs available")
+	}
+
+	startAddress, err = SetIpAddressMask(startAddress, family)
+	if err != nil {
+		return "", "", err
+	}
+
+	endAddress, err = SetIpAddressMask(endAddress, family)
+	if err != nil {
+		return "", "", err
 	}
 
 	return startAddress, endAddress, nil

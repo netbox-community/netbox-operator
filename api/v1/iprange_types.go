@@ -67,7 +67,7 @@ type IpRangeStatus struct {
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=ir
+// +kubebuilder:resource:shortName=ipr
 
 // IpRange is the Schema for the ipranges API
 type IpRange struct {
@@ -94,20 +94,20 @@ func init() {
 var ConditionIpRangeReadyTrue = metav1.Condition{
 	Type:    "Ready",
 	Status:  "True",
-	Reason:  "IpRangeReservedInNetbox",
-	Message: "Ip Range was reserved/updated in NetBox",
+	Reason:  "IPRangeReservedInNetbox",
+	Message: "IP Range was reserved/updated in NetBox",
 }
 
 var ConditionIpRangeReadyFalse = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "FailedToReserveIpRangeInNetbox",
-	Message: "Failed to reserve Ip Range in NetBox",
+	Reason:  "FailedToReserveIPRangeInNetbox",
+	Message: "Failed to reserve IP Range in NetBox",
 }
 
 var ConditionIpRangeReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "FailedToDeleteIpRangeInNetbox",
-	Message: "Failed to delete Ip Range in NetBox",
+	Reason:  "FailedToDeleteIPRangeInNetbox",
+	Message: "Failed to delete IP Range in NetBox",
 }

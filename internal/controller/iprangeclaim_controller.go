@@ -40,6 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const IpRangeClaimFinalizerName = "iprangeclaim.netbox.dev/finalizer"
+
 // IpRangeClaimReconciler reconciles a IpRangeClaim object
 type IpRangeClaimReconciler struct {
 	client.Client
@@ -68,18 +70,30 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
-		// end loop if deletion timestamp is not zero
-		return ctrl.Result{}, nil
-	}
-
-	//  check if matching IpRange object already exists
 	ipRange := &netboxv1.IpRange{}
-	ipRangeName := o.ObjectMeta.Name
+	ipRangeName := o.Name
 	ipRangeLookupKey := types.NamespacedName{
 		Name:      ipRangeName,
 		Namespace: o.Namespace,
+	}
+
+	// if being deleted
+	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+		err = r.Client.Get(ctx, ipRangeLookupKey, ipRange)
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeClaimFinalizerName)
+		}
+
+		err = r.Client.Delete(ctx, ipRange)
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, err
+		}
+
+		// requeue if owned iprange was still found
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	err = r.Client.Get(ctx, ipRangeLookupKey, ipRange)
@@ -119,54 +133,46 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 
 	} else {
-		// update fields of IPRange object
+		// update spec of IpRange object
 		logger.V(4).Info("update iprange resource")
-		err := r.Client.Get(ctx, ipRangeLookupKey, ipRange)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		updatedIpRangeSpec := generateIpRangeSpec(o, ipRange.Spec.StartAddress, ipRange.Spec.EndAddress, logger)
-		_, err = ctrl.CreateOrUpdate(ctx, r.Client, ipRange, func() error {
-			// only add the mutable fields here
-			ipRange.Spec.CustomFields = updatedIpRangeSpec.CustomFields
-			ipRange.Spec.Comments = updatedIpRangeSpec.Comments
-			ipRange.Spec.Description = updatedIpRangeSpec.Description
-			ipRange.Spec.PreserveInNetbox = updatedIpRangeSpec.PreserveInNetbox
-			return nil
-		})
+		ipRange.Spec = generateIpRangeSpec(o, ipRange.Spec.StartAddress, ipRange.Spec.EndAddress, logger)
+		err = r.Client.Update(ctx, ipRange)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
-	if apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
-		logger.V(4).Info("iprange status ready true")
-		o.Status, err = r.generateIpRangeClaimStatus(o, ipRange)
-		if err != nil {
-			logger.Error(err, "failed to generate ip range status")
-			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, "", err)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{Requeue: true}, nil
-		}
-
-		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, "", nil)
+	if !apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
+		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, "", nil)
 		if err != nil {
 			return ctrl.Result{}, err
-
 		}
 		logger.Info("reconcile loop finished")
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
-	err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, "", nil)
+	logger.V(4).Info("iprange status ready true")
+	o.Status, err = r.generateIpRangeClaimStatus(o, ipRange)
+	if err != nil {
+		logger.Error(err, "failed to generate ip range status")
+		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, "", err)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
+	}
+	err = r.Client.Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, "", nil)
+	if err != nil {
+		return ctrl.Result{}, err
+
+	}
 	logger.Info("reconcile loop finished")
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

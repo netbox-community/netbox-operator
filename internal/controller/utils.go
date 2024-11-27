@@ -17,31 +17,55 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
 }
 
-func updateLastMetadataAnnotation(annotations map[string]string, cusotmFields map[string]string) (map[string]string, error) {
-	// update lastIpRangeMetadata annotation
-	if annotations == nil {
-		annotations = make(map[string]string)
+func generateLastMetadataAnnotation(cusotmFields map[string]string) (string, error) {
+	if cusotmFields == nil {
+		cusotmFields = make(map[string]string)
 	}
 
-	if len(cusotmFields) > 0 {
-		lastIpRangeMetadata, err := json.Marshal(cusotmFields)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal lastIpRangeMetadata annotation: %w", err)
+	lastIpRangeMetadata, err := json.Marshal(cusotmFields)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal lastIpRangeMetadata annotation: %w", err)
+	}
+
+	return string(lastIpRangeMetadata), nil
+}
+
+func removeFinalizer(ctx context.Context, c client.Client, o client.Object, finalizerName string) error {
+	logger := log.FromContext(ctx)
+	if controllerutil.ContainsFinalizer(o, finalizerName) {
+		logger.V(4).Info("removing the finalizer")
+		controllerutil.RemoveFinalizer(o, finalizerName)
+		if err := c.Update(ctx, o); err != nil {
+			return err
 		}
-
-		annotations[LastIpRangeMetadataAnnotationName] = string(lastIpRangeMetadata)
-	} else {
-		annotations[LastIpRangeMetadataAnnotationName] = "{}"
 	}
 
-	return annotations, nil
+	return nil
+}
+
+func addFinalizer(ctx context.Context, c client.Client, o client.Object, finalizerName string) error {
+	logger := log.FromContext(ctx)
+	if !controllerutil.ContainsFinalizer(o, finalizerName) {
+		logger.V(4).Info("add the finalizer")
+		controllerutil.AddFinalizer(o, finalizerName)
+		if err := c.Update(ctx, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

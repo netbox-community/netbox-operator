@@ -17,20 +17,6 @@ VALUES (6, 'boolean', 'cfDataTypeBool', 'cf Data Type Bool', 'Custom field 3 for
 INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments)
 VALUES (7, 'integer', 'cfDataTypeInteger', 'cf Data Type Integer', 'Custom field 4 for ParentPrefixSelector', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '');
 
--- associate custom fields IP Range
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (6, 2, 78);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (7, 3, 78);
-
--- associate custom fields IP Range
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (6, 2, 78);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (7, 3, 78);
-
 -- associate custom fields with IP
 INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
 VALUES (2, 2, 69);
@@ -56,6 +42,13 @@ VALUES (8, 6, 70);
 
 INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
 VALUES (9, 7, 70);
+
+-- associate custom fields with IP Range
+INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
+VALUES (10, 2, 78);
+
+INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
+VALUES (11, 3, 78);
 
 -- insert User Token
 INSERT INTO public.users_token (id, created, expires, key, write_enabled, description, user_id, allowed_ips, last_used)

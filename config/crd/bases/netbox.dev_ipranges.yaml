@@ -12,7 +12,7 @@ spec:
     listKind: IpRangeList
     plural: ipranges
     shortNames:
-    - ir
+    - ipr
     singular: iprange
   scope: Namespaced
   versions:

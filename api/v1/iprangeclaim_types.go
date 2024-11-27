@@ -74,10 +74,10 @@ type IpRangeClaimStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="IpRange",type=string,JSONPath=`.status.ipRange`
-//+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IpRangeAssigned")].status`
+//+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPRangeAssigned")].status`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=irc
+// +kubebuilder:resource:shortName=iprc
 
 // IpRangeClaim is the Schema for the iprangeclaims API
 type IpRangeClaim struct {
@@ -104,41 +104,41 @@ func init() {
 var ConditionIpRangeClaimReadyTrue = metav1.Condition{
 	Type:    "Ready",
 	Status:  "True",
-	Reason:  "IpRangeResourceReady",
-	Message: "Ip Range Resource is ready",
+	Reason:  "IPRangeResourceReady",
+	Message: "IP Range Resource is ready",
 }
 
 var ConditionIpRangeClaimReadyFalse = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "IpRangeResourceNotReady",
-	Message: "Ip Range Resource is not ready",
+	Reason:  "IPRangeResourceNotReady",
+	Message: "IP Range Resource is not ready",
 }
 
 var ConditionIpRangeClaimReadyFalseStatusGen = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
-	Reason:  "IpRangeClaimStatusGenerationFailed",
-	Message: "Failed to generate Ip Range Status",
+	Reason:  "IPRangeClaimStatusGenerationFailed",
+	Message: "Failed to generate IP Range Status",
 }
 
 var ConditionIpRangeAssignedTrue = metav1.Condition{
-	Type:    "IpRangeAssigned",
+	Type:    "IPRangeAssigned",
 	Status:  "True",
-	Reason:  "IpRangeCRCreated",
-	Message: "New Ip Range fetched from NetBox and IpRange CR was created",
+	Reason:  "IPRangeCRCreated",
+	Message: "New IP Range fetched from NetBox and IpRange CR was created",
 }
 
 var ConditionIpRangeAssignedFalse = metav1.Condition{
-	Type:    "IpRangeAssigned",
+	Type:    "IPRangeAssigned",
 	Status:  "False",
-	Reason:  "IpRangeCRNotCreated",
-	Message: "Failed to fetch new Ip Range from NetBox",
+	Reason:  "IPRangeCRNotCreated",
+	Message: "Failed to fetch new IP Range from NetBox",
 }
 
 var ConditionIpRangeAssignedFalseSizeMissmatch = metav1.Condition{
-	Type:    "IpRangeAssigned",
+	Type:    "IPRangeAssigned",
 	Status:  "False",
-	Reason:  "IpRangeCRNotCreated",
-	Message: "Assigned/Restored ip range has less available ip addresses than requested",
+	Reason:  "IPRangeCRNotCreated",
+	Message: "Assigned/Restored IP range has less available IP addresses than requested",
 }

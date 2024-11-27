@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,7 +53,7 @@ var _ = Describe("IpRangeClaim Controller", func() {
 					Comments:     "test",
 					StartAddress: "1.0.0.1/32",
 					EndAddress:   "1.0.0.3/32",
-					CustomFields: map[string]string{"netboxOperatorRestorationHash": "331f244f24c08ea3fc6fb7f16cbef20ef2bf02de"},
+					CustomFields: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: "331f244f24c08ea3fc6fb7f16cbef20ef2bf02de"},
 				},
 			}))
 		})

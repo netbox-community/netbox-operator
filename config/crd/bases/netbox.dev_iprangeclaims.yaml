@@ -12,7 +12,7 @@ spec:
     listKind: IpRangeClaimList
     plural: iprangeclaims
     shortNames:
-    - irc
+    - iprc
     singular: iprangeclaim
   scope: Namespaced
   versions:
@@ -20,7 +20,7 @@ spec:
     - jsonPath: .status.ipRange
       name: IpRange
       type: string
-    - jsonPath: .status.conditions[?(@.type=="IpRangeAssigned")].status
+    - jsonPath: .status.conditions[?(@.type=="IPRangeAssigned")].status
       name: IpRangeAssigned
       type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status

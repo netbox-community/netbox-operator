@@ -38,12 +38,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const IpRangeFinalizerName = "iprange.netbox.dev/finalizer"
-const LastIpRangeMetadataAnnotationName = "iprange.netbox.dev/last-ip-range-metadata"
+const LastIpRangeManagedCustomFieldsAnnotationName = "iprange.netbox.dev/managed-custom-fields"
 
 // IpRangeReconciler reconciles a IpRange object
 type IpRangeReconciler struct {
@@ -58,6 +57,7 @@ type IpRangeReconciler struct {
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipranges,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipranges/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipranges/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -74,41 +74,26 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// if being deleted
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
-		if o.Spec.PreserveInNetbox {
-			// if there's a finalizer remove it and return
-			// this can be the case if a CR used to have spec.preserveInNetbox set to false
-			return ctrl.Result{}, r.removeFinalizer(ctx, o)
-		}
-
-		err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
-		if err != nil {
-			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
-				corev1.EventTypeWarning, "", err)
+		if !o.Spec.PreserveInNetbox {
+			err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
 			if err != nil {
-				return ctrl.Result{}, err
+				err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
+					corev1.EventTypeWarning, "", err)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
+				return ctrl.Result{Requeue: true}, nil
 			}
-
-			return ctrl.Result{Requeue: true}, nil
 		}
 
-		err = r.removeFinalizer(ctx, o)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		err = r.Update(ctx, o)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
 	}
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
-		logger.V(4).Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, IpRangeFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
+	if !o.Spec.PreserveInNetbox {
+		err = addFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -119,24 +104,12 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	var ll *leaselocker.LeaseLocker
 	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 
-		// determine NamespacedName of IpRangeClaim owning the IpRange CR
-		orLookupKey := types.NamespacedName{
-			Name:      o.ObjectMeta.OwnerReferences[0].Name,
-			Namespace: o.Namespace,
-		}
-
-		ipRangeClaim := &netboxv1.IpRangeClaim{}
-		err := r.Client.Get(ctx, orLookupKey, ipRangeClaim)
+		leaseLockerNSN, owner, parentPrefix, err := r.getLeaseLockerNSNandOwner(ctx, o)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		// get name of parent prefix
-		leaseLockerNSN := types.NamespacedName{
-			Name:      convertCIDRToLeaseLockName(ipRangeClaim.Spec.ParentPrefix),
-			Namespace: r.OperatorNamespace,
-		}
-		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, orLookupKey.String())
+		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, owner)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -147,12 +120,12 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		// create lock
 		locked := ll.TryLock(lockCtx)
 		if !locked {
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", ipRangeClaim.Spec.ParentPrefix))
+			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefix))
 			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-				ipRangeClaim.Spec.ParentPrefix)
+				parentPrefix)
 			return ctrl.Result{Requeue: true}, nil
 		}
-		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", ipRangeClaim.Spec.ParentPrefix))
+		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", parentPrefix))
 	}
 
 	// 2. reserve or update ip range in netbox
@@ -162,7 +135,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	ipRangeModel, err := r.generateNetboxIpRangeModelFromIpRangeSpec(o, req, annotations[LastIpRangeMetadataAnnotationName])
+	ipRangeModel, err := r.generateNetboxIpRangeModelFromIpRangeSpec(o, req, annotations[LastIpRangeManagedCustomFieldsAnnotationName])
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -170,7 +143,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ipRangeModel)
 	if err != nil {
 		err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-			corev1.EventTypeWarning, fmt.Sprintf("%s-%s", o.Spec.StartAddress, o.Spec.EndAddress), err)
+			corev1.EventTypeWarning, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress), err)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -189,7 +162,11 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	annotations, err = updateLastMetadataAnnotation(annotations, o.Spec.CustomFields)
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+
+	annotations[LastIpRangeManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil
@@ -287,15 +264,24 @@ func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv
 	}, nil
 }
 
-func (r *IpRangeReconciler) removeFinalizer(ctx context.Context, o *netboxv1.IpRange) error {
-	logger := log.FromContext(ctx)
-	if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
-		logger.V(4).Info("removing the finalizer")
-		controllerutil.RemoveFinalizer(o, IpRangeFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
-			return err
-		}
+func (r *IpRangeReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netboxv1.IpRange) (types.NamespacedName, string, string, error) {
+
+	orLookupKey := types.NamespacedName{
+		Name:      o.ObjectMeta.OwnerReferences[0].Name,
+		Namespace: o.Namespace,
 	}
 
-	return nil
+	ipRangeClaim := &netboxv1.IpRangeClaim{}
+	err := r.Client.Get(ctx, orLookupKey, ipRangeClaim)
+	if err != nil {
+		return types.NamespacedName{}, "", "", err
+	}
+
+	// get name of parent prefix
+	leaseLockerNSN := types.NamespacedName{
+		Name:      convertCIDRToLeaseLockName(ipRangeClaim.Spec.ParentPrefix),
+		Namespace: r.OperatorNamespace,
+	}
+
+	return leaseLockerNSN, orLookupKey.String(), ipRangeClaim.Spec.ParentPrefix, nil
 }

@@ -46,7 +46,7 @@ import (
 )
 
 const PrefixFinalizerName = "prefix.netbox.dev/finalizer"
-const LastPrefixMetadataAnnotationName = "prefix.netbox.dev/last-prefix-metadata"
+const LastPrefixManagedCustomFieldsAnnotationName = "prefix.netbox.dev/managed-custom-fields"
 
 // PrefixReconciler reconciles a Prefix object
 type PrefixReconciler struct {
@@ -177,7 +177,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	prefixModel, err := generateNetboxPrefixModelFromPrefixSpec(&prefix.Spec, req, annotations[LastPrefixMetadataAnnotationName])
+	prefixModel, err := generateNetboxPrefixModelFromPrefixSpec(&prefix.Spec, req, annotations[LastPrefixManagedCustomFieldsAnnotationName])
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -201,8 +201,11 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	// update lastPrefixMetadata annotation
-	annotations, err = updateLastMetadataAnnotation(annotations, prefix.Spec.CustomFields)
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+
+	annotations[LastPrefixManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(prefix.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil
