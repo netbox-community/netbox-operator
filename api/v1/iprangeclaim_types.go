@@ -140,5 +140,5 @@ var ConditionIpRangeAssignedFalseSizeMissmatch = metav1.Condition{
 	Type:    "IpRangeAssigned",
 	Status:  "False",
 	Reason:  "IpRangeCRNotCreated",
-	Message: "Assigned/Resored ip range has less available ip addresses than requested",
+	Message: "Assigned/Restored ip range has less available ip addresses than requested",
 }

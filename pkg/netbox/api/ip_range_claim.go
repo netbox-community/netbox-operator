@@ -117,7 +117,7 @@ func (r *NetboxClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.
 }
 
 func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, requiredSize int) (string, string, error) {
-	// this function receives a list of available IPs it chan have IPv4 or IPv6 IPs
+	// this function receives a list of available IPs that can be either IPv4 or IPv6 IPs
 	// it will search for the first available range of IPs with the required size
 	// it will return the start and end IP of the range
 	var startAddress, endAddress string

@@ -117,7 +117,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// and IpRange is owned by an IpRangeClaim
 	or := o.ObjectMeta.OwnerReferences
 	var ll *leaselocker.LeaseLocker
-	if len(or) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
+	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 
 		// determine NamespacedName of IpRangeClaim owning the IpRange CR
 		orLookupKey := types.NamespacedName{
