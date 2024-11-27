@@ -241,12 +241,7 @@ func (r *IpRangeReconciler) logErrorSetConditionAndCreateEvent(ctx context.Conte
 		r.Recorder.Event(o, eventType, condition.Reason, condition.Message)
 	}
 
-	err := r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.Client.Status().Update(ctx, o)
 }
 
 func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv1.IpRange, req ctrl.Request, lastIpRangeMetadata string) (*models.IpRange, error) {
