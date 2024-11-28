@@ -113,7 +113,7 @@ func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, r
 	// it will search for the first available range of IPs with the required size
 	// it will return the start and end IP of the range
 	var startAddress, endAddress string
-	consecutiveCount := 0
+	consecutiveCount := 1
 
 	ips := make([]net.IP, len(availableIps.Payload))
 	var err error
@@ -129,15 +129,11 @@ func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, r
 		return bytes.Compare(ips[i], ips[j]) < 0
 	})
 
-	for i := range ips {
+	for i := 1; i < len(ips); i++ {
 		currentIp := ips[i]
+		previousIP := ips[i-1]
 
-		var previousIP net.IP
-		if i > 0 {
-			previousIP = ips[i-1]
-		}
-
-		if i == 0 || areConsecutiveIPs(previousIP, currentIp) {
+		if areConsecutiveIPs(previousIP, currentIp) {
 			consecutiveCount++
 			if consecutiveCount == requiredSize {
 				startAddress = ips[i-requiredSize+1].String()

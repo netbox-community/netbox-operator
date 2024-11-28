@@ -42,7 +42,7 @@ import (
 )
 
 const IpRangeFinalizerName = "iprange.netbox.dev/finalizer"
-const LastIpRangeManagedCustomFieldsAnnotationName = "iprange.netbox.dev/managed-custom-fields"
+const IPRManagedCustomFieldsAnnotationName = "iprange.netbox.dev/managed-custom-fields"
 
 // IpRangeReconciler reconciles a IpRange object
 type IpRangeReconciler struct {
@@ -135,7 +135,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	ipRangeModel, err := r.generateNetboxIpRangeModelFromIpRangeSpec(o, req, annotations[LastIpRangeManagedCustomFieldsAnnotationName])
+	ipRangeModel, err := r.generateNetboxIpRangeModelFromIpRangeSpec(o, req, annotations[IPRManagedCustomFieldsAnnotationName])
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -166,7 +166,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		annotations = make(map[string]string, 1)
 	}
 
-	annotations[LastIpRangeManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
+	annotations[IPRManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil

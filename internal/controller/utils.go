@@ -31,17 +31,17 @@ func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
 }
 
-func generateLastMetadataAnnotation(cusotmFields map[string]string) (string, error) {
-	if cusotmFields == nil {
-		cusotmFields = make(map[string]string)
+func generateLastMetadataAnnotation(customFields map[string]string) (string, error) {
+	if customFields == nil {
+		customFields = make(map[string]string)
 	}
 
-	lastIpRangeMetadata, err := json.Marshal(cusotmFields)
+	metadataJSON, err := json.Marshal(customFields)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal lastIpRangeMetadata annotation: %w", err)
+		return "", fmt.Errorf("failed to marshal custom fields to JSON: %w", err)
 	}
 
-	return string(lastIpRangeMetadata), nil
+	return string(metadataJSON), nil
 }
 
 func removeFinalizer(ctx context.Context, c client.Client, o client.Object, finalizerName string) error {

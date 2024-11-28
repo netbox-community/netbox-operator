@@ -117,6 +117,11 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
+		err = addFinalizer(ctx, r.Client, o, IpRangeClaimFinalizerName)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		err = r.Client.Create(ctx, ipRangeResource)
 		if err != nil {
 			errSetCondition := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err)

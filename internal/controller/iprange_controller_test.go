@@ -16,69 +16,82 @@ limitations under the License.
 
 package controller
 
-// import (
-// 	"context"
+import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
-// 	. "github.com/onsi/ginkgo/v2"
-// 	. "github.com/onsi/gomega"
-// 	"k8s.io/apimachinery/pkg/api/errors"
-// 	"k8s.io/apimachinery/pkg/types"
-// 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+)
 
-// 	netboxdevv1 "github.com/netbox-community/netbox-operator/api/v1"
-// )
+var ipRangeRecondiler *IpRangeReconciler
 
-// var _ = Describe("IpRange Controller", func() {
-// 	Context("When reconciling a resource", func() {
-// 		const resourceName = "test-resource"
+var _ = Describe("IpRange Controller", func() {
+	Context("When generating NetBox IpRange  Model form IpRangeSpec", func() {
+		// dummy reconciler
+		ipRangeRecondiler = &IpRangeReconciler{
+			NetboxClient: &api.NetboxClient{
+				Ipam:    ipamMockIpAddress,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+		}
 
-// 		ctx := context.Background()
+		// default IpRange
+		ipRange := &netboxv1.IpRange{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+			},
+			Spec: netboxv1.IpRangeSpec{
+				StartAddress: "1.0.0.1/32",
+				EndAddress:   "1.0.0.5/32",
+				Comments:     "a comment",
+				Description:  "a description",
+				Tenant:       "a tenant",
+				CustomFields: map[string]string{"custom_field_2": "valueToBeSet"},
+			}}
+		ipRange.Name = "test-claim"
 
-// 		typeNamespacedName := types.NamespacedName{
-// 			Name:      resourceName,
-// 			Namespace: "default", // TODO(user):Modify as needed
-// 		}
-// 		iprange := &netboxdevv1.IpRange{}
+		// default managedCustomFieldsAnnotation
+		managedCustomFieldsAnnotation := "{\"custom_field_1\":\"valueToBeRemoved\"}"
 
-// 		BeforeEach(func() {
-// 			By("creating the custom resource for the Kind IpRange")
-// 			err := k8sClient.Get(ctx, typeNamespacedName, iprange)
-// 			if err != nil && errors.IsNotFound(err) {
-// 				resource := &netboxdevv1.IpRange{
-// 					ObjectMeta: metav1.ObjectMeta{
-// 						Name:      resourceName,
-// 						Namespace: "default",
-// 					},
-// 					// TODO(user): Specify other spec details if needed.
-// 				}
-// 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-// 			}
-// 		})
+		// default request
+		req := reconcile.Request{
+			NamespacedName: client.ObjectKey{
+				Name:      "test-claim",
+				Namespace: "default",
+			},
+		}
 
-// 		AfterEach(func() {
-// 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-// 			resource := &netboxdevv1.IpRange{}
-// 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-// 			Expect(err).NotTo(HaveOccurred())
+		It("should create the correct ip range model", func() {
+			ipRangeModel, err := ipRangeRecondiler.generateNetboxIpRangeModelFromIpRangeSpec(ipRange, req, managedCustomFieldsAnnotation)
 
-// 			By("Cleanup the specific resource instance IpRange")
-// 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-// 		})
-// 		It("should successfully reconcile the resource", func() {
-// 			By("Reconciling the created resource")
-// 			controllerReconciler := &IpRangeReconciler{
-// 				Client: k8sClient,
-// 				Scheme: k8sClient.Scheme(),
-// 			}
+			Expect(ipRangeModel).To(Equal(&models.IpRange{
+				Metadata: &models.NetboxMetadata{
+					Comments:    "a comment",
+					Description: "default/test-claim // a description // managed by netbox-operator, please don't edit it in Netbox unless you know what you're doing",
+					Custom:      map[string]string{"custom_field_2": "valueToBeSet", "custom_field_1": ""},
+					Tenant:      "a tenant",
+				},
+				StartAddress: "1.0.0.1/32",
+				EndAddress:   "1.0.0.5/32",
+			}))
 
-// 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-// 				NamespacedName: typeNamespacedName,
-// 			})
-// 			Expect(err).NotTo(HaveOccurred())
-// 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-// 			// Example: If you expect a certain status condition after reconciliation, verify it here.
-// 		})
-// 	})
-// })
+			Expect(err).To(BeNil())
+		})
+
+		It("should return error if parsing of annotation fails", func() {
+			invalidManagedCustomFieldsAnnotation := "{:\"valueToBeRemoved\"}"
+			ipRangeModel, err := ipRangeRecondiler.generateNetboxIpRangeModelFromIpRangeSpec(ipRange, req, invalidManagedCustomFieldsAnnotation)
+
+			Expect(ipRangeModel).To(BeNil())
+
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})

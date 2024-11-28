@@ -36,7 +36,7 @@ func TestIPRangeClaim(t *testing.T) {
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
 	// test data for IPv4 ip range claim
-	parentPrefixIdV4 := int64(3)
+	parentPrefixId := int64(3)
 	parentPrefixV4 := "10.114.0.0"
 	requestedRangeSize := 3
 	ipRangeV4_1 := "10.112.140.1/24"
@@ -57,19 +57,19 @@ func TestIPRangeClaim(t *testing.T) {
 				Family:  int64(IPv4Family),
 			},
 			{
-				Address: ipRangeV4_3,
-				Family:  int64(IPv4Family),
-			},
-			{
 				Address: ipRangeV4_5,
 				Family:  int64(IPv4Family),
 			},
 			{
-				Address: ipRangeV4_6,
+				Address: ipRangeV4_3,
 				Family:  int64(IPv4Family),
 			},
 			{
 				Address: ipRangeV4_7,
+				Family:  int64(IPv4Family),
+			},
+			{
+				Address: ipRangeV4_6,
 				Family:  int64(IPv4Family),
 			},
 			{
@@ -111,14 +111,14 @@ func TestIPRangeClaim(t *testing.T) {
 			Payload: &ipam.IpamPrefixesListOKBody{
 				Results: []*netboxModels.Prefix{
 					{
-						ID:     parentPrefixIdV4,
+						ID:     parentPrefixId,
 						Prefix: &parentPrefixV4,
 					},
 				},
 			},
 		}
 
-		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV4)
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: availableIpAdressesIPv4(),
 		}
@@ -148,7 +148,7 @@ func TestIPRangeClaim(t *testing.T) {
 		assert.Equal(t, expectedIp_7, actual.EndAddress)
 	})
 
-	t.Run("Fetch first available IP range by claim (IPv4).", func(t *testing.T) {
+	t.Run("Fail first available IP range by claim (IPv6) if not enough consequiteve ips.", func(t *testing.T) {
 
 		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
@@ -159,14 +159,14 @@ func TestIPRangeClaim(t *testing.T) {
 			Payload: &ipam.IpamPrefixesListOKBody{
 				Results: []*netboxModels.Prefix{
 					{
-						ID:     parentPrefixIdV4,
-						Prefix: &parentPrefixV4,
+						ID:     parentPrefixId,
+						Prefix: &parentPrefixV6,
 					},
 				},
 			},
 		}
 
-		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixIdV4)
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: []*netboxModels.AvailableIP{
 				{
@@ -199,6 +199,20 @@ func TestIPRangeClaim(t *testing.T) {
 
 		// assert error
 		AssertError(t, err, "not enough consecutive IPs available")
+	})
+
+	t.Run("Fail with invalid input when searching Available Ip Range", func(t *testing.T) {
+		payload := &ipam.IpamPrefixesAvailableIpsListOK{
+			Payload: []*netboxModels.AvailableIP{
+				{Address: "invalid ip address"},
+			},
+		}
+
+		startAddress, endAddress, err := searchAvailableIpRange(payload, 3, int64(4))
+
+		assert.Equal(t, "", startAddress)
+		assert.Equal(t, "", endAddress)
+		AssertError(t, err, "failed to parse IP address: invalid CIDR address: invalid ip address")
 	})
 
 	t.Run("Reclaim IP Range", func(t *testing.T) {

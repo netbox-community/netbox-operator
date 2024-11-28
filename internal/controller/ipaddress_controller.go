@@ -45,7 +45,7 @@ import (
 )
 
 const IpAddressFinalizerName = "ipaddress.netbox.dev/finalizer"
-const LastIpAddressManagedCustomFieldsAnnotationName = "ipaddress.netbox.dev/managed-custom-fields"
+const IPManagedCustomFieldsAnnotationName = "ipaddress.netbox.dev/managed-custom-fields"
 
 // IpAddressReconciler reconciles a IpAddress object
 type IpAddressReconciler struct {
@@ -163,7 +163,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	ipAddressModel, err := generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req, annotations[LastIpAddressManagedCustomFieldsAnnotationName])
+	ipAddressModel, err := generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req, annotations[IPManagedCustomFieldsAnnotationName])
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -193,7 +193,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		annotations = make(map[string]string, 1)
 	}
 
-	annotations[LastIpAddressManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
+	annotations[IPManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil
