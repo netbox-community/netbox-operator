@@ -193,7 +193,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		annotations = make(map[string]string, 1)
 	}
 
-	annotations[IPManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
+	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil

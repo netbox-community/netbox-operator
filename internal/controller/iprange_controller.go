@@ -166,7 +166,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		annotations = make(map[string]string, 1)
 	}
 
-	annotations[IPRManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(o.Spec.CustomFields)
+	annotations[IPRManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil

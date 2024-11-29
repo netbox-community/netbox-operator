@@ -205,7 +205,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		annotations = make(map[string]string, 1)
 	}
 
-	annotations[PXManagedCustomFieldsAnnotationName], err = generateLastMetadataAnnotation(prefix.Spec.CustomFields)
+	annotations[PXManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(prefix.Spec.CustomFields)
 	if err != nil {
 		logger.Error(err, "failed to update last metadata annotation")
 		return ctrl.Result{Requeue: true}, nil

@@ -31,7 +31,7 @@ func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
 }
 
-func generateLastMetadataAnnotation(customFields map[string]string) (string, error) {
+func generateManagedCustomFieldsAnnotation(customFields map[string]string) (string, error) {
 	if customFields == nil {
 		customFields = make(map[string]string)
 	}
