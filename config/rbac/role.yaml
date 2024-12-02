@@ -15,83 +15,8 @@ rules:
   - netbox.dev
   resources:
   - ipaddressclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netbox.dev
-  resources:
-  - ipaddressclaims/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - netbox.dev
-  resources:
-  - ipaddressclaims/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - netbox.dev
-  resources:
   - ipaddresses
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netbox.dev
-  resources:
-  - ipaddresses/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - netbox.dev
-  resources:
-  - ipaddresses/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - netbox.dev
-  resources:
   - prefixclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netbox.dev
-  resources:
-  - prefixclaims/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - netbox.dev
-  resources:
-  - prefixclaims/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - netbox.dev
-  resources:
   - prefixes
   verbs:
   - create
@@ -104,12 +29,18 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - ipaddressclaims/finalizers
+  - ipaddresses/finalizers
+  - prefixclaims/finalizers
   - prefixes/finalizers
   verbs:
   - update
 - apiGroups:
   - netbox.dev
   resources:
+  - ipaddressclaims/status
+  - ipaddresses/status
+  - prefixclaims/status
   - prefixes/status
   verbs:
   - get
