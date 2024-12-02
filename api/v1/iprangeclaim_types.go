@@ -30,8 +30,10 @@ type IpRangeClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix"`
 
+	// currently only ip range sizes up to 50 are supported
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=2
+	//+kubebuilder:validation:Maximum=50
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'size' is immutable"
 	Size int `json:"size,omitempty"`
 

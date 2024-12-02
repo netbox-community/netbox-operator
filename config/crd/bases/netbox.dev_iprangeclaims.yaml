@@ -71,6 +71,8 @@ spec:
               preserveInNetbox:
                 type: boolean
               size:
+                description: currently only ip range sizes up to 50 are supported
+                maximum: 50
                 minimum: 2
                 type: integer
                 x-kubernetes-validations:
