@@ -2,7 +2,7 @@
 IMG ?= your-image-registry:latest
 LOCAL_IMG = netbox-operator:build-local #Should not be changed without changing kind/kustomization.yaml too
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.0
+ENVTEST_K8S_VERSION = 1.31.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -38,16 +38,6 @@ install-$(GO_PACKAGE_NAME_GOVULNCHECK):
 		go install $(GO_PACKAGE_GOVULNCHECK) ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_GOVULNCHECK) is installed" ; \
-	fi
-
-# check if golangci-lint is installed or not
-GO_PACKAGE_NAME_GOLANGCI_LINT := golangci-lint
-install-$(GO_PACKAGE_NAME_GOLANGCI_LINT):
-	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_GOLANGCI_LINT)" ]; then \
-		echo "Installing $(GO_PACKAGE_NAME_GOLANGCI_LINT)..." ; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.60.3 ; \
-	else \
-		echo "$(GO_PACKAGE_NAME_GOLANGCI_LINT) is installed" ; \
 	fi
 
 .PHONY: all
@@ -90,8 +80,12 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: lint
-lint: install-$(GO_PACKAGE_NAME_GOLANGCI_LINT) ## Run golangci-lint against code.
-	golangci-lint run --config tools/.golangci.yaml ./...
+lint: golangci-lint ## Run golangci-lint linter
+	$(GOLANGCI_LINT) run --config .golangci.yaml ./...
+
+.PHONY: lint-fix
+lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
+	$(GOLANGCI_LINT) run --config .golangci.yaml ./... --fix
 
 .PHONY: vulncheck
 vulncheck: install-$(GO_PACKAGE_NAME_GOVULNCHECK) ## Run govulncheck against code.
@@ -99,7 +93,7 @@ vulncheck: install-$(GO_PACKAGE_NAME_GOVULNCHECK) ## Run govulncheck against cod
 
 .PHONY: test
 test: manifests generate fmt vet ## Run tests.
-	go test ./pkg/... -v 2>&1 -coverpkg=./... -tags='unit' -covermode=atomic -coverprofile=./unit_coverage.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./pkg/... -v 2>&1 -coverpkg=./... -tags='unit' -covermode=atomic -coverprofile=./unit_coverage.out
 
 .PHONY: integration-test
 integration-test: manifests generate fmt vet envtest ## Run tests.
@@ -197,32 +191,49 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.3.0
-CONTROLLER_TOOLS_VERSION ?= v0.14.0
+KUSTOMIZE_VERSION ?= v5.5.0
+CONTROLLER_TOOLS_VERSION ?= v0.16.4
+GOLANGCI_LINT_VERSION ?= v1.62.2
 
 .PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
-	@if test -x $(LOCALBIN)/kustomize && ! $(LOCALBIN)/kustomize version | grep -q $(KUSTOMIZE_VERSION); then \
-		echo "$(LOCALBIN)/kustomize version is not expected $(KUSTOMIZE_VERSION). Removing it before installing."; \
-		rm -rf $(LOCALBIN)/kustomize; \
-	fi
-	test -s $(LOCALBIN)/kustomize || GOBIN=$(LOCALBIN) GO111MODULE=on go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/controller-gen && $(LOCALBIN)/controller-gen --version | grep -q $(CONTROLLER_TOOLS_VERSION) || \
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
 
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@87bcfec
+	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
+
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
 generate_mocks: # TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mkdir -p ${GEN_DIR}
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of binary
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@[ -f "$(1)-$(3)" ] || { \
+set -e; \
+package=$(2)@$(3) ;\
+echo "Downloading $${package}" ;\
+rm -f $(1) || true ;\
+GOBIN=$(LOCALBIN) go install $${package} ;\
+mv $(1) $(1)-$(3) ;\
+} ;\
+ln -sf $(1)-$(3) $(1)
+endef
