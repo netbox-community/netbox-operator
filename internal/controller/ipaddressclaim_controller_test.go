@@ -96,7 +96,7 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 
 			leaseLockerNSN := types.NamespacedName{Name: parentPrefixName, Namespace: OperatorNamespace}
 			ll, err := leaselocker.NewLeaseLocker(cfg, leaseLockerNSN, "default/some-other-owner")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			lockCtx, lockCancel := context.WithCancel(ctx)
 			defer lockCancel()
@@ -107,7 +107,7 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 
 		// Create our CR
 		By("Creating IpAddressClaim CR")
-		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
+		Eventually(k8sClient.Create, timeout, interval).WithArguments(ctx, cr).Should(Succeed())
 
 		// check that ip address claim CR was created
 		createdCR := &netboxv1.IpAddressClaim{}

@@ -1,6 +1,7 @@
 ---
 run:
   timeout: 30m
+  allow-parallel-runners: true
 issues:
   max-same-issues: 0
   exclude-files:
@@ -8,12 +9,21 @@ issues:
 linters:
   disable-all: true
   enable:
+    - errcheck
+    - copyloopvar
+    - ginkgolinter
+    # - goconst
+    - gofmt
     - goimports
+    - gosimple
+    - govet
     - ineffassign
+    - misspell
     - nakedret
+    - prealloc
     - revive
     - staticcheck
-    - stylecheck
+    - typecheck
     - unconvert
     - unparam
     - unused

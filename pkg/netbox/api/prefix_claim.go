@@ -32,7 +32,7 @@ import (
 
 var (
 	// TODO(henrybear327): centralize errors
-	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criterias")
+	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criteria")
 )
 
 func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix, error) {

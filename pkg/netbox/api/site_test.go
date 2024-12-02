@@ -93,7 +93,7 @@ func TestSite_GetError(t *testing.T) {
 
 	siteListRequestInput := dcim.NewDcimSitesListParams().WithName(&site)
 
-	expectedErr := "error geting sites list"
+	expectedErr := "error getting sites list"
 
 	mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(nil, errors.New(expectedErr))
 	netboxClient := &NetboxClient{Dcim: mockDcim}
