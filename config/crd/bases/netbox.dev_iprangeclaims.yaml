@@ -71,7 +71,10 @@ spec:
               preserveInNetbox:
                 type: boolean
               size:
-                description: currently only ip range sizes up to 50 are supported
+                description: Size is the amount of consecutive IP Addresses you wish
+                  to reserve. Currently only sizes up to 50 are supported due to pagination
+                  of the NetBox API. In practice, this might be even lower depending
+                  on the fragmentation of the parent prefix.
                 maximum: 50
                 minimum: 2
                 type: integer

@@ -30,7 +30,7 @@ type IpRangeClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix"`
 
-	// currently only ip range sizes up to 50 are supported
+	// Size is the amount of consecutive IP Addresses you wish to reserve. Currently only sizes up to 50 are supported due to pagination of the NetBox API. In practice, this might be even lower depending on the fragmentation of the parent prefix.
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=2
 	//+kubebuilder:validation:Maximum=50
