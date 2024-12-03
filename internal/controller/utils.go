@@ -17,9 +17,55 @@ limitations under the License.
 package controller
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
+}
+
+func generateManagedCustomFieldsAnnotation(customFields map[string]string) (string, error) {
+	if customFields == nil {
+		customFields = make(map[string]string)
+	}
+
+	metadataJSON, err := json.Marshal(customFields)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal custom fields to JSON: %w", err)
+	}
+
+	return string(metadataJSON), nil
+}
+
+func removeFinalizer(ctx context.Context, c client.Client, o client.Object, finalizerName string) error {
+	logger := log.FromContext(ctx)
+	if controllerutil.ContainsFinalizer(o, finalizerName) {
+		logger.V(4).Info("removing the finalizer")
+		controllerutil.RemoveFinalizer(o, finalizerName)
+		if err := c.Update(ctx, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func addFinalizer(ctx context.Context, c client.Client, o client.Object, finalizerName string) error {
+	logger := log.FromContext(ctx)
+	if !controllerutil.ContainsFinalizer(o, finalizerName) {
+		logger.V(4).Info("add the finalizer")
+		controllerutil.AddFinalizer(o, finalizerName)
+		if err := c.Update(ctx, o); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

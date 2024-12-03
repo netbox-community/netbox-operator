@@ -40,4 +40,20 @@ resources:
   kind: PrefixClaim
   path: github.com/netbox-community/netbox-operator/api/v1
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: netbox.dev
+  kind: IpRangeClaim
+  path: github.com/netbox-community/netbox-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: netbox.dev
+  kind: IpRange
+  path: github.com/netbox-community/netbox-operator/api/v1
+  version: v1
 version: "3"

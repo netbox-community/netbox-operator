@@ -6,6 +6,8 @@ resources:
 - bases/netbox.dev_ipaddressclaims.yaml
 - bases/netbox.dev_prefixes.yaml
 - bases/netbox.dev_prefixclaims.yaml
+- bases/netbox.dev_iprangeclaims.yaml
+- bases/netbox.dev_ipranges.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
@@ -13,6 +15,8 @@ patches:
 # patches here are for enabling the conversion webhook for each CRD
 #- path: patches/webhook_in_ipaddresses.yaml
 #- path: patches/webhook_in_ipaddressclaims.yaml
+#- path: patches/webhook_in_iprangeclaims.yaml
+#- path: patches/webhook_in_ipranges.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
@@ -21,6 +25,8 @@ patches:
 #- path: patches/cainjection_in_ipaddressclaims.yaml
 #- path: patches/cainjection_in_prefixes.yaml
 #- path: patches/cainjection_in_prefixclaims.yaml
+#- path: patches/cainjection_in_iprangeclaims.yaml
+#- path: patches/cainjection_in_ipranges.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # [WEBHOOK] To enable webhook, uncomment the following section

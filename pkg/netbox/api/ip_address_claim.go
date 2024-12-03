@@ -19,7 +19,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -95,16 +94,7 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 		return nil, err
 	}
 
-	var ipMask string
-	if responseAvailableIPs.Payload[0].Family == int64(IPv4Family) {
-		ipMask = ipMaskIPv4
-	} else if responseAvailableIPs.Payload[0].Family == int64(IPv6Family) {
-		ipMask = ipMaskIPv6
-	} else {
-		return nil, errors.New("available ip has unknown IP family")
-	}
-
-	ipAddress, err := r.SetIpAddressMask(responseAvailableIPs.Payload[0].Address, ipMask)
+	ipAddress, err := SetIpAddressMask(responseAvailableIPs.Payload[0].Address, responseAvailableIPs.Payload[0].Family)
 	if err != nil {
 		return nil, err
 	}
@@ -124,13 +114,4 @@ func (r *NetboxClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int6
 		return nil, ErrParentPrefixExhausted
 	}
 	return responseAvailableIPs, nil
-}
-
-func (r *NetboxClient) SetIpAddressMask(ip string, ipMask string) (string, error) {
-	ipAddress, _, err := net.ParseCIDR(ip)
-	if err != nil {
-		return "", err
-	}
-	ipAddressWithNewMask := ipAddress.String() + ipMask
-	return ipAddressWithNewMask, nil
 }

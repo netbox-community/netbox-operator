@@ -6,4 +6,6 @@ resources:
 - netbox_v1_prefixclaim.yaml
 - netbox_v1_prefixclaim_parentprefixselector_bool_int.yaml
 - netbox_v1_prefixclaim_parentprefixselector.yaml
+- netbox_v1_iprangeclaim.yaml
+- netbox_v1_iprange.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

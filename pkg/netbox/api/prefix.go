@@ -115,9 +115,11 @@ func (r *NetboxClient) DeletePrefix(prefixId int64) error {
 		case *ipam.IpamPrefixesDeleteDefault:
 			if typedErr.IsCode(http.StatusNotFound) {
 				return nil
+			} else {
+				return utils.NetboxError("Failed to delete prefix from Netbox", err)
 			}
 		default:
-			return utils.NetboxError("Failed to delete IP Address from Netbox", err)
+			return utils.NetboxError("Failed to delete prefix from Netbox", err)
 		}
 	}
 	return nil

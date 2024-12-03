@@ -17,8 +17,12 @@ limitations under the License.
 package api
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"net/url"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -64,4 +68,49 @@ func (o *QueryFilter) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registr
 	}
 
 	return nil
+}
+
+func TruncateDescription(description string) string {
+
+	// Calculate the remaining space for the comment
+	remainingSpace := maxAllowedDescriptionLength - minWarningCommentLength
+
+	// Check if the description length exceeds the maximum allowed length
+	if utf8.RuneCountInString(description+warningComment) > maxAllowedDescriptionLength {
+		// Truncate the description to fit the remaining space
+		if utf8.RuneCountInString(description) > remainingSpace {
+			description = string([]rune(description)[:remainingSpace])
+			warning := string([]rune(warningComment)[:minWarningCommentLength])
+			return description + warning
+		}
+		// Only truncate the warning
+		return string([]rune(description + warningComment)[:maxAllowedDescriptionLength])
+	}
+
+	return description + warningComment
+}
+
+func SetIpAddressMask(ip string, ipFamily int64) (string, error) {
+	var ipAddress net.IP
+	var err error
+	if strings.Contains(ip, "/") {
+		ipAddress, _, err = net.ParseCIDR(ip)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		ipAddress = net.ParseIP(ip)
+		if ipAddress == nil {
+			return "", fmt.Errorf("invalid IP address: %s", ip)
+		}
+	}
+
+	switch ipFamily {
+	case int64(IPv4Family):
+		return ipAddress.String() + ipMaskIPv4, nil
+	case int64(IPv6Family):
+		return ipAddress.String() + ipMaskIPv6, nil
+	default:
+		return "", errors.New("unknown IP family")
+	}
 }

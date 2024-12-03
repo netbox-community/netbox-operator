@@ -248,7 +248,7 @@ func TestIPAddressClaim(t *testing.T) {
 		})
 
 		// assert error
-		AssertError(t, err, "available ip has unknown IP family")
+		AssertError(t, err, "unknown IP family")
 
 		var expected *models.IPAddress
 

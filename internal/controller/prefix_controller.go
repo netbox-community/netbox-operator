@@ -46,7 +46,7 @@ import (
 )
 
 const PrefixFinalizerName = "prefix.netbox.dev/finalizer"
-const LastPrefixMetadataAnnotationName = "prefix.netbox.dev/last-prefix-metadata"
+const PXManagedCustomFieldsAnnotationName = "prefix.netbox.dev/managed-custom-fields"
 
 // PrefixReconciler reconciles a Prefix object
 type PrefixReconciler struct {
@@ -177,7 +177,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	prefixModel, err := generateNetboxPrefixModelFromPrefixSpec(&prefix.Spec, req, annotations[LastPrefixMetadataAnnotationName])
+	prefixModel, err := generateNetboxPrefixModelFromPrefixSpec(&prefix.Spec, req, annotations[PXManagedCustomFieldsAnnotationName])
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -201,20 +201,16 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	// update lastPrefixMetadata annotation
 	if annotations == nil {
-		annotations = make(map[string]string)
+		annotations = make(map[string]string, 1)
 	}
 
-	if len(prefix.Spec.CustomFields) > 0 {
-		lastPrefixMetadata, err := json.Marshal(prefix.Spec.CustomFields)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to marshal lastPrefixMetadata annotation: %w", err)
-		}
-		annotations[LastPrefixMetadataAnnotationName] = string(lastPrefixMetadata)
-	} else {
-		annotations[LastPrefixMetadataAnnotationName] = "{}"
+	annotations[PXManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(prefix.Spec.CustomFields)
+	if err != nil {
+		logger.Error(err, "failed to update last metadata annotation")
+		return ctrl.Result{Requeue: true}, nil
 	}
+
 	err = accessor.SetAnnotations(prefix, annotations)
 	if err != nil {
 		return ctrl.Result{}, err

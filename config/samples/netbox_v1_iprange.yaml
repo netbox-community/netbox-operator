@@ -1,0 +1,14 @@
+apiVersion: netbox.dev/v1
+kind: IpRange
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: iprange-sample
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  startAddress: "2.0.0.200/32"
+  endAddress: "2.0.0.202/32"

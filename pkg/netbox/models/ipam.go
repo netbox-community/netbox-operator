@@ -57,3 +57,16 @@ type PrefixClaim struct {
 	PrefixLength string          `json:"prefixLength,omitempty"`
 	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
 }
+
+type IpRange struct {
+	StartAddress string          `json:"startAddress,omitempty"`
+	EndAddress   string          `json:"endAddress,omitempty"`
+	Id           int64           `json:"id,omitempty"`
+	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type IpRangeClaim struct {
+	ParentPrefix string          `json:"prefix,omitempty"`
+	Size         int             `json:"size,omitempty"`
+	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
+}

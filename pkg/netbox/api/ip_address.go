@@ -18,7 +18,6 @@ package api
 
 import (
 	"net/http"
-	"unicode/utf8"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
@@ -37,7 +36,7 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 		Address:      &ipAddress.IpAddress,
 		Comments:     ipAddress.Metadata.Comments + warningComment,
 		CustomFields: ipAddress.Metadata.Custom,
-		Description:  truncateDescription(ipAddress.Metadata.Description),
+		Description:  TruncateDescription(ipAddress.Metadata.Description),
 		Status:       "active",
 	}
 
@@ -105,30 +104,12 @@ func (r *NetboxClient) DeleteIpAddress(ipAddressId int64) error {
 		case *ipam.IpamIPAddressesDeleteDefault:
 			if typedErr.IsCode(http.StatusNotFound) {
 				return nil
+			} else {
+				return utils.NetboxError("Failed to delete ip address from Netbox", err)
 			}
 		default:
-			return utils.NetboxError("Failed to delete IP Address from Netbox", err)
+			return utils.NetboxError("Failed to delete ip address from Netbox", err)
 		}
 	}
 	return nil
-}
-
-func truncateDescription(description string) string {
-
-	// Calculate the remaining space for the comment
-	remainingSpace := maxAllowedDescriptionLength - minWarningCommentLength
-
-	// Check if the description length exceeds the maximum allowed length
-	if utf8.RuneCountInString(description+warningComment) > maxAllowedDescriptionLength {
-		// Truncate the description to fit the remaining space
-		if utf8.RuneCountInString(description) > remainingSpace {
-			description = string([]rune(description)[:remainingSpace])
-			warning := string([]rune(warningComment)[:minWarningCommentLength])
-			return description + warning
-		}
-		// Only truncate the warning
-		return string([]rune(description + warningComment)[:maxAllowedDescriptionLength])
-	}
-
-	return description + warningComment
 }

@@ -66,6 +66,58 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - iprangeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - iprangeclaims/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - netbox.dev
+  resources:
+  - iprangeclaims/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipranges
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipranges/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipranges/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - netbox.dev
+  resources:
   - prefixclaims
   verbs:
   - create

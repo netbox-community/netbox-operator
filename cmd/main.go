@@ -190,6 +190,28 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "PrefixClaim")
 		os.Exit(1)
 	}
+	if err = (&controller.IpRangeClaimReconciler{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		Recorder:          mgr.GetEventRecorderFor("ip-range-claim-controller"),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		RestConfig:        mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IpRangeClaim")
+		os.Exit(1)
+	}
+	if err = (&controller.IpRangeReconciler{
+		Client:            mgr.GetClient(),
+		Scheme:            mgr.GetScheme(),
+		Recorder:          mgr.GetEventRecorderFor("ip-range-controller"),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		RestConfig:        mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IpRange")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
