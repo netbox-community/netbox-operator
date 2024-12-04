@@ -64,35 +64,46 @@ INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.0.0.0/16', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
 -- 3.0.0.0/24 - 3.0.8.0/24 (watch out for the upper/lower-case)
--- Pool 1, Production
+-- Pool 1, Production (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 1", "cfDataTypeBool": true, "cfDataTypeInteger": 1}', '3.0.0.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 1", "cfDataTypeBool": true, "cfDataTypeInteger": 1}', '3.0.1.0/24', 'active', false, '', NULL, 5, 100, NULL, NULL, 0, 0, false, '');
 
--- Pool 1, Development
+-- Pool 1, Development (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Development", "poolName": "Pool 1", "cfDataTypeBool": false, "cfDataTypeInteger": 2}', '3.0.2.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
--- Pool 2, Production
+-- Pool 2, Production (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 2", "cfDataTypeBool": true, "cfDataTypeInteger": 3}', '3.0.3.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 2", "cfDataTypeBool": true, "cfDataTypeInteger": 3}', '3.0.4.0/24', 'active', false, '', NULL, 5, 100, NULL, NULL, 0, 0, false, '');
 
--- Pool 2, Development
+-- Pool 2, Development (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Development", "poolName": "Pool 2", "cfDataTypeBool": false, "cfDataTypeInteger": 4}', '3.0.5.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
--- pool 3, production
+-- pool 3, production (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 3", "cfDataTypeBool": true, "cfDataTypeInteger": 5}', '3.0.6.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 3", "cfDataTypeBool": true, "cfDataTypeInteger": 5}', '3.0.7.0/24', 'active', false, '', NULL, 5, 100, NULL, NULL, 0, 0, false, '');
 
--- pool 3, development
+-- pool 3, development (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "development", "poolName": "pool 3", "cfDataTypeBool": false, "cfDataTypeInteger": 6}', '3.0.8.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
+
+-- pool 4, production (IPv6)
+INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
+VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 4", "cfDataTypeBool": true, "cfDataTypeInteger": 7}', '2::/64', 'active', false, '', NULL, NULL, 5, NULL, NULL, 0, 0, false, '');
+
+INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
+VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 4", "cfDataTypeBool": true, "cfDataTypeInteger": 7}', '2:0:0:1::/64', 'active', false, '', NULL, 5, 5, NULL, NULL, 0, 0, false, '');
+
+-- pool 4, development (IPv6)
+INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
+VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "development", "poolName": "pool 4", "cfDataTypeBool": false, "cfDataTypeInteger": 8}', '2:0:0:2::/64', 'active', false, '', NULL, NULL, 5, NULL, NULL, 0, 0, false, '');
