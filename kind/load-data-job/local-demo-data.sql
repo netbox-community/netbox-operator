@@ -63,6 +63,14 @@ VALUES ('2024-06-14 09:57:11.709344+00', '2024-06-14 09:57:11.709359+00', '{"cus
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.0.0.0/16', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
 
+-- 2.1.0.0/24
+INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
+VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.1.0.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
+
+-- 2.2.0.0/24
+INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
+VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.2.0.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
+
 -- 3.0.0.0/24 - 3.0.8.0/24 (watch out for the upper/lower-case)
 -- Pool 1, Production (IPv4)
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)

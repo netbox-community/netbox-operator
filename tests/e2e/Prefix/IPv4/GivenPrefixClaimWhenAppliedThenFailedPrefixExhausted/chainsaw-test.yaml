@@ -1,0 +1,95 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-apply-exhausted
+spec:
+  steps:
+    - name: Install CR 1
+      description: Apply prefix claim CR 1
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_1.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-apply-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 2.1.0.0/24
+                prefixLength: /25
+                preserveInNetbox: false
+                site: DM-Akron
+                tenant: Dunder-Mifflin, Inc.
+              status:
+                parentPrefix: 2.1.0.0/24
+                prefix: 2.1.0.0/25
+                prefixName: prefixclaim-ipv4-apply-prefixexhausted-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-apply-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2.1.0.0/25
+                site: DM-Akron
+                tenant: Dunder-Mifflin, Inc.
+    - name: Install CR 2
+      description: Apply prefix claim CR 2
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_2.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-apply-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 2.1.0.0/24
+                prefixLength: /25
+                preserveInNetbox: false
+                site: DM-Akron
+                tenant: Dunder-Mifflin, Inc.
+              status:
+                parentPrefix: 2.1.0.0/24
+                prefix: 2.1.0.128/25
+                prefixName: prefixclaim-ipv4-apply-prefixexhausted-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-apply-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2.1.0.128/25
+                site: DM-Akron
+                tenant: Dunder-Mifflin, Inc.
+    - name: Install CR 3
+      description: Apply prefix claim CR 3
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_3.yaml
+        - assert:
+            resource:
+              apiVersion: v1
+              count: 1
+              kind: Event
+              type: Warning
+              reason: PrefixCRNotCreated
+              source:
+                component: prefix-claim-controller
+              message: Failed to fetch new Prefix from NetBox. parent prefix exhausted, will restart the parent prefix selection process
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: PrefixClaim
+                name: prefixclaim-ipv4-apply-prefixexhausted-3
