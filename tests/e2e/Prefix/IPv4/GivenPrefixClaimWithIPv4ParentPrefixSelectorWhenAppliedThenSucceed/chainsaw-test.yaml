@@ -1,0 +1,47 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-parentprefixselector-apply-succeed
+spec:
+  steps:
+    - name: Apply prefix claim CR and go through each field and check for equality
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sample
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefixSelector:
+                  environment: Production
+                  family: IPv4
+                  poolName: Pool 1
+                  site: DM-Buffalo
+                  tenant: MY_TENANT
+                prefixLength: /31
+                preserveInNetbox: true
+                site: DM-Akron
+                tenant: MY_TENANT
+              status:
+                parentPrefix: 3.0.1.0/24
+                prefix: 3.0.1.0/31
+                prefixName: prefixclaim-ipv4-parentprefixselector-sample
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sample
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 3.0.1.0/31
+                preserveInNetbox: true
+                tenant: MY_TENANT
+                customFields:
+                  netboxOperatorRestorationHash: b0d7d37281d2f2735ff188bdfa4eda469e55b684

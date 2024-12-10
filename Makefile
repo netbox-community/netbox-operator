@@ -226,3 +226,7 @@ $(ENVTEST): $(LOCALBIN)
 generate_mocks: # TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mkdir -p ${GEN_DIR}
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
+
+.PHONY: test-e2e
+test-e2e: # notice that if we apply several CRs at the same time, the IP/Prefix/etc. allocated to the CR might differ each time due to the timing of execution for reservation on the NetBox side
+	chainsaw test --namespace e2e

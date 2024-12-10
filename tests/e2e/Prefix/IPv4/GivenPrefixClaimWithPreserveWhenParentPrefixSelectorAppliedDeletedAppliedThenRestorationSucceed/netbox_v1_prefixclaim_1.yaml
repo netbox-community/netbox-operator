@@ -1,0 +1,22 @@
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  site: "DM-Akron"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  prefixLength: "/28"
+  parentPrefixSelector: # The keys and values are case-sensitive
+    tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
+    site: "DM-Buffalo" # Use the `name` value instead of the `slug` value
+    family: "IPv4" # Can only be either IPv4 or IPv6"
+    
+    # custom fields of your interest
+    environment: "Production"
+    poolName: "Pool 2"
