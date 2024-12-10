@@ -51,4 +51,3 @@ helm upgrade --install --namespace="${NAMESPACE}" netbox \
   https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.34/netbox-5.0.0-beta.34.tgz
 
 kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
-

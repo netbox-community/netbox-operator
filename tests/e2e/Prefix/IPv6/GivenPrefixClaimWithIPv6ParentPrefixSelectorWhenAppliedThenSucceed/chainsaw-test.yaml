@@ -1,0 +1,49 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+spec:
+  steps:
+    - name: Setup
+      description: Apply prefix claim CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check
+      description: Go through each field and check for equality
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefixSelector:
+                  environment: production
+                  family: IPv6
+                  poolName: pool 4
+                  tenant: Dunder-Mifflin, Inc.
+                prefixLength: /124
+                preserveInNetbox: true
+                tenant: Dunder-Mifflin, Inc.
+              status:
+                parentPrefix: 2::/64
+                prefix: 2::/124
+                prefixName: prefixclaim-ipv6-parentprefixselector-apply-succeed
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2::/124
+                preserveInNetbox: true
+                tenant: Dunder-Mifflin, Inc.
+                customFields:
+                  netboxOperatorRestorationHash: a7fbe45766da6a472a3b3d4d7f7070622feb555d
