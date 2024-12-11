@@ -15,11 +15,12 @@ if ! kubectl get namespaces | grep -q "^${NAMESPACE} "; then
     exit 1
 fi
 
+# need to align with netbox-chart otherwise the creation of the cluster will hang
 declare -a Images=( \
 "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
-"busybox:1.36.1" \
-"bitnami/redis:7.2.5-debian-12-r0" \
-"ghcr.io/netbox-community/netbox:v4.0.5" \
+"busybox:1.37.0" \
+"docker.io/bitnami/redis:7.4.1-debian-12-r2" \
+"ghcr.io/netbox-community/netbox:v4.1.7" \
 "ghcr.io/zalando/postgres-operator:v1.12.2" \
 "ghcr.io/zalando/spilo-16:3.2-p3" \
 )
@@ -39,16 +40,13 @@ kubectl create configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-sc
 kubectl apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
 kubectl wait --namespace="${NAMESPACE}"  --timeout=600s --for=condition=complete job/netbox-demo-data-load-job
 kubectl delete configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts
-kubectl delete --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
 
-# 7. Helm install
 helm upgrade --install --namespace="${NAMESPACE}" netbox \
   --set postgresql.enabled="false" \
   --set externalDatabase.host="netbox-db.${NAMESPACE}.svc.cluster.local" \
   --set externalDatabase.existingSecretName="netbox.netbox-db.credentials.postgresql.acid.zalan.do" \
   --set externalDatabase.existingSecretKey="password" \
   --set redis.auth.password="password" \
-  https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.34/netbox-5.0.0-beta.34.tgz
+  https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.163/netbox-5.0.0-beta.163.tgz
 
 kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
-
