@@ -26,14 +26,13 @@ To optionally access the NetBox UI:
 - Port-forward NetBox: `kubectl port-forward deploy/netbox 8080:8080 -n default`
 - Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`, you will be able to access the local NetBox instance running in the kind cluster.
 - Open a new terminal window and export the following environment variables:
-
-    ```bash
-    export NETBOX_HOST="localhost:8080"
-    export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
-    export POD_NAMESPACE="default"
-    export HTTPS_ENABLE="false"
-    export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
-    ```
+  ```bash
+  export NETBOX_HOST="localhost:8080"
+  export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
+  export POD_NAMESPACE="default"
+  export HTTPS_ENABLE="false"
+  export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
+  ```
 
 - Run the NetBox Operator locally `make install && make run`
 
@@ -46,14 +45,13 @@ Note: This requires a running NetBox instance that you can use (e.g. <https://de
   - Open <https://demo.netbox.dev/user/api-tokens/> and create a token "0123456789abcdef0123456789abcdef01234567" with default settings
   - Open <https://demo.netbox.dev/extras/custom-fields/add/> and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address" and "IPAM > Prefix"
 - Open a new terminal window and export the following environment variables:
-
-    ```bash
-    export NETBOX_HOST="demo.netbox.dev"
-    export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
-    export POD_NAMESPACE="default"
-    export HTTPS_ENABLE="true"
-    export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
-    ```
+  ```bash
+  export NETBOX_HOST="demo.netbox.dev"
+  export AUTH_TOKEN="0123456789abcdef0123456789abcdef01234567"
+  export POD_NAMESPACE="default"
+  export HTTPS_ENABLE="true"
+  export NETBOX_RESTORATION_HASH_FIELD_NAME="netboxOperatorRestorationHash"
+  ```
 
 - Run the NetBox Operator locally `make install && make run`
 
@@ -130,3 +128,9 @@ make undeploy
 Run `make help` for more information on all potential `make` targets
 
 More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+
+## Running e2e tests locally
+
+Please read the [README in the e2e test directory] for more information!
+
+[README in the e2e test directory]: ./tests/e2e/README.md

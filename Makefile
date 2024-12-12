@@ -50,6 +50,16 @@ install-$(GO_PACKAGE_NAME_GOLANGCI_LINT):
 		echo "$(GO_PACKAGE_NAME_GOLANGCI_LINT) is installed" ; \
 	fi
 
+# check if chainsaw is installed or not
+GO_PACKAGE_NAME_CHAINSAW := chainsaw
+install-$(GO_PACKAGE_NAME_CHAINSAW):
+	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_CHAINSAW)" ]; then \
+		echo "Installing $(GO_PACKAGE_NAME_CHAINSAW)..." ; \
+		go install github.com/kyverno/chainsaw@v0.2.12 ; \
+	else \
+		echo "$(GO_PACKAGE_NAME_CHAINSAW) is installed" ; \
+	fi
+
 .PHONY: all
 all: build
 
@@ -223,6 +233,10 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@87bcfec
 
-generate_mocks: # TODO: auto install go install go.uber.org/mock/mockgen@latest
+generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mkdir -p ${GEN_DIR}
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
+
+.PHONY: test-e2e
+test-e2e: install-$(GO_PACKAGE_NAME_CHAINSAW)
+	chainsaw test --namespace e2e

@@ -64,7 +64,6 @@ Please read [ParentPrefixSelector guide] for more information!
 
 [ParentPrefixSelector guide]: ./ParentPrefixSelectorGuide.md
 
-
 # Project Distribution
 
 Following are the steps to build the installer and distribute this project to users.
