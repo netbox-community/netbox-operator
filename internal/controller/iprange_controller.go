@@ -142,11 +142,13 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ipRangeModel)
 	if err != nil {
-		err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-			corev1.EventTypeWarning, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress), err)
-		if err != nil {
-			return ctrl.Result{}, err
+		if loggingErr := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
+			corev1.EventTypeWarning, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress), err); loggingErr != nil {
+			return ctrl.Result{}, fmt.Errorf("logging error: %w. Original error from ReserveOrUpdateIpRange: %w", loggingErr, err)
 		}
+
+		// The decision to not return the error message (just logging it) is to not trigger printing the stacktrace on api errors
+		return ctrl.Result{}, nil
 	}
 
 	// 3. unlock lease of parent prefix
