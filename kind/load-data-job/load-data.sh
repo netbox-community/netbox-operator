@@ -1,4 +1,5 @@
 #!/bin/sh
+set -o errexit
 
 TMP_SQL_FILE=$(mktemp /tmp/netbox-data-dump.XXXXXXX.sql) || exit 1
 curl -k https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql > "${TMP_SQL_FILE}"

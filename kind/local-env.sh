@@ -1,15 +1,58 @@
 #!/bin/bash
-set -o errexit
+set -e -u -o pipefail
 
-kind create cluster || echo "cluster already exists, continuing..."
+NAMESPACE=""
+VERSION="4.1.7" # default value (latest)
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -n|--namespace)
+      NAMESPACE="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -v|--version)
+      VERSION="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+  esac
+done
 
-if [ -z "$1" ]; then
-    echo "Using default namespace."
+echo "=======Parsed arguments======="
+echo "Namespace   = ${NAMESPACE}"
+echo "Version     = ${VERSION}"
+echo "=============================="
+
+# aurgment check / init
+if [ -z "$NAMESPACE" ]; then
+    echo "Using default namespace"
     NAMESPACE="default"
 else
-    echo "Using namespace: $1"
-    NAMESPACE="$1"
+    echo "Using namespace: $NAMESPACE"
 fi
+
+if [[ "${VERSION}" == "3.7.8" ]] ;then
+  echo "Using version ${VERSION}"
+elif [[ "${VERSION}" == "4.0.11" ]] ;then
+  echo "Using version ${VERSION}"
+elif [[ "${VERSION}" == "4.1.7" ]] ;then
+  echo "Using version ${VERSION}"
+else
+  echo "Unknown version ${VERSION}"
+  exit 1
+fi
+
+# create a kind cluster
+kind create cluster || echo "cluster already exists, continuing..."
+
+# Add a delay here, in case we run into "Namespace default does not exist."
+sleep 1
+
+# deal with namespace
 if ! kubectl get namespaces | grep -q "^${NAMESPACE} "; then
     echo "Namespace ${NAMESPACE} does not exist."
     exit 1
