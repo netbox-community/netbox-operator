@@ -48,7 +48,7 @@ helm upgrade --install --namespace="${NAMESPACE}" netbox \
   --set externalDatabase.existingSecretName="netbox.netbox-db.credentials.postgresql.acid.zalan.do" \
   --set externalDatabase.existingSecretKey="password" \
   --set redis.auth.password="password" \
-  https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.161/netbox-5.0.0-beta.161.tgz
+  https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.34/netbox-5.0.0-beta.34.tgz
 
 kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
 
