@@ -2,7 +2,8 @@
 set -e -u -o pipefail
 
 NAMESPACE=""
-VERSION="4.1.7" # default value (latest)
+VERSION="4.1.7" # default value
+NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.163/netbox-5.0.0-beta.163.tgz" # default value
 while [[ $# -gt 0 ]]; do
   case $1 in
     -n|--namespace)
@@ -37,10 +38,39 @@ fi
 
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   echo "Using version ${VERSION}"
+  # need to align with netbox-chart otherwise the creation of the cluster will hang
+  declare -a Images=( \
+  "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
+  "busybox:1.36.1" \
+  "docker.io/bitnami/redis:7.2.4-debian-12-r9" \
+  "docker.io/netboxcommunity/netbox:v3.7.8" \
+  "ghcr.io/zalando/postgres-operator:v1.12.2" \
+  "ghcr.io/zalando/spilo-16:3.2-p3" \
+  )
+  NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
 elif [[ "${VERSION}" == "4.0.11" ]] ;then
   echo "Using version ${VERSION}"
+  # need to align with netbox-chart otherwise the creation of the cluster will hang
+  declare -a Images=( \
+  "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
+  "busybox:1.36.1" \
+  "docker.io/bitnami/redis:7.4.0-debian-12-r2" \
+  "ghcr.io/netbox-community/netbox:v4.0.11" \
+  "ghcr.io/zalando/postgres-operator:v1.12.2" \
+  "ghcr.io/zalando/spilo-16:3.2-p3" \
+  )
+  NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
 elif [[ "${VERSION}" == "4.1.7" ]] ;then
   echo "Using version ${VERSION}"
+  # need to align with netbox-chart otherwise the creation of the cluster will hang
+  declare -a Images=( \
+  "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
+  "busybox:1.37.0" \
+  "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
+  "ghcr.io/netbox-community/netbox:v4.1.7" \
+  "ghcr.io/zalando/postgres-operator:v1.12.2" \
+  "ghcr.io/zalando/spilo-16:3.2-p3" \
+  )
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -49,24 +79,7 @@ fi
 # create a kind cluster
 kind create cluster || echo "cluster already exists, continuing..."
 
-# Add a delay here, in case we run into "Namespace default does not exist."
-sleep 1
-
-# deal with namespace
-if ! kubectl get namespaces | grep -q "^${NAMESPACE} "; then
-    echo "Namespace ${NAMESPACE} does not exist."
-    exit 1
-fi
-
-# need to align with netbox-chart otherwise the creation of the cluster will hang
-declare -a Images=( \
-"gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
-"busybox:1.37.0" \
-"docker.io/bitnami/redis:7.4.1-debian-12-r2" \
-"ghcr.io/netbox-community/netbox:v4.1.7" \
-"ghcr.io/zalando/postgres-operator:v1.12.2" \
-"ghcr.io/zalando/spilo-16:3.2-p3" \
-)
+kubectl wait --for=jsonpath='{.status.phase}'=Active --timeout=1s namespace/${NAMESPACE}
 
 for img in "${Images[@]}"; do
   docker pull "$img"
@@ -90,6 +103,6 @@ helm upgrade --install --namespace="${NAMESPACE}" netbox \
   --set externalDatabase.existingSecretName="netbox.netbox-db.credentials.postgresql.acid.zalan.do" \
   --set externalDatabase.existingSecretKey="password" \
   --set redis.auth.password="password" \
-  https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.163/netbox-5.0.0-beta.163.tgz
+  ${NETBOX_HELM_CHART}
 
 kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
