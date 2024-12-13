@@ -90,6 +90,9 @@ elif [[ "${VERSION}" == "4.1.7" ]] ;then
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
+
+  cp $(dirname "$0")/load-data-job/load-data.orig.sh $(dirname "$0")/load-data-job/load-data.sh
+  cp $(dirname "$0")/load-data-job/local-demo-data.orig.sql $(dirname "$0")/load-data-job/local-demo-data.sql
 else
   echo "Unknown version ${VERSION}"
   exit 1

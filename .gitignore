@@ -13,7 +13,7 @@ Dockerfile.cross
 # Test/Intermediate files
 database.sql
 load-data.sh
-local-demo-data.sh
+local-demo-data.sql
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
