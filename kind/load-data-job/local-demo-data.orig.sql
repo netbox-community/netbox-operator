@@ -17,6 +17,15 @@ VALUES (6, 'boolean', 'cfDataTypeBool', 'cf Data Type Bool', 'Custom field 3 for
 INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
 VALUES (7, 'integer', 'cfDataTypeInteger', 'cf Data Type Integer', 'Custom field 4 for ParentPrefixSelector', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
 
+--
+-- Data for Name: extras_customfield_content_types; Type: TABLE DATA; Schema: public; Owner: netbox
+--
+
+COPY public.extras_customfield_content_types (id, customfield_id, contenttype_id) FROM stdin;
+1	1	110
+2	2	70
+\.
+
 -- associate custom fields with IP
 INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
 VALUES (2, 2, 69);

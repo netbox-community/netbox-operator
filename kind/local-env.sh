@@ -56,6 +56,7 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
 
   # patch local-demo-data.sql
   sed \
+    -e "s/public.extras_customfield_object_types (id, customfield_id, objecttype_id)/public.extras_customfield_content_types (id, customfield_id, contenttype_id)/g" \
     -e 's/related_object_type_id/object_type_id/g' \
     -e 's/, comments, \"unique\", related_object_filter//g' \
     -e "s/, '', false, NULL//g" $(dirname "$0")/load-data-job/local-demo-data.orig.sql > $(dirname "$0")/load-data-job/local-demo-data.sql
