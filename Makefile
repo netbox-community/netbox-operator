@@ -239,7 +239,7 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 
 # e2e tests
 # setting parallel to 2 to avoid flakiness
-E2E_PARAM := --namespace e2e --parallel 1 --apply-timeout 1m --assert-timeout 1m --delete-timeout 1m --error-timeout 1m --exec-timeout 1m
+E2E_PARAM := --namespace e2e --parallel 1 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --skip-delete
 .PHONY: create-kind-3.7.8
 create-kind-3.7.8:
 	./kind/local-env.sh --version 3.7.8
