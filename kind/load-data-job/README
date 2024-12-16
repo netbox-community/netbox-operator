@@ -1,0 +1,18 @@
+# load-data-job
+
+# Using python VirtualEnv
+
+For development setup
+- Install virtualenv `brew install virtualenv`
+- Create a new virtual environment `virtualenv netbox-operator`
+
+For normal development (after the initial setup is done)
+- source netbox-operator/bin/activate
+- install `pynetbox` by executing `pip install pynetbox`
+
+For more information, please read [this page](https://virtualenv.pypa.io/en/latest/user_guide.html)
+
+# TODO
+
+- [ ] use Alex's suggestion to change `load-data.sh`
+- [ ] Complete the migration to `main.py`
