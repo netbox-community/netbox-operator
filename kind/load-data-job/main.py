@@ -1,77 +1,45 @@
 import pynetbox
 from pprint import pprint
+from dataclasses import dataclass
+import sys
 
 nb = pynetbox.api(
     'http://localhost:8080',
     token='0123456789abcdef0123456789abcdef01234567'
 )
 
-# create custom fields and associate custom fields with IP/IPRange/Prefix
-devices = list(nb.ipam.prefixes.all())
-for device in devices:
-    pprint(device)
-
-"""
--- create Custom Fields
-INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
-VALUES (2, 'text', 'netboxOperatorRestorationHash', 'Netbox Restoration Hash', 'Used to rediscover previously claimed IP Addresses', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
-
-INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
-VALUES (3, 'text', 'example_field', 'Example Field', 'example description', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
-
-INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
-VALUES (4, 'text', 'environment', 'Environment', 'Custom field 1 for ParentPrefixSelector', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
-
-INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
-VALUES (5, 'text', 'poolName', 'Pool Name', 'Custom field 2 for ParentPrefixSelector', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
-
-INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
-VALUES (6, 'boolean', 'cfDataTypeBool', 'cf Data Type Bool', 'Custom field 3 for ParentPrefixSelector', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
-
-INSERT INTO public.extras_customfield (id, type, name, label, description, required, filter_logic, "default", weight, validation_minimum, validation_maximum, validation_regex, created, last_updated, related_object_type_id, group_name, search_weight, is_cloneable, choice_set_id, ui_editable, ui_visible, comments, "unique", related_object_filter)
-VALUES (7, 'integer', 'cfDataTypeInteger', 'cf Data Type Integer', 'Custom field 4 for ParentPrefixSelector', false, 'exact', NULL, 100, NULL, NULL, '', '2024-06-13 15:17:08.65334+00', '2024-06-13 15:17:08.653359+00', NULL, 'netbox-operator', 100, false, NULL, 'hidden', 'always', '', false, NULL);
-
--- associate custom fields with IP
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (2, 2, 69);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (3, 3, 69);
-
--- associate custom fields with Prefix
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (4, 2, 70);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (5, 3, 70);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (6, 4, 70);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (7, 5, 70);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (8, 6, 70);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (9, 7, 70);
-
--- associate custom fields with IP Range
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (10, 2, 78);
-
-INSERT INTO public.extras_customfield_object_types (id, customfield_id, objecttype_id)
-VALUES (11, 3, 78);
-"""
-
 # insert Tenants
 
-"""
--- insert Tenant
-INSERT INTO public.tenancy_tenant (created, last_updated, custom_field_data, id, name, slug, description, comments, group_id)
-VALUES ('2024-06-14 09:57:11.709344+00', '2024-06-14 09:57:11.709359+00', '{"cust_id": null}', 100, 'MY_TENANT', 'my_tenant', '', '', NULL);
-"""
+@dataclass
+class Tenant:
+    name: str
+    slug: str
+    custom_fields: dict
+
+tenants = [
+    Tenant(
+        name="MY_TENANT",
+        slug="my_tenant",
+        custom_fields={
+            "cust_id": None,
+        },
+    ),
+]
+
+for tenant in tenants:
+    try:
+        nb.tenancy.tenants.create(
+            name=tenant.name,
+            slug=tenant.slug,
+            custom_fields=tenant.custom_fields,
+        )
+    except pynetbox.RequestError as e:
+        pprint(e.error)
+        sys.exit(1)
+
+# devices = list(nb.tenancy.tenants.all())
+# for device in devices:
+#     pprint(device)
 
 # insert IPs
 
@@ -136,3 +104,96 @@ VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"env
 INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
 VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "development", "poolName": "pool 4", "cfDataTypeBool": false, "cfDataTypeInteger": 8}', '2:0:0:2::/64', 'active', false, '', NULL, NULL, 5, NULL, NULL, 0, 0, false, '');
 """
+
+devices = list(nb.ipam.prefixes.all())
+for device in devices:
+    pprint(device)
+
+# create custom fields and associate custom fields with IP/IPRange/Prefix
+
+@dataclass
+class CustomField:
+    object_types: list[str]
+    type: str
+    name: str
+    label: str
+    description: str
+    required: bool
+    filter_logic: str
+
+custom_fields = [
+    CustomField(
+        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
+        type="text",
+        name="netboxOperatorRestorationHash",
+        label="Netbox Restoration Hash",
+        description="Used to rediscover previously claimed IP Addresses",
+        required=False,
+        filter_logic="exact"
+    ),
+    CustomField(
+        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
+        type="text",
+        name="example_field",
+        label="Example Field",
+        description="example description",
+        required=False,
+        filter_logic="exact"
+    ),
+    CustomField(
+        object_types=["ipam.prefix"],
+        type="text",
+        name="environment",
+        label="Environment",
+        description="Custom field 1 for ParentPrefixSelector",
+        required=False,
+        filter_logic="exact"
+    ),
+    CustomField(
+        object_types=["ipam.prefix"],
+        type="text",
+        name="poolName",
+        label="Pool Name",
+        description="Custom field 2 for ParentPrefixSelector",
+        required=False,
+        filter_logic="exact"
+    ),
+    CustomField(
+        object_types=["ipam.prefix"],
+        type="boolean",
+        name="cfDataTypeBool",
+        label="cf Data Type Bool",
+        description="Custom field 3 for ParentPrefixSelector",
+        required=False,
+        filter_logic="exact"
+    ),
+    CustomField(
+        object_types=["ipam.prefix"],
+        type="integer",
+        name="cfDataTypeInteger",
+        label="cf Data Type Integer",
+        description="Custom field 4 for ParentPrefixSelector",
+        required=False,
+        filter_logic="exact"
+    ),
+]
+
+for custom_field in custom_fields:
+    try:
+        nb.extras.custom_fields.create(
+            object_types=custom_field.object_types,
+            type=custom_field.type,
+            name=custom_field.name,
+            label=custom_field.label,
+            description=custom_field.description,
+            required=custom_field.required,
+            filter_logic=custom_field.filter_logic,
+            default=None
+        )
+    except pynetbox.RequestError as e:
+        pprint(e.error)
+        sys.exit(1)
+
+# custom_fields = list(nb.extras.custom_fields.all())
+# for custom_field in custom_fields:
+#     pprint(custom_field)

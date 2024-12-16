@@ -1,6 +1,14 @@
 # load-data-job
 
-# Using python VirtualEnv
+# `load-data.sh` and `local-data-setup.sql`
+
+`load-data.sh` and `local-data-setup.sql` sets up the local NetBox database (populate the required database tables, etc.) and demo data required to run the NetBox locally.
+
+# Local demo data
+
+For e2e tests and manual tests during development, we need more data inserted to the local NetBox instance.
+
+## Using python VirtualEnv
 
 For development setup
 - Install virtualenv `brew install virtualenv`
