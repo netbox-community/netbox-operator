@@ -9,7 +9,6 @@ nb = pynetbox.api(
 )
 
 # insert Tenants
-
 @dataclass
 class Tenant:
     name: str
@@ -41,69 +40,280 @@ for tenant in tenants:
 # for device in devices:
 #     pprint(device)
 
-# insert IPs
+# insert Sites
+@dataclass
+class Site:
+    name: str
+    slug: str
+    custom_fields: dict
+
+sites = [
+    Tenant(
+        name="MY_SITE",
+        slug="my_site",
+        custom_fields={},
+    ),
+]
+
+for site in sites:
+    try:
+        nb.dcim.sites.create(
+            name=site.name,
+            slug=site.slug,
+            custom_fields=site.custom_fields,
+        )
+    except pynetbox.RequestError as e:
+        pprint(e.error)
+        sys.exit(1)
 
 # insert Prefixes
+@dataclass
+class Prefix:
+    prefix: str
+    site: dict
+    tenant: dict
+    status: str
+    custom_fields: dict 
 
-"""
--- insert Prefix
--- 2.0.0.0/16
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.0.0.0/16', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
+prefixes = [
+    Prefix(
+        prefix="2.0.0.0/16",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+    ),
+    Prefix(
+        prefix="2.1.0.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+    ),
+    Prefix(
+        prefix="2.2.0.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+    ),
 
--- 2.1.0.0/24
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.1.0.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
+    Prefix(
+        prefix="3.0.0.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Production", 
+            "poolName": "Pool 1", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 1,
+        },
+    ),
+    Prefix(
+        prefix="3.0.1.0/24",    
+        site={
+            "name": "MY_SITE",
+            "slug": "my_site",
+        },
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Production", 
+            "poolName": "Pool 1", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 1,
+        },
+    ),
+    Prefix(
+        prefix="3.0.2.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Development", 
+            "poolName": "Pool 1", 
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 2,
+        },
+    ),
+    Prefix(
+        prefix="3.0.3.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Production", 
+            "poolName": "Pool 2", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 3,
+        },
+    ),
+    Prefix(
+        prefix="3.0.4.0/24",    
+        site={
+            "name": "MY_SITE",
+            "slug": "my_site",
+        },
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Production", 
+            "poolName": "Pool 2", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 3,
+        },
+    ),
+    Prefix(
+        prefix="3.0.5.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Development", 
+            "poolName": "Pool 2", 
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 4,
+        },
+    ),
+    Prefix(
+        prefix="3.0.6.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "production", 
+            "poolName": "pool 3", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 5,
+        },
+    ),
+    Prefix(
+        prefix="3.0.7.0/24",    
+        site={
+            "name": "MY_SITE",
+            "slug": "my_site",
+        },
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "production", 
+            "poolName": "pool 3", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 5,
+        },
+    ),
+    Prefix(
+        prefix="3.0.8.0/24",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development", 
+            "poolName": "pool 3", 
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 6,
+        },
+    ),
 
--- 2.2.0.0/24
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{}', '2.2.0.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
+    Prefix(
+        prefix="2::/64",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "production", 
+            "poolName": "pool 4", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="2:0:0:1::/64",    
+        site={
+            "name": "MY_SITE",
+            "slug": "my_site",
+        },
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "production", 
+            "poolName": "pool 4", 
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="2:0:0:2::/64",    
+        site={},
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development", 
+            "poolName": "pool 4", 
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 8,
+        },
+    ),
+]
 
--- 3.0.0.0/24 - 3.0.8.0/24 (watch out for the upper/lower-case)
--- Pool 1, Production (IPv4)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 1", "cfDataTypeBool": true, "cfDataTypeInteger": 1}', '3.0.0.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
-
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 1", "cfDataTypeBool": true, "cfDataTypeInteger": 1}', '3.0.1.0/24', 'active', false, '', NULL, 5, 100, NULL, NULL, 0, 0, false, '');
-
--- Pool 1, Development (IPv4)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Development", "poolName": "Pool 1", "cfDataTypeBool": false, "cfDataTypeInteger": 2}', '3.0.2.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
-
--- Pool 2, Production (IPv4)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 2", "cfDataTypeBool": true, "cfDataTypeInteger": 3}', '3.0.3.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
-
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Production", "poolName": "Pool 2", "cfDataTypeBool": true, "cfDataTypeInteger": 3}', '3.0.4.0/24', 'active', false, '', NULL, 5, 100, NULL, NULL, 0, 0, false, '');
-
--- Pool 2, Development (IPv4)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "Development", "poolName": "Pool 2", "cfDataTypeBool": false, "cfDataTypeInteger": 4}', '3.0.5.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
-
--- pool 3, production (IPv4)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 3", "cfDataTypeBool": true, "cfDataTypeInteger": 5}', '3.0.6.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
-
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 3", "cfDataTypeBool": true, "cfDataTypeInteger": 5}', '3.0.7.0/24', 'active', false, '', NULL, 5, 100, NULL, NULL, 0, 0, false, '');
-
--- pool 3, development (IPv4)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "development", "poolName": "pool 3", "cfDataTypeBool": false, "cfDataTypeInteger": 6}', '3.0.8.0/24', 'active', false, '', NULL, NULL, 100, NULL, NULL, 0, 0, false, '');
-
--- pool 4, production (IPv6)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 4", "cfDataTypeBool": true, "cfDataTypeInteger": 7}', '2::/64', 'active', false, '', NULL, NULL, 5, NULL, NULL, 0, 0, false, '');
-
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "production", "poolName": "pool 4", "cfDataTypeBool": true, "cfDataTypeInteger": 7}', '2:0:0:1::/64', 'active', false, '', NULL, 5, 5, NULL, NULL, 0, 0, false, '');
-
--- pool 4, development (IPv6)
-INSERT INTO public.ipam_prefix (created, last_updated, custom_field_data, prefix, status, is_pool, description, role_id, site_id, tenant_id, vlan_id, vrf_id, _children, _depth, mark_utilized, comments)
-VALUES ('2024-06-14 10:01:10.094083+00', '2024-06-14 10:01:10.094095+00', '{"environment": "development", "poolName": "pool 4", "cfDataTypeBool": false, "cfDataTypeInteger": 8}', '2:0:0:2::/64', 'active', false, '', NULL, NULL, 5, NULL, NULL, 0, 0, false, '');
-"""
+for prefix in prefixes:
+    try:
+        nb.ipam.prefixes.create(
+            prefix=prefix.prefix,
+            site=prefix.site,
+            tenant=prefix.tenant,
+            status=prefix.status,
+            custom_fields=prefix.custom_fields,
+        )
+    except pynetbox.RequestError as e:
+        pprint(e.error)
+        sys.exit(1)
 
 devices = list(nb.ipam.prefixes.all())
 for device in devices:

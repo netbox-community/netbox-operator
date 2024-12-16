@@ -24,3 +24,4 @@ For more information, please read [this page](https://virtualenv.pypa.io/en/late
 
 - [ ] use Alex's suggestion to change `load-data.sh`
 - [ ] Complete the migration to `main.py`
+- [ ] Check sample CR (works on demo data only)
