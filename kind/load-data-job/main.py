@@ -288,7 +288,7 @@ prefixes = [
             "cfDataTypeInteger": 2,
         },
     ),
-    Prefix(
+    Prefix( # TODO(henrybear327): debug why prefixclaim-ipv4-parentprefixselector-restoration-succeed isn't using this prefix
         prefix="3.0.3.0/24",    
         site=None,
         tenant={
@@ -408,7 +408,7 @@ prefixes = [
             "cfDataTypeInteger": 7,
         },
     ),
-    Prefix(
+    Prefix( # TODO(henrybear327): debug why this entry is missing from NetBox after e2e test execution
         prefix="2:0:0:1::/64",    
         site={
             "name": "MY_SITE",

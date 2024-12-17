@@ -17,14 +17,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.2.0.0/24
+                parentPrefix: 2.0.2.0/24
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.2.0.0/24
-                prefix: 2.2.0.0/28
+                parentPrefix: 2.0.2.0/24
+                prefix: 2.0.2.0/28
                 prefixName: prefixclaim-ipv4-apply
         - assert:
             resource:
@@ -35,9 +35,9 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.2.0.0/28
+                prefix: 2.0.2.0/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
                 customFields:
-                  netboxOperatorRestorationHash: 7a4827d80057860f6e6ab58c317323d1a82431cf
+                  netboxOperatorRestorationHash: f773cf04f71c017931716e125a8520d70f4c7f83
