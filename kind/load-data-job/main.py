@@ -205,7 +205,7 @@ prefixes = [
     ###                     START                   ###
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###
-    Prefix(
+    Prefix( # Used by prefixclaim-ipv4-apply-exhausted
         prefix="2.0.1.0/24",    
         site=None,
         tenant={
@@ -215,7 +215,7 @@ prefixes = [
         status="active",
         custom_fields={},
     ),
-    Prefix(
+    Prefix( # Used by prefixclaim-ipv4-apply-succeed
         prefix="2.0.2.0/24",    
         site=None,
         tenant={
@@ -225,7 +225,7 @@ prefixes = [
         status="active",
         custom_fields={},
     ),
-    Prefix(
+    Prefix( # Used by prefixclaim-ipv4-restoration-succeed
         prefix="2.0.3.0/24",    
         site=None,
         tenant={
@@ -251,7 +251,7 @@ prefixes = [
             "cfDataTypeInteger": 1,
         },
     ),
-    Prefix(
+    Prefix( # Used by prefixclaim-ipv4-parentprefixselector-apply-succeed
         prefix="3.0.1.0/24",    
         site={
             "name": "MY_SITE",
@@ -303,7 +303,7 @@ prefixes = [
             "cfDataTypeInteger": 3,
         },
     ),
-    Prefix(
+    Prefix( # Used by prefixclaim-ipv4-parentprefixselector-restoration-succeed
         prefix="3.0.4.0/24",    
         site={
             "name": "MY_SITE",
@@ -393,7 +393,7 @@ prefixes = [
         },
     ),
 
-    Prefix(
+    Prefix( # Used by prefixclaim-ipv6-parentprefixselector-apply-succeed
         prefix="2::/64",    
         site=None,
         tenant={

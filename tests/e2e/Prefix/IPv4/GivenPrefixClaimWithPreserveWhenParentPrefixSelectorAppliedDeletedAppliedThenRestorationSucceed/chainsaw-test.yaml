@@ -21,12 +21,12 @@ spec:
                   environment: Production
                   family: IPv4
                   poolName: Pool 2
-                  site: DM-Buffalo
+                  site: MY_SITE
                   tenant: MY_TENANT
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
                 parentPrefix: 3.0.4.0/24
                 prefix: 3.0.4.0/28
@@ -42,10 +42,10 @@ spec:
                 description: some description
                 prefix: 3.0.4.0/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: 55499191b81d9f57f22173fb8004506946fe3e4d
+                  netboxOperatorRestorationHash: d571cb2311db97e7564f32cf3543ac0e3526e362
     - name: Apply prefix claim CR 2 for the first time and go through each field and check for equality
       try:
         - apply:
@@ -63,12 +63,12 @@ spec:
                   environment: Production
                   family: IPv4
                   poolName: Pool 2
-                  site: DM-Buffalo
+                  site: MY_SITE
                   tenant: MY_TENANT
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
                 parentPrefix: 3.0.4.0/24
                 prefix: 3.0.4.16/28
@@ -84,10 +84,10 @@ spec:
                 description: some description
                 prefix: 3.0.4.16/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: 53225105de94363de30c46e0c56cac938bdf35ba
+                  netboxOperatorRestorationHash: 2fecef786a6c3590bc219c540d2a142f9e2ad907
     - name: Delete the applied CR 1
       description: delete prefix claim CR 1 (we only delete CR1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
       try:
@@ -114,12 +114,12 @@ spec:
                   environment: Production
                   family: IPv4
                   poolName: Pool 2
-                  site: DM-Buffalo
+                  site: MY_SITE
                   tenant: MY_TENANT
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
                 parentPrefix: Prefix restored from hash, cannot infer the parent prefix
                 prefix: 3.0.4.0/28
@@ -135,10 +135,10 @@ spec:
                 description: some description
                 prefix: 3.0.4.0/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: 55499191b81d9f57f22173fb8004506946fe3e4d
+                  netboxOperatorRestorationHash: d571cb2311db97e7564f32cf3543ac0e3526e362
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -152,12 +152,12 @@ spec:
                   environment: Production
                   family: IPv4
                   poolName: Pool 2
-                  site: DM-Buffalo
+                  site: MY_SITE
                   tenant: MY_TENANT
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
                 parentPrefix: 3.0.4.0/24
                 prefix: 3.0.4.16/28
@@ -173,7 +173,7 @@ spec:
                 description: some description
                 prefix: 3.0.4.16/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: 53225105de94363de30c46e0c56cac938bdf35ba
+                  netboxOperatorRestorationHash: 2fecef786a6c3590bc219c540d2a142f9e2ad907
