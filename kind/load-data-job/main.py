@@ -1,7 +1,6 @@
 import pynetbox
 from pprint import pprint
 from dataclasses import dataclass
-import sys
 
 print("Starting to load data onto NetBox through API")
 try:
@@ -11,7 +10,7 @@ try:
     )
 except pynetbox.RequestError as e:
     pprint(e.error)
-    sys.exit(1)
+   
 print("Connected to NetBoxAPI")
 
 # insert Tenants
@@ -47,7 +46,7 @@ for tenant in tenants:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Tenants loaded")
 
 # insert Sites
@@ -88,13 +87,14 @@ for site in sites:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Sites loaded")
 
 # create custom fields and associate custom fields with IP/IPRange/Prefix
 @dataclass
 class CustomField:
-    object_types: list[str]
+    content_types: list[str] # for v3
+    object_types: list[str] # for v4
     type: str
     name: str
     label: str
@@ -104,6 +104,7 @@ class CustomField:
 
 custom_fields = [
     CustomField(
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         type="text",
         name="netboxOperatorRestorationHash",
@@ -113,6 +114,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         type="text",
         name="example_field",
@@ -122,6 +124,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="text",
         name="environment",
@@ -131,6 +134,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="text",
         name="poolName",
@@ -140,6 +144,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="boolean",
         name="cfDataTypeBool",
@@ -149,6 +154,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="integer",
         name="cfDataTypeInteger",
@@ -162,6 +168,7 @@ custom_fields = [
 for custom_field in custom_fields:
     try:
         nb.extras.custom_fields.create(
+            content_types=custom_field.content_types,
             object_types=custom_field.object_types,
             type=custom_field.type,
             name=custom_field.name,
@@ -173,7 +180,7 @@ for custom_field in custom_fields:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Custom fields loaded")
 
 # for debugging
@@ -461,5 +468,5 @@ for prefix in prefixes:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Prefixes loaded")
