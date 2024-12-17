@@ -29,6 +29,13 @@ tenants = [
             "cust_id": None,
         },
     ),
+    Tenant(
+        name="MY_TENANT_2",
+        slug="my_tenant_2",
+        custom_fields={
+            "cust_id": None,
+        },
+    ),
 ]
 
 for tenant in tenants:
