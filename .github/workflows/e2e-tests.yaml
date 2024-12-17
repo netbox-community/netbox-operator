@@ -17,8 +17,8 @@ env:
   HTTPS_ENABLE: true
   NETBOX_RESTORATION_HASH_FIELD_NAME: netboxOperatorRestorationHash
 jobs:
-  e2e-tests:
-    name: E2E tests for netbox operator
+  e2e-tests-3-7-8:
+    name: Against netbox version 3.7.8
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -28,7 +28,6 @@ jobs:
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
-        echo "E2E_DIAGNOSTIC_DIRECTORY=$(mktemp -d)" >> "$GITHUB_ENV"
     - name: Start kind cluster
       uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
       with:
@@ -47,27 +46,70 @@ jobs:
         kubectl get pods -A
         echo "Cluster information"
         kubectl cluster-info
-    - name: Setup kind cluster with required software such as NetBox
+    - name: Run e2e tests
       run: |
-        make create-kind
-    - name: Deploy NetBox operator to the kind cluster
+        make test-e2e-3.7.8
+  e2e-tests-4-0-11:
+    name: Against netbox version 4.0.11
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+      with: 
+        go-version: 1.23.4
+    - name: Import environment variables from file
       run: |
-        make deploy-kind
-    - name: Run tests
-      env:
-        E2E_DIAGNOSTIC_DIRECTORY: ${{ env.E2E_DIAGNOSTIC_DIRECTORY }}
-      run: |
-        # # Very straight forward way of implementing a test and checking the result
-        # kubectl apply -f config/samples/netbox_v1_prefixclaim.yaml
-        # kubectl get prefixclaim,prefix,ipaddressclaim,ipaddress,iprange,iprangeclaim
-        # kubectl wait --for=condition=ready --timeout=30s prefixclaim.netbox.dev/prefixclaim-sample
-
-        # Use Chainsaw
-        make test-e2e
-    - name: Upload diagnostics artifact
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
+        cat ".github/env" >> "$GITHUB_ENV"
+    - name: Start kind cluster
+      uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
       with:
-        name: cluster-state
-        path: ${{ env.E2E_DIAGNOSTIC_DIRECTORY }}
-        retention-days: 15
+        version: ${{ env.kind-version }}
+        node_image: ${{ env.kind-image }}
+        wait: 300s
+        config: ./tests/e2e/kind-config.yaml
+        cluster_name: e2e
+    - name: Wait for cluster to finish bootstraping
+      run: |
+        echo "Waiting for all nodes to be ready..."
+        kubectl wait --for=condition=Ready nodes --all --timeout=120s
+        kubectl get nodes
+        echo "Waiting for all pods to be ready..."
+        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
+        kubectl get pods -A
+        echo "Cluster information"
+        kubectl cluster-info
+    - name: Run e2e tests
+      run: |
+        make test-e2e-4.0.11
+  e2e-tests-4-1-8:
+    name: Against netbox version 4.1.8
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+      with: 
+        go-version: 1.23.4
+    - name: Import environment variables from file
+      run: |
+        cat ".github/env" >> "$GITHUB_ENV"
+    - name: Start kind cluster
+      uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+      with:
+        version: ${{ env.kind-version }}
+        node_image: ${{ env.kind-image }}
+        wait: 300s
+        config: ./tests/e2e/kind-config.yaml
+        cluster_name: e2e
+    - name: Wait for cluster to finish bootstraping
+      run: |
+        echo "Waiting for all nodes to be ready..."
+        kubectl wait --for=condition=Ready nodes --all --timeout=120s
+        kubectl get nodes
+        echo "Waiting for all pods to be ready..."
+        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
+        kubectl get pods -A
+        echo "Cluster information"
+        kubectl cluster-info
+    - name: Run e2e tests
+      run: |
+        make test-e2e-4.1.8
