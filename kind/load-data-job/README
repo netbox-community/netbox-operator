@@ -2,7 +2,7 @@
 
 # `load-data.sh` and `local-data-setup.sql`
 
-`load-data.sh` and `local-data-setup.sql` sets up the local NetBox database (populate the required database tables, etc.) and demo data required to run the NetBox locally.
+`load-data.sh` and `local-data-setup.sql` sets up the local NetBox database (populate the required database tables, etc.) and loads [demo data](https://github.com/netbox-community/netbox-demo-data) required to run the NetBox locally.
 
 # Local demo data
 
