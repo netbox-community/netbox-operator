@@ -15,21 +15,26 @@ if ! kubectl get namespaces | grep -q "^${NAMESPACE} "; then
     exit 1
 fi
 
-# image for loading local data via NetBox API
-cd ./kind/load-data-job && docker build -t netbox-load-local-data:1.0 -f ./dockerfile . && cd -
+# build image for loading local data via NetBox API
+cd ./kind/load-data-job && docker build -t netbox-load-local-data:1.0 --no-cache --progress=plain -f ./dockerfile . && cd -
 
 # need to align with netbox-chart otherwise the creation of the cluster will hang
-declare -a Images=( \
+declare -a Local_Images=( \
+"netbox-load-local-data:1.0" \
+)
+for img in "${Local_Images[@]}"; do
+  kind load docker-image "$img"
+done
+
+declare -a Remote_Images=( \
 "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
 "busybox:1.37.0" \
 "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
 "ghcr.io/netbox-community/netbox:v4.1.7" \
 "ghcr.io/zalando/postgres-operator:v1.12.2" \
 "ghcr.io/zalando/spilo-16:3.2-p3" \
-"netbox-load-local-data:1.0" \
 )
-
-for img in "${Images[@]}"; do
+for img in "${Remote_Images[@]}"; do
   docker pull "$img"
   kind load docker-image "$img"
 done
