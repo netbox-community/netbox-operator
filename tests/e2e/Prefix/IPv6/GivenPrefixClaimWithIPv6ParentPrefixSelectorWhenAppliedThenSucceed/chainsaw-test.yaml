@@ -25,10 +25,10 @@ spec:
                   environment: production
                   family: IPv6
                   poolName: pool 4
-                  tenant: Dunder-Mifflin, Inc.
+                  tenant: MY_TENANT
                 prefixLength: /124
                 preserveInNetbox: true
-                tenant: Dunder-Mifflin, Inc.
+                tenant: MY_TENANT_2
               status:
                 parentPrefix: 2::/64
                 prefix: 2::/124
@@ -44,6 +44,6 @@ spec:
                 description: some description
                 prefix: 2::/124
                 preserveInNetbox: true
-                tenant: Dunder-Mifflin, Inc.
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: a7fbe45766da6a472a3b3d4d7f7070622feb555d
+                  netboxOperatorRestorationHash: 92913dac42ca35232682325c7f04639959d3a3cf
