@@ -192,15 +192,19 @@ class Prefix:
 
 prefixes = [
     Prefix(
-        prefix="2.0.0.0/24",    
+        prefix="2.0.0.0/16",    
         site=None,
         tenant={
-            "name": "MY_TENANT",
-            "slug": "my_tenant",
+            "name": "Dunder-Mifflin, Inc.",
+            "slug": "dunder-mifflin",
         },
         status="active",
         custom_fields={},
     ),
+
+    ###                     START                   ###
+    ###                Used by e2e tests            ###
+    ### Modifying entries might cause tests to fail ###
     Prefix(
         prefix="2.0.1.0/24",    
         site=None,
@@ -213,6 +217,16 @@ prefixes = [
     ),
     Prefix(
         prefix="2.0.2.0/24",    
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+    ),
+    Prefix(
+        prefix="2.0.3.0/24",    
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -431,6 +445,9 @@ prefixes = [
             "cfDataTypeInteger": 8,
         },
     ),
+    ###                      END                    ###
+    ###                Used by e2e tests            ###
+    ### Modifying entries might cause tests to fail ###
 ]
 
 for prefix in prefixes:

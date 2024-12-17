@@ -17,14 +17,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.0.0/16
+                parentPrefix: 2.0.3.0/24
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.0.0.0/16
-                prefix: 2.0.0.0/28
+                parentPrefix: 2.0.3.0/24
+                prefix: 2.0.3.0/28
                 prefixName: prefixclaim-ipv4-apply-delete-apply-restored-1
         - assert:
             resource:
@@ -35,12 +35,12 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.0.0/28
+                prefix: 2.0.3.0/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
                 customFields:
-                  netboxOperatorRestorationHash: 8beafa710a38be8c61ce9c9e85bd734801ae2464
+                  netboxOperatorRestorationHash: 87e92d92a73dff00bb78280b57bdfa31a91f4780
     - name: Apply prefix claim CR 2 for the first time and go through each field and check for equality
       try:
         - apply:
@@ -54,14 +54,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.0.0/16
+                parentPrefix: 2.0.3.0/24
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.0.0.0/16
-                prefix: 2.0.0.16/28
+                parentPrefix: 2.0.3.0/24
+                prefix: 2.0.3.16/28
                 prefixName: prefixclaim-ipv4-apply-delete-apply-restored-2
         - assert:
             resource:
@@ -72,12 +72,12 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.0.16/28
+                prefix: 2.0.3.16/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
                 customFields:
-                  netboxOperatorRestorationHash: ac35098e1a755678ced699b581c5615acbb0ed94
+                  netboxOperatorRestorationHash: 0265a1eec7bba9748f9542476fe3dccb46cceb5a
     - name: Delete the applied CR 1
       description: delete prefix claim CR 1 (we only delete CR1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
       try:
@@ -100,14 +100,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.0.0/16
+                parentPrefix: 2.0.3.0/24
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.0.0.0/16
-                prefix: 2.0.0.0/28
+                parentPrefix: 2.0.3.0/24
+                prefix: 2.0.3.0/28
                 prefixName: prefixclaim-ipv4-apply-delete-apply-restored-1
         - assert:
             resource:
@@ -118,12 +118,12 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.0.0/28
+                prefix: 2.0.3.0/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
                 customFields:
-                  netboxOperatorRestorationHash: 8beafa710a38be8c61ce9c9e85bd734801ae2464
+                  netboxOperatorRestorationHash: 87e92d92a73dff00bb78280b57bdfa31a91f4780
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -133,14 +133,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.0.0/16
+                parentPrefix: 2.0.3.0/24
                 prefixLength: /28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.0.0.0/16
-                prefix: 2.0.0.16/28
+                parentPrefix: 2.0.3.0/24
+                prefix: 2.0.3.16/28
                 prefixName: prefixclaim-ipv4-apply-delete-apply-restored-2
         - assert:
             resource:
@@ -151,9 +151,9 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.0.16/28
+                prefix: 2.0.3.16/28
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
                 customFields:
-                  netboxOperatorRestorationHash: ac35098e1a755678ced699b581c5615acbb0ed94
+                  netboxOperatorRestorationHash: 0265a1eec7bba9748f9542476fe3dccb46cceb5a
