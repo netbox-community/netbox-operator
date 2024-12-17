@@ -4,10 +4,14 @@ from dataclasses import dataclass
 import sys
 
 print("Starting to load data onto NetBox through API")
-nb = pynetbox.api(
-    'http://netbox:8080',
-    token='0123456789abcdef0123456789abcdef01234567'
-)
+try:
+    nb = pynetbox.api(
+        'http://netbox',
+        token='0123456789abcdef0123456789abcdef01234567'
+    )
+except pynetbox.RequestError as e:
+    pprint(e.error)
+    sys.exit(1)
 print("Connected to NetBoxAPI")
 
 # insert Tenants
