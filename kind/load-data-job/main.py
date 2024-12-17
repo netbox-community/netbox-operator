@@ -3,10 +3,12 @@ from pprint import pprint
 from dataclasses import dataclass
 import sys
 
+print("Starting to load data onto NetBox through API")
 nb = pynetbox.api(
-    'http://localhost:8080',
+    'http://netbox:8080',
     token='0123456789abcdef0123456789abcdef01234567'
 )
+print("Connected to NetBoxAPI")
 
 # insert Tenants
 @dataclass
@@ -35,6 +37,7 @@ for tenant in tenants:
     except pynetbox.RequestError as e:
         pprint(e.error)
         sys.exit(1)
+print("Tenants loaded")
 
 # insert Sites
 @dataclass
@@ -66,9 +69,9 @@ for site in sites:
     except pynetbox.RequestError as e:
         pprint(e.error)
         sys.exit(1)
+print("Sites loaded")
 
 # create custom fields and associate custom fields with IP/IPRange/Prefix
-
 @dataclass
 class CustomField:
     object_types: list[str]
@@ -151,8 +154,9 @@ for custom_field in custom_fields:
     except pynetbox.RequestError as e:
         pprint(e.error)
         sys.exit(1)
+print("Custom fields loaded")
 
-# for debugging, sample usage
+# for debugging
 # custom_fields = list(nb.extras.custom_fields.all())
 # for custom_field in custom_fields:
 #     pprint(custom_field)
@@ -421,3 +425,4 @@ for prefix in prefixes:
     except pynetbox.RequestError as e:
         pprint(e.error)
         sys.exit(1)
+print("Prefixes loaded")
