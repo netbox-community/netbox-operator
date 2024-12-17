@@ -94,7 +94,8 @@ print("Sites loaded")
 # create custom fields and associate custom fields with IP/IPRange/Prefix
 @dataclass
 class CustomField:
-    object_types: list[str]
+    content_types: list[str] # for v3
+    object_types: list[str] # for v4
     type: str
     name: str
     label: str
@@ -104,6 +105,7 @@ class CustomField:
 
 custom_fields = [
     CustomField(
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         type="text",
         name="netboxOperatorRestorationHash",
@@ -113,6 +115,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
         type="text",
         name="example_field",
@@ -122,6 +125,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="text",
         name="environment",
@@ -131,6 +135,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="text",
         name="poolName",
@@ -140,6 +145,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="boolean",
         name="cfDataTypeBool",
@@ -149,6 +155,7 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
+        content_types=["ipam.prefix"],
         object_types=["ipam.prefix"],
         type="integer",
         name="cfDataTypeInteger",
@@ -162,6 +169,7 @@ custom_fields = [
 for custom_field in custom_fields:
     try:
         nb.extras.custom_fields.create(
+            content_types=custom_field.content_types,
             object_types=custom_field.object_types,
             type=custom_field.type,
             name=custom_field.name,
