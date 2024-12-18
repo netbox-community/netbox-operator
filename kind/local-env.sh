@@ -15,8 +15,18 @@ if ! kubectl get namespaces | grep -q "^${NAMESPACE} "; then
     exit 1
 fi
 
+# build image for loading local data via NetBox API
+cd ./kind/load-data-job && docker build -t netbox-load-local-data:1.0 --no-cache --progress=plain -f ./dockerfile . && cd -
+
 # need to align with netbox-chart otherwise the creation of the cluster will hang
-declare -a Images=( \
+declare -a Local_Images=( \
+"netbox-load-local-data:1.0" \
+)
+for img in "${Local_Images[@]}"; do
+  kind load docker-image "$img"
+done
+
+declare -a Remote_Images=( \
 "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
 "busybox:1.37.0" \
 "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
@@ -24,8 +34,7 @@ declare -a Images=( \
 "ghcr.io/zalando/postgres-operator:v1.12.2" \
 "ghcr.io/zalando/spilo-16:3.2-p3" \
 )
-
-for img in "${Images[@]}"; do
+for img in "${Remote_Images[@]}"; do
   docker pull "$img"
   kind load docker-image "$img"
 done
@@ -50,3 +59,8 @@ helm upgrade --install --namespace="${NAMESPACE}" netbox \
   https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.163/netbox-5.0.0-beta.163.tgz
 
 kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
+
+# load local data
+kubectl create job netbox-load-local-data --image=netbox-load-local-data:1.0
+kubectl wait --namespace="${NAMESPACE}"  --timeout=600s --for=condition=complete job/netbox-load-local-data
+docker rmi netbox-load-local-data:1.0

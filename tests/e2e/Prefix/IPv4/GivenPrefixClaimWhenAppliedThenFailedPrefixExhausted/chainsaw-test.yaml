@@ -18,14 +18,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.1.0.0/24
+                parentPrefix: 2.0.1.0/24
                 prefixLength: /25
                 preserveInNetbox: false
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.1.0.0/24
-                prefix: 2.1.0.0/25
+                parentPrefix: 2.0.1.0/24
+                prefix: 2.0.1.0/25
                 prefixName: prefixclaim-ipv4-apply-prefixexhausted-1
         - assert:
             resource:
@@ -36,9 +36,9 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.1.0.0/25
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                prefix: 2.0.1.0/25
+                site: MY_SITE
+                tenant: MY_TENANT
     - name: Install CR 2
       description: Apply prefix claim CR 2
       try:
@@ -53,14 +53,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.1.0.0/24
+                parentPrefix: 2.0.1.0/24
                 prefixLength: /25
                 preserveInNetbox: false
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                site: MY_SITE
+                tenant: MY_TENANT
               status:
-                parentPrefix: 2.1.0.0/24
-                prefix: 2.1.0.128/25
+                parentPrefix: 2.0.1.0/24
+                prefix: 2.0.1.128/25
                 prefixName: prefixclaim-ipv4-apply-prefixexhausted-2
         - assert:
             resource:
@@ -71,9 +71,9 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.1.0.128/25
-                site: DM-Akron
-                tenant: Dunder-Mifflin, Inc.
+                prefix: 2.0.1.128/25
+                site: MY_SITE
+                tenant: MY_TENANT
     - name: Install CR 3
       description: Apply prefix claim CR 3
       try:

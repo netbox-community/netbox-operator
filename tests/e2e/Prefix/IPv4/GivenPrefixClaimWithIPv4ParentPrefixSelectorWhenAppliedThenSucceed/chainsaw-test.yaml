@@ -21,12 +21,12 @@ spec:
                   environment: Production
                   family: IPv4
                   poolName: Pool 1
-                  site: DM-Buffalo
+                  site: MY_SITE
                   tenant: MY_TENANT
                 prefixLength: /31
                 preserveInNetbox: true
-                site: DM-Akron
-                tenant: MY_TENANT
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
                 parentPrefix: 3.0.1.0/24
                 prefix: 3.0.1.0/31
@@ -42,6 +42,6 @@ spec:
                 description: some description
                 prefix: 3.0.1.0/31
                 preserveInNetbox: true
-                tenant: MY_TENANT
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: b0d7d37281d2f2735ff188bdfa4eda469e55b684
+                  netboxOperatorRestorationHash: e3ea4eebe4ab49cc7c91dc9f96007965ede43338

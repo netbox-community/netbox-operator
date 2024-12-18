@@ -6,10 +6,10 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-ipv4-apply-delete-apply-restored-1
 spec:
-  tenant: "Dunder-Mifflin, Inc."
-  site: "DM-Akron"
+  tenant: "MY_TENANT"
+  site: "MY_SITE"
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
-  parentPrefix: "2.0.0.0/16"
+  parentPrefix: "2.0.3.0/24"
   prefixLength: "/28"
