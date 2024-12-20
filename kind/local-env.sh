@@ -103,7 +103,8 @@ for img in "${Remote_Images[@]}"; do
 done
 
 # build image for loading local data via NetBox API
-cd ./kind/load-data-job && docker build -t netbox-load-local-data:1.0 --no-cache --progress=plain -f ./dockerfile . && cd -
+cd ./kind/load-data-job && docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f ./dockerfile . && cd -
+
 # load local images
 declare -a Local_Images=( \
 "netbox-load-local-data:1.0" \
