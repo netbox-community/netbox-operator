@@ -1,7 +1,6 @@
 import pynetbox
 from pprint import pprint
 from dataclasses import dataclass
-import sys
 
 print("Starting to load data onto NetBox through API")
 try:
@@ -11,7 +10,7 @@ try:
     )
 except pynetbox.RequestError as e:
     pprint(e.error)
-    sys.exit(1)
+   
 print("Connected to NetBoxAPI")
 
 # insert Tenants
@@ -47,7 +46,7 @@ for tenant in tenants:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Tenants loaded")
 
 # insert Sites
@@ -88,7 +87,7 @@ for site in sites:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Sites loaded")
 
 # create custom fields and associate custom fields with IP/IPRange/Prefix
@@ -181,7 +180,7 @@ for custom_field in custom_fields:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Custom fields loaded")
 
 # for debugging
@@ -469,5 +468,5 @@ for prefix in prefixes:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-        sys.exit(1)
+       
 print("Prefixes loaded")
