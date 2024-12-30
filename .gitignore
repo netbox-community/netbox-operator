@@ -9,7 +9,10 @@ Dockerfile.cross
 
 # Test binary, built with `go test -c`
 *.test
-database.sql
+
+# Test/Intermediate files
+kind/load-data-job/load-data.sh
+kind/load-data-job/dockerfile
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
