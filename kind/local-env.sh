@@ -45,7 +45,6 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
-  "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
   "busybox:1.36.1" \
   "docker.io/bitnami/redis:7.2.4-debian-12-r9" \
   "docker.io/netboxcommunity/netbox:v3.7.8" \
@@ -63,7 +62,6 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
-  "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
   "busybox:1.36.1" \
   "docker.io/bitnami/redis:7.4.0-debian-12-r2" \
   "ghcr.io/netbox-community/netbox:v4.0.11" \
@@ -80,7 +78,6 @@ elif [[ "${VERSION}" == "4.1.8" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
-  "gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1" \
   "busybox:1.37.0" \
   "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
   "ghcr.io/netbox-community/netbox:v4.1.8" \
