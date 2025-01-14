@@ -23,3 +23,4 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
+      app.kubernetes.io/part-of: netbox-operator
