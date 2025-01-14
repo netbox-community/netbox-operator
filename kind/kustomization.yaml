@@ -27,8 +27,6 @@ patches:
                     subPath: "config.env"
                     name: netbox-auth
                     readOnly: true
-              - name: kube-rbac-proxy
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
             volumes:
               - name: netbox-auth
                 secret:
