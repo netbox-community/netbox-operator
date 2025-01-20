@@ -21,8 +21,8 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/swisscom/leaselocker v0.1.0
 	go.uber.org/mock v0.5.0
-	k8s.io/api v0.32.0
-	k8s.io/apimachinery v0.32.0
+	k8s.io/api v0.32.1
+	k8s.io/apimachinery v0.32.1
 	k8s.io/client-go v0.32.0
 	sigs.k8s.io/controller-runtime v0.19.4
 )
