@@ -104,9 +104,8 @@ func (r *NetboxClient) DeleteIpAddress(ipAddressId int64) error {
 		case *ipam.IpamIPAddressesDeleteDefault:
 			if typedErr.IsCode(http.StatusNotFound) {
 				return nil
-			} else {
-				return utils.NetboxError("Failed to delete ip address from Netbox", err)
 			}
+			return utils.NetboxError("Failed to delete ip address from Netbox", err)
 		default:
 			return utils.NetboxError("Failed to delete ip address from Netbox", err)
 		}
