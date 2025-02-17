@@ -2,7 +2,7 @@
 set -e -u -o pipefail
 
 NAMESPACE=""
-VERSION="4.1.8" # default value
+VERSION="4.2.3" # default value
 NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
 while [[ $# -gt 0 ]]; do
   case $1 in

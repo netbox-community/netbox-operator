@@ -259,3 +259,10 @@ create-kind-4.1.8:
 .PHONY: test-e2e-4.1.8
 test-e2e-4.1.8: create-kind-4.1.8 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW) 
 	chainsaw test $(E2E_PARAM)
+
+.PHONY: create-kind-4.2.3
+create-kind-4.2.3:
+	./kind/local-env.sh --version 4.2.3
+.PHONY: test-e2e-4.2.3
+test-e2e-4.2.3: create-kind-4.2.3 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW) 
+	chainsaw test $(E2E_PARAM)
