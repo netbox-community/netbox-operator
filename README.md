@@ -87,6 +87,16 @@ Users can just run `kubectl apply -f <URL for YAML BUNDLE>` to install the proje
 kubectl apply -f https://raw.githubusercontent.com/<org>/netbox-operator/<tag or branch>/dist/install.yaml
 ```
 
+# Monitoring
+
+When the operator is deployed with the default kustomization (located at config/default/) the metrics endpoint is already exposed and provides the [default kubebuilder metrics].
+
+[default kubebuilder metrics]: https://book.kubebuilder.io/reference/metrics-reference.
+
+For the monitoring of the state of the CRs reconciled by the operator [kube state metrics] can be used, check the kube-state-metrics documentation for instructions on configuring it to collect metrics from custom resources.
+
+[kube state metrics]: https://github.com/kubernetes/kube-state-metrics
+
 # Contributing
 
 We cordially invite collaboration from the community to enhance the quality and functionality of this project. Whether you are addressing bugs, introducing new features, refining documentation, or assisting with items on our to-do list, your contributions are highly valued and greatly appreciated. Please take a look at [Contribution guide] for more details.
