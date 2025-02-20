@@ -2,8 +2,8 @@
 set -e -u -o pipefail
 
 NAMESPACE=""
-VERSION="4.1.8" # default value
-NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
+VERSION="4.1.11" # default value
+NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.30/netbox-5.0.30.tgz" # default value
 while [[ $# -gt 0 ]]; do
   case $1 in
     -n|--namespace)
@@ -74,13 +74,13 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
   
   cp $(dirname "$0")/load-data-job/dockerfile.orig $(dirname "$0")/load-data-job/dockerfile
-elif [[ "${VERSION}" == "4.1.8" ]] ;then
+elif [[ "${VERSION}" == "4.1.11" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
   "busybox:1.37.0" \
   "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
-  "ghcr.io/netbox-community/netbox:v4.1.8" \
+  "ghcr.io/netbox-community/netbox:v4.1.11" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
