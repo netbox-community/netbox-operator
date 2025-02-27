@@ -49,14 +49,6 @@ spec:
                 name: prefixclaim-ipv4-apply
               spec:
                 preserveInNetbox: false
-        - patch:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: Prefix
-              metadata:
-                name: prefixclaim-ipv4-apply
-              spec:
-                preserveInNetbox: false
         - assert:
             resource:
               apiVersion: netbox.dev/v1
