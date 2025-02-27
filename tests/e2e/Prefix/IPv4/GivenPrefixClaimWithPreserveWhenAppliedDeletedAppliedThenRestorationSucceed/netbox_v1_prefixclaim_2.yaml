@@ -10,6 +10,6 @@ spec:
   site: "MY_SITE"
   description: "some description"
   comments: "your comments"
-  preserveInNetbox: true
+  preserveInNetbox: false
   parentPrefix: "2.0.3.0/24"
   prefixLength: "/28"
