@@ -47,3 +47,35 @@ spec:
                 tenant: MY_TENANT_2
                 customFields:
                   netboxOperatorRestorationHash: 92913dac42ca35232682325c7f04639959d3a3cf
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+              spec:
+                preserveInNetbox: false
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+              spec:
+                preserveInNetbox: false
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+              spec:
+                preserveInNetbox: false
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv6-parentprefixselector-apply-succeed
+              spec:
+                (preserveInNetbox == true): false

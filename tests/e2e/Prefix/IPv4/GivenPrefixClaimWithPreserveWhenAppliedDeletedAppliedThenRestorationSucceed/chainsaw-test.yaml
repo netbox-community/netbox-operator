@@ -56,7 +56,6 @@ spec:
                 description: some description
                 parentPrefix: 2.0.3.0/24
                 prefixLength: /28
-                preserveInNetbox: true
                 site: MY_SITE
                 tenant: MY_TENANT
               status:
@@ -73,7 +72,6 @@ spec:
                 comments: your comments
                 description: some description
                 prefix: 2.0.3.16/28
-                preserveInNetbox: true
                 site: MY_SITE
                 tenant: MY_TENANT
                 customFields:
@@ -87,10 +85,10 @@ spec:
               kind: PrefixClaim
               name: prefixclaim-ipv4-apply-delete-apply-restored-1
     - name: Apply prefix claim CR 1 for the second time and check after deletion and reapply of CR 1
-      description: 
+      description:
       try:
         - apply:
-            file: netbox_v1_prefixclaim_1.yaml      
+            file: netbox_v1_prefixclaim_1.yaml
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -135,7 +133,6 @@ spec:
                 description: some description
                 parentPrefix: 2.0.3.0/24
                 prefixLength: /28
-                preserveInNetbox: true
                 site: MY_SITE
                 tenant: MY_TENANT
               status:
@@ -152,8 +149,39 @@ spec:
                 comments: your comments
                 description: some description
                 prefix: 2.0.3.16/28
-                preserveInNetbox: true
                 site: MY_SITE
                 tenant: MY_TENANT
                 customFields:
                   netboxOperatorRestorationHash: 0265a1eec7bba9748f9542476fe3dccb46cceb5a
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-apply-delete-apply-restored-1
+              spec:
+                preserveInNetbox: false
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-apply-delete-apply-restored-1
+              spec:
+                preserveInNetbox: false
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-apply-delete-apply-restored-1
+              spec:
+                preserveInNetbox: false
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-apply-delete-apply-restored-1
+              spec:
+                (preserveInNetbox == true): false

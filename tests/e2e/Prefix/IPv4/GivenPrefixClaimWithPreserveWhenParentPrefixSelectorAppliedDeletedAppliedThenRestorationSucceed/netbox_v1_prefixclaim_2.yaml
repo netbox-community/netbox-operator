@@ -10,7 +10,7 @@ spec:
   site: "MY_SITE_2"
   description: "some description"
   comments: "your comments"
-  preserveInNetbox: true
+  preserveInNetbox: false
   prefixLength: "/28"
   parentPrefixSelector: # The keys and values are case-sensitive
     tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
