@@ -1,7 +1,7 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: ipaddressclaim-ipv4-apply-prefixexhausted
+  name: ipaddressclaim-ipv4-prefixexhausted
 spec:
   steps:
     - name: Install CR 1
@@ -14,7 +14,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               metadata:
-                name: ipaddressclaim-ipv4-apply-prefixexhausted-1
+                name: ipaddressclaim-ipv4-prefixexhausted-1
               spec:
                 comments: your comments
                 description: some description
@@ -26,13 +26,13 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.1.1/32
                 ipAddressDotDecimal: 3.1.1.1
-                ipAddressName: ipaddressclaim-ipv4-apply-prefixexhausted-1
+                ipAddressName: ipaddressclaim-ipv4-prefixexhausted-1
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-prefixexhausted-1
+                name: ipaddressclaim-ipv4-prefixexhausted-1
                 finalizers:
                   - ipaddress.netbox.dev/finalizer
                 ownerReferences:
@@ -40,11 +40,9 @@ spec:
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-prefixexhausted-1
+                    name: ipaddressclaim-ipv4-prefixexhausted-1
               spec:
                 comments: your comments
-                customFields:
-                  netboxOperatorRestorationHash: 100ad710d24e3d5cc32ddb93baaa58de02000721
                 description: some description
                 ipAddress: 3.1.1.1/32
                 tenant: MY_TENANT
@@ -61,7 +59,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               metadata:
-                name: ipaddressclaim-ipv4-apply-prefixexhausted-2
+                name: ipaddressclaim-ipv4-prefixexhausted-2
               spec:
                 comments: your comments
                 description: some description
@@ -73,13 +71,13 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.1.2/32
                 ipAddressDotDecimal: 3.1.1.2
-                ipAddressName: ipaddressclaim-ipv4-apply-prefixexhausted-2
+                ipAddressName: ipaddressclaim-ipv4-prefixexhausted-2
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-prefixexhausted-2
+                name: ipaddressclaim-ipv4-prefixexhausted-2
                 finalizers:
                   - ipaddress.netbox.dev/finalizer
                 ownerReferences:
@@ -87,11 +85,9 @@ spec:
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-prefixexhausted-2
+                    name: ipaddressclaim-ipv4-prefixexhausted-2
               spec:
                 comments: your comments
-                customFields:
-                  netboxOperatorRestorationHash: ecac08bede002e445a79a0ba69ab4adbed4ef601
                 description: some description
                 ipAddress: 3.1.1.2/32
                 tenant: MY_TENANT
@@ -108,7 +104,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               metadata:
-                name: ipaddressclaim-ipv4-apply-prefixexhausted-3
+                name: ipaddressclaim-ipv4-prefixexhausted-3
               spec:
                 comments: your comments
                 description: some description
@@ -131,4 +127,4 @@ spec:
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: IpAddressClaim
-                name: ipaddressclaim-ipv4-apply-prefixexhausted-3
+                name: ipaddressclaim-ipv4-prefixexhausted-3

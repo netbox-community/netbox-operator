@@ -1,7 +1,7 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: ipaddressclaim-ipv4-restoration-succeed
+  name: ipaddressclaim-ipv4-restore
 spec:
   steps:
     - name: Install CR 1
@@ -14,7 +14,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               metadata:
-                name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                name: ipaddressclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 description: some description
@@ -26,23 +26,23 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.2.1/32
                 ipAddressDotDecimal: 3.1.2.1
-                ipAddressName: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                ipAddressName: ipaddressclaim-ipv4-restore-1
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                name: ipaddressclaim-ipv4-restore-1
                 ownerReferences:
                   - apiVersion: netbox.dev/v1
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                    name: ipaddressclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: ddc8b138e19d022ed29cfc207fc049e20bfad83c
+                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3
                 description: some description
                 ipAddress: 3.1.2.1/32
                 preserveInNetbox: true
@@ -57,7 +57,7 @@ spec:
             ref:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
-              name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+              name: ipaddressclaim-ipv4-restore-1
     - name: Install CR 2
       description: Apply IpAddressClaim CR 2
       try:
@@ -68,7 +68,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               metadata:
-                name: ipaddressclaim-ipv4-apply-delete-apply-restored-2
+                name: ipaddressclaim-ipv4-restore-2
               spec:
                 comments: your comments
                 description: some description
@@ -80,13 +80,13 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.2.2/32
                 ipAddressDotDecimal: 3.1.2.2
-                ipAddressName: ipaddressclaim-ipv4-apply-delete-apply-restored-2
+                ipAddressName: ipaddressclaim-ipv4-restore-2
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-delete-apply-restored-2
+                name: ipaddressclaim-ipv4-restore-2
                 finalizers:
                   - ipaddress.netbox.dev/finalizer
                 ownerReferences:
@@ -94,11 +94,11 @@ spec:
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-delete-apply-restored-2
+                    name: ipaddressclaim-ipv4-restore-2
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: ceebbcd9b58daed7db6ac5c9bb0fb3d98c2c60d4
+                  netboxOperatorRestorationHash: 68f3c984db1760fd5a398dd6d6af7a1f3e3565f5
                 description: some description
                 ipAddress: 3.1.2.2/32
                 tenant: MY_TENANT
@@ -115,7 +115,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               metadata:
-                name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                name: ipaddressclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 description: some description
@@ -127,23 +127,23 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.2.1/32
                 ipAddressDotDecimal: 3.1.2.1
-                ipAddressName: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                ipAddressName: ipaddressclaim-ipv4-restore-1
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                name: ipaddressclaim-ipv4-restore-1
                 ownerReferences:
                   - apiVersion: netbox.dev/v1
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+                    name: ipaddressclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: ddc8b138e19d022ed29cfc207fc049e20bfad83c
+                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3
                 description: some description
                 ipAddress: 3.1.2.1/32
                 preserveInNetbox: true
@@ -158,4 +158,4 @@ spec:
             ref:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
-              name: ipaddressclaim-ipv4-apply-delete-apply-restored-1
+              name: ipaddressclaim-ipv4-restore-1

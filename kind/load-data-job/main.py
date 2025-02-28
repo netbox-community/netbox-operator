@@ -416,7 +416,7 @@ prefixes = [
     # Resources used by IpAddress and IpAddressClaim tests
     Prefix(
         prefix="3.1.0.0/24",
-        description="GivenIpAddressClaimWhenAppliedUpdatedThenSucceed",
+        description="ipaddressclaim-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -432,7 +432,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.1.0/30",
-        description="GivenIpAddressClaimWhenAppliedThenFailedPrefixExhausted",
+        description="ipaddressclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",

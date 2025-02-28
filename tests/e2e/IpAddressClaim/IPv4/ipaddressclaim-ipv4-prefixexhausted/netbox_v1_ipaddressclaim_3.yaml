@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: ipaddressclaim-ipv4-apply-prefixexhausted-2
+  name: ipaddressclaim-ipv4-prefixexhausted-3
 spec:
   tenant: "MY_TENANT"
   description: "some description"

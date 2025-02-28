@@ -4,10 +4,10 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: ipaddressclaim-ipv4-apply-delete-apply-restored-2
+  name: ipaddressclaim-ipv4-prefixexhausted-2
 spec:
   tenant: "MY_TENANT"
   description: "some description"
   comments: "your comments"
   preserveInNetbox: false
-  parentPrefix: "3.1.2.0/24"
+  parentPrefix: "3.1.1.0/30"
