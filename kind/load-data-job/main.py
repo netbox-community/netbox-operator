@@ -711,7 +711,7 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3.2.1.0/30",
+        prefix="3.2.1.0/26",
         description="e2e test iprangeclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
@@ -856,7 +856,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:2:0::/64",
-        description="",
+        description="e2e test iprangeclaim-ipv6-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -871,8 +871,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3:2:1::/127",
-        description="",
+        prefix="3:2:1::/122",
+        description="e2e test iprangeclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -888,7 +888,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:2:2::/64",
-        description="",
+        description="e2e test iprangeclaim-ipv6-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
