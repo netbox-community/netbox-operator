@@ -1,0 +1,15 @@
+---
+apiVersion: netbox.dev/v1
+kind: IpRangeClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: iprangeclaim-ipv4-apply-update
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  parentPrefix: "3.2.0.0/24"
+  size: 30

@@ -1,0 +1,118 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv4-apply-update
+  annotations:
+    description: Tests if creation and update is successful
+    # TODO(jstudler): Add update of custom fields
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                labels:
+                  app.kubernetes.io/name: netbox-operator
+                  app.kubernetes.io/managed-by: kustomize
+                name: iprangeclaim-ipv4-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "some description"
+                comments: "your comments"
+                parentPrefix: "3.2.0.0/24"
+                size: 30
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3.2.0.30/32
+                endAddressDotDecimal: 3.2.0.30
+                ipAddressName: iprangeclaim-ipv4-apply-update
+                ipRange: 3.2.0.1/32-3.2.0.30/32
+                ipRangeDotDecimal: 3.2.0.1-3.2.0.30
+                startAddress: 3.2.0.1/32
+                startAddressDotDecimal: 3.2.0.1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv4-apply-update
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv4-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                startAddress: 3.2.0.1/32
+                endAddress: 3.2.0.30/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                labels:
+                  app.kubernetes.io/name: netbox-operator
+                  app.kubernetes.io/managed-by: kustomize
+                name: iprangeclaim-ipv4-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "new description"
+                comments: "new comments"
+                parentPrefix: "3.2.0.0/24"
+                size: 30
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3.2.0.30/32
+                endAddressDotDecimal: 3.2.0.30
+                ipAddressName: iprangeclaim-ipv4-apply-update
+                ipRange: 3.2.0.1/32-3.2.0.30/32
+                ipRangeDotDecimal: 3.2.0.1-3.2.0.30
+                startAddress: 3.2.0.1/32
+                startAddressDotDecimal: 3.2.0.1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv4-apply-update
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv4-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                startAddress: 3.2.0.1/32
+                endAddress: 3.2.0.30/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
