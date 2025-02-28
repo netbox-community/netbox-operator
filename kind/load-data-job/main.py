@@ -413,10 +413,65 @@ prefixes = [
             "cfDataTypeInteger": 6,
         },
     ),
+    Prefix( # Used by prefixclaim-ipv6-parentprefixselector-apply-succeed
+        prefix="2::/64",
+        description="GivenPrefixClaimWithPreserveWhenParentPrefixSelectorAppliedDeletedAppliedThenRestorationSucceed",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "production",
+            "poolName": "pool 4",
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix( # TODO(henrybear327): debug why this entry is missing from NetBox after e2e test execution
+        prefix="2:0:0:1::/64",
+        description="",
+        site={
+            "name": "MY_SITE",
+            "slug": "my_site",
+            "tenant": {
+                "name": "MY_TENANT",
+                "slug": "my_tenant",
+            },
+        },
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "production",
+            "poolName": "pool 4",
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="2:0:0:2::/64",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 4",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 8,
+        },
+    ),
     # Resources used by IpAddress and IpAddressClaim tests
     Prefix(
         prefix="3.1.0.0/24",
-        description="ipaddressclaim-apply-update",
+        description="ipaddressclaim-ipv4-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -448,7 +503,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.2.0/24",
-        description="",
+        description="ipaddressclaim-ipv4-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -574,10 +629,9 @@ prefixes = [
             "cfDataTypeInteger": 7,
         },
     ),
-
-    Prefix( # Used by prefixclaim-ipv6-parentprefixselector-apply-succeed
-        prefix="2::/64",
-        description="GivenPrefixClaimWithPreserveWhenParentPrefixSelectorAppliedDeletedAppliedThenRestorationSucceed",
+    Prefix(
+        prefix="3:1:0::/64",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -585,37 +639,14 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "production", 
-            "poolName": "pool 4", 
-            "cfDataTypeBool": True,
-            "cfDataTypeInteger": 7,
-        },
-    ),
-    Prefix( # TODO(henrybear327): debug why this entry is missing from NetBox after e2e test execution
-        prefix="2:0:0:1::/64",
-        description="",
-        site={
-            "name": "MY_SITE",
-            "slug": "my_site",
-            "tenant": {
-                "name": "MY_TENANT",
-                "slug": "my_tenant",
-            },
-        },
-        tenant={
-            "name": "MY_TENANT",
-            "slug": "my_tenant",
-        },
-        status="active",
-        custom_fields={
-            "environment": "production", 
-            "poolName": "pool 4", 
-            "cfDataTypeBool": True,
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
             "cfDataTypeInteger": 7,
         },
     ),
     Prefix(
-        prefix="2:0:0:2::/64",
+        prefix="3:1:1::/126",
         description="",
         site=None,
         tenant={
@@ -624,12 +655,46 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "development", 
-            "poolName": "pool 4", 
+            "environment": "development",
+            "poolName": "pool 3",
             "cfDataTypeBool": False,
-            "cfDataTypeInteger": 8,
+            "cfDataTypeInteger": 7,
         },
     ),
+    Prefix(
+        prefix="3:1:2::/64",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3:1:3::/64",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+
+
     ###                      END                    ###
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###
