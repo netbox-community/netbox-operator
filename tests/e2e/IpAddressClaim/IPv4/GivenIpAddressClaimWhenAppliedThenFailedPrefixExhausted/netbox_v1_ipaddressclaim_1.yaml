@@ -10,4 +10,4 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: false
-  parentPrefix: "3.0.10.0/30"
+  parentPrefix: "3.1.1.0/30"

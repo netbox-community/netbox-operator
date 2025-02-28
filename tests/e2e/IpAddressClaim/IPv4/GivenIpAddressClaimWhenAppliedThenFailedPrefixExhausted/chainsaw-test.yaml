@@ -18,14 +18,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 3.0.10.0/30
+                parentPrefix: 3.1.1.0/30
                 preserveInNetbox: false
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-                ipAddress: 3.0.10.1/32
-                ipAddressDotDecimal: 3.0.10.1
+                ipAddress: 3.1.1.1/32
+                ipAddressDotDecimal: 3.1.1.1
                 ipAddressName: ipaddressclaim-ipv4-apply-prefixexhausted-1
         - assert:
             resource:
@@ -42,9 +42,9 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: c35345ed7de1a17d565670534e478df8e3e2d77a
+                  netboxOperatorRestorationHash: 100ad710d24e3d5cc32ddb93baaa58de02000721
                 description: some description
-                ipAddress: 3.0.10.1/32
+                ipAddress: 3.1.1.1/32
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
@@ -63,14 +63,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 3.0.10.0/30
+                parentPrefix: 3.1.1.0/30
                 preserveInNetbox: false
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-                ipAddress: 3.0.10.2/32
-                ipAddressDotDecimal: 3.0.10.2
+                ipAddress: 3.1.1.2/32
+                ipAddressDotDecimal: 3.1.1.2
                 ipAddressName: ipaddressclaim-ipv4-apply-prefixexhausted-2
         - assert:
             resource:
@@ -87,9 +87,9 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: 9bdc55ac4b7543c00c787fbea1819233d9256b0c
+                  netboxOperatorRestorationHash: ecac08bede002e445a79a0ba69ab4adbed4ef601
                 description: some description
-                ipAddress: 3.0.10.2/32
+                ipAddress: 3.1.1.2/32
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
@@ -108,7 +108,7 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 3.0.10.0/30
+                parentPrefix: 3.1.1.0/30
                 preserveInNetbox: false
                 tenant: MY_TENANT
               status:
