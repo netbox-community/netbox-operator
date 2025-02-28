@@ -631,7 +631,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:1:0::/64",
-        description="",
+        description="e2e test ipaddressclaim-ipv6-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -646,8 +646,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3:1:1::/126",
-        description="",
+        prefix="3:1:1::/127",
+        description="e2e test ipaddressclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -663,7 +663,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:1:2::/64",
-        description="",
+        description="e2e test ipaddressclaim-ipv6-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -871,7 +871,7 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3:2:1::/126",
+        prefix="3:2:1::/127",
         description="",
         site=None,
         tenant={
