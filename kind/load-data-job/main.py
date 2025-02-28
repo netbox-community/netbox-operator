@@ -217,7 +217,7 @@ prefixes = [
     # Resources used by Prefix and PrefixClaim tests
     Prefix(
         prefix="2.0.1.0/24",
-        description="e2e test prefixclaim-ipv4-prefixexhausted",
+        description="chainsaw test prefixclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -228,7 +228,7 @@ prefixes = [
     ),
     Prefix(
         prefix="2.0.2.0/24",
-        description="e2e test prefixclaim-ipv4-apply",
+        description="chainsaw test prefixclaim-ipv4-apply",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -239,7 +239,7 @@ prefixes = [
     ),
     Prefix(
         prefix="2.0.3.0/24",
-        description="e2e test prefixclaim-ipv4-parentprefixselector-restore",
+        description="chainsaw test prefixclaim-ipv4-parentprefixselector-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -266,7 +266,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.0.1.0/24",
-        description="e2e test prefixclaim-ipv4-parentprefixselector",
+        description="chainsaw test prefixclaim-ipv4-parentprefixselector",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -321,7 +321,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.0.4.0/24",
-        description="e2e test prefixclaim-ipv4-restore",
+        description="chainsaw test prefixclaim-ipv4-restore",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -415,7 +415,7 @@ prefixes = [
     ),
     Prefix(
         prefix="2::/64",
-        description="e2e test prefixclaim-ipv6-apply-update",
+        description="chainsaw test prefixclaim-ipv6-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -429,7 +429,7 @@ prefixes = [
             "cfDataTypeInteger": 7,
         },
     ),
-    Prefix( # TODO(henrybear327): debug why this entry is missing from NetBox after e2e test execution
+    Prefix( # TODO(henrybear327): debug why this entry is missing from NetBox after chainsaw test execution
         prefix="2:0:0:1::/64",
         description="",
         site={
@@ -471,7 +471,7 @@ prefixes = [
     # Resources used by IpAddress and IpAddressClaim tests
     Prefix(
         prefix="3.1.0.0/24",
-        description="e2e test ipaddressclaim-ipv4-apply-update",
+        description="chainsaw test ipaddressclaim-ipv4-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -487,7 +487,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.1.0/30",
-        description="e2e test ipaddressclaim-ipv4-prefixexhausted",
+        description="chainsaw test ipaddressclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -503,7 +503,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.2.0/24",
-        description="e2e test ipaddressclaim-ipv4-restore",
+        description="chainsaw test ipaddressclaim-ipv4-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -631,7 +631,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:1:0::/64",
-        description="e2e test ipaddressclaim-ipv6-apply-update",
+        description="chainsaw test ipaddressclaim-ipv6-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -647,7 +647,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:1:1::/127",
-        description="e2e test ipaddressclaim-ipv4-prefixexhausted",
+        description="chainsaw test ipaddressclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -663,7 +663,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:1:2::/64",
-        description="e2e test ipaddressclaim-ipv6-restore",
+        description="chainsaw test ipaddressclaim-ipv6-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -696,7 +696,7 @@ prefixes = [
     # Resources used by IpRange and IpRangeClaim tests
     Prefix(
         prefix="3.2.0.0/24",
-        description="e2e test iprangeclaim-ipv4-apply-update",
+        description="chainsaw test iprangeclaim-ipv4-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -712,7 +712,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.2.1.0/26",
-        description="e2e test iprangeclaim-ipv4-prefixexhausted",
+        description="chainsaw test iprangeclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -728,7 +728,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.2.2.0/24",
-        description="e2e test iprangeclaim-ipv4-restore",
+        description="chainsaw test iprangeclaim-ipv4-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -856,7 +856,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:2:0::/64",
-        description="e2e test iprangeclaim-ipv6-apply-update",
+        description="chainsaw test iprangeclaim-ipv6-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -872,7 +872,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:2:1::/122",
-        description="e2e test iprangeclaim-ipv4-prefixexhausted",
+        description="chainsaw test iprangeclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -888,7 +888,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:2:2::/64",
-        description="e2e test iprangeclaim-ipv6-restore",
+        description="chainsaw test iprangeclaim-ipv6-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
