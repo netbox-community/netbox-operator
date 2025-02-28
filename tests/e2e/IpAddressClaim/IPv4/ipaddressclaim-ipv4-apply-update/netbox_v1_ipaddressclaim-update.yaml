@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: ipaddressclaim-ipv4-apply-and-update
+  name: ipaddressclaim-ipv4-apply-update
 spec:
   tenant: "MY_TENANT"
   description: "new description"

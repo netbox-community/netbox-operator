@@ -1,7 +1,7 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: ipaddressclaim-apply-update
+  name: ipaddressclaim-ipv4-apply-update
 spec:
   steps:
     - name: Install CR
@@ -17,7 +17,7 @@ spec:
                 labels:
                   app.kubernetes.io/name: netbox-operator
                   app.kubernetes.io/managed-by: kustomize
-                name: ipaddressclaim-ipv4-apply-and-update
+                name: ipaddressclaim-ipv4-apply-update
               spec:
                 tenant: "MY_TENANT"
                 description: "some description"
@@ -29,13 +29,13 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.0.1/32
                 ipAddressDotDecimal: 3.1.0.1
-                ipAddressName: ipaddressclaim-ipv4-apply-and-update
+                ipAddressName: ipaddressclaim-ipv4-apply-update
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-and-update
+                name: ipaddressclaim-ipv4-apply-update
                 finalizers:
                   - ipaddress.netbox.dev/finalizer
                 ownerReferences:
@@ -43,11 +43,9 @@ spec:
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-and-update
+                    name: ipaddressclaim-ipv4-apply-update
               spec:
                 comments: your comments
-                customFields:
-                  netboxOperatorRestorationHash: ef9bddfb20e444e5bdbebf68a9cf51f0106e3751
                 description: some description
                 ipAddress: 3.1.0.1/32
                 tenant: MY_TENANT
@@ -64,7 +62,7 @@ spec:
                 labels:
                   app.kubernetes.io/name: netbox-operator
                   app.kubernetes.io/managed-by: kustomize
-                name: ipaddressclaim-ipv4-apply-and-update
+                name: ipaddressclaim-ipv4-apply-update
               spec:
                 tenant: "MY_TENANT"
                 description: "new description"
@@ -76,13 +74,13 @@ spec:
                   - status: 'True'
                 ipAddress: 3.1.0.1/32
                 ipAddressDotDecimal: 3.1.0.1
-                ipAddressName: ipaddressclaim-ipv4-apply-and-update
+                ipAddressName: ipaddressclaim-ipv4-apply-update
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: IpAddress
               metadata:
-                name: ipaddressclaim-ipv4-apply-and-update
+                name: ipaddressclaim-ipv4-apply-update
                 finalizers:
                   - ipaddress.netbox.dev/finalizer
                 ownerReferences:
@@ -90,11 +88,9 @@ spec:
                     blockOwnerDeletion: true
                     controller: true
                     kind: IpAddressClaim
-                    name: ipaddressclaim-ipv4-apply-and-update
+                    name: ipaddressclaim-ipv4-apply-update
               spec:
                 comments: new comments
-                customFields:
-                  netboxOperatorRestorationHash: ef9bddfb20e444e5bdbebf68a9cf51f0106e3751
                 description: new description
                 ipAddress: 3.1.0.1/32
                 tenant: MY_TENANT
