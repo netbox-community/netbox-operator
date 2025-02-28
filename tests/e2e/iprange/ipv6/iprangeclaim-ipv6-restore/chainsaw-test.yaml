@@ -1,0 +1,174 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv6-restore
+  annotations:
+    description: Tests if creation, deletion and re-creation is successfully restoring the same IP
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv6-restore-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3:2:2::/64
+                size: 30
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3:2:2::1e/128
+                endAddressDotDecimal: 3:2:2::1e
+                ipAddressName: iprangeclaim-ipv6-restore-1
+                ipRange: 3:2:2::1/128-3:2:2::1e/128
+                ipRangeDotDecimal: 3:2:2::1-3:2:2::1e
+                startAddress: 3:2:2::1/128
+                startAddressDotDecimal: 3:2:2::1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv6-restore-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv6-restore-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 63e120bdabdb0f18598573f1c7f068e03bfcae62  # note that this will require the tests to run in the e2e namespace!
+                description: some description
+                startAddress: 3:2:2::1/128
+                endAddress: 3:2:2::1e/128
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Delete CR 1
+      description: delete CR 1 (we only delete CR 1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              name: iprangeclaim-ipv6-restore-1
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv6-restore-2
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3:2:2::/64
+                size: 30
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3:2:2::3c/128
+                endAddressDotDecimal: 3:2:2::3c
+                ipAddressName: iprangeclaim-ipv6-restore-2
+                ipRange: 3:2:2::1f/128-3:2:2::3c/128
+                ipRangeDotDecimal: 3:2:2::1f-3:2:2::3c
+                startAddress: 3:2:2::1f/128
+                startAddressDotDecimal: 3:2:2::1f
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv6-restore-2
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv6-restore-2
+              spec:
+                comments: your comments
+                description: some description
+                startAddress: 3:2:2::1f/128
+                endAddress: 3:2:2::3c/128
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 1 again and check if restored
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_1.yaml
+    - name: Check CR 1 spec and status and make sure it is restored
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv6-restore-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3:2:2::/64
+                size: 30
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3:2:2::1e/128
+                endAddressDotDecimal: 3:2:2::1e
+                ipAddressName: iprangeclaim-ipv6-restore-1
+                ipRange: 3:2:2::1/128-3:2:2::1e/128
+                ipRangeDotDecimal: 3:2:2::1-3:2:2::1e
+                startAddress: 3:2:2::1/128
+                startAddressDotDecimal: 3:2:2::1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv6-restore-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv6-restore-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 63e120bdabdb0f18598573f1c7f068e03bfcae62  # note that this will require the tests to run in the e2e namespace!
+                description: some description
+                startAddress: 3:2:2::1/128
+                endAddress: 3:2:2::1e/128
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
