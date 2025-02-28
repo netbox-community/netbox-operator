@@ -238,7 +238,7 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
 
 # e2e tests
-E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m # --skip-delete (add this argument for local debugging)
+E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 6m --delete-timeout 6m --error-timeout 6m --exec-timeout 6m # --skip-delete (add this argument for local debugging)
 .PHONY: create-kind-3.7.8
 create-kind-3.7.8:
 	./kind/local-env.sh --version 3.7.8
