@@ -8,7 +8,7 @@ spec:
       description: Apply IpAddressClaim CR 1
       try:
         - apply:
-            file: netbox_v1_ipaddressclaim_1.yaml
+            file: netbox_v1_ipaddressclaim.yaml
         - assert:
             resource:
               apiVersion: netbox.dev/v1
