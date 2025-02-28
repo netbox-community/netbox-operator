@@ -5,13 +5,15 @@ metadata:
   name: ipaddressclaim-ipv4-apply-update
   annotations:
     description: Tests if creation and update is successful
+    # TODO(jstudler): Add update of custom fields
 spec:
   steps:
-    - name: Install CR
-      description: Apply IpAddressClaim CR
+    - name: Apply CR
       try:
         - apply:
             file: netbox_v1_ipaddressclaim.yaml
+    - name: Check CR spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -55,8 +57,12 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
+    - name: Update CR
+      try:
         - apply:
             file: netbox_v1_ipaddressclaim-update.yaml
+    - name: Check CR spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1

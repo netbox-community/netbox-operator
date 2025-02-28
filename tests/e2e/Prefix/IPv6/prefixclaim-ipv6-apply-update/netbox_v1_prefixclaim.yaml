@@ -4,19 +4,17 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+  name: prefixclaim-ipv6-apply-update
 spec:
-  tenant: "MY_TENANT_2"
-  site: "MY_SITE_2"
+  tenant: "MY_TENANT_2" # Use the `name` value instead of the `slug` value
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
-  prefixLength: "/28"
+  prefixLength: "/124"
   parentPrefixSelector: # The keys and values are case-sensitive
+    # if the entry for tenant or site is missing, it will *not* inherit from the tenant and site from the Spec
     tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
-    site: "MY_SITE" # Use the `name` value instead of the `slug` value
-    family: "IPv4" # Can only be either IPv4 or IPv6"
+    family: "IPv6" # Can only be either IPv4 or IPv6"
     
-    # custom fields of your interest
-    environment: "Production"
-    poolName: "Pool 2"
+    environment: "production"
+    poolName: "pool 4"

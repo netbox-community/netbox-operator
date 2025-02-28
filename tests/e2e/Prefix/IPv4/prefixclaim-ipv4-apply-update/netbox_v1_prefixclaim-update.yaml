@@ -1,15 +1,16 @@
+---
 apiVersion: netbox.dev/v1
 kind: PrefixClaim
 metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-ipv4-apply-delete-apply-restored-2
+  name: prefixclaim-ipv4-apply
 spec:
   tenant: "MY_TENANT"
   site: "MY_SITE"
-  description: "some description"
-  comments: "your comments"
-  preserveInNetbox: true
-  parentPrefix: "2.0.3.0/24"
+  description: "new description"
+  comments: "new comments"
+  preserveInNetbox: false
+  parentPrefix: "2.0.2.0/24"
   prefixLength: "/28"

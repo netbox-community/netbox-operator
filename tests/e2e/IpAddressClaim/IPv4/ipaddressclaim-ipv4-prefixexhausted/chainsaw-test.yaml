@@ -4,14 +4,15 @@ kind: Test
 metadata:
   name: ipaddressclaim-ipv4-prefixexhausted
   annotations:
-    description: Tests if creation fails if the ParentPrefix is exhausted
+    description: Tests if creation fails in case the ParentPrefix is exhausted
 spec:
   steps:
-    - name: Install CR 1
-      description: Apply IpAddressClaim CR 1
+    - name: Apply CR 1
       try:
         - apply:
             file: netbox_v1_ipaddressclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -52,11 +53,12 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-    - name: Install CR 2
-      description: Apply IpAddressClaim CR 2
+    - name: Apply CR 2
       try:
         - apply:
             file: netbox_v1_ipaddressclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -97,11 +99,12 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-    - name: Install CR 3
-      description: Apply IpAddressClaim CR 3
+    - name: Apply CR 3
       try:
         - apply:
             file: netbox_v1_ipaddressclaim_3.yaml
+    - name: Check CR 3 spec and status and verify it fails
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1

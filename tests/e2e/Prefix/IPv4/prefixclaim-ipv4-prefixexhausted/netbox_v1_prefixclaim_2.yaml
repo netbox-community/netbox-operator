@@ -1,10 +1,11 @@
+---
 apiVersion: netbox.dev/v1
 kind: PrefixClaim
 metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-ipv4-apply-prefixexhausted-1
+  name: prefixclaim-ipv4-prefixexhausted-2
 spec:
   tenant: "MY_TENANT"
   site: "MY_SITE"

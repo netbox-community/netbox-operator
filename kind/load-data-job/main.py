@@ -215,9 +215,9 @@ prefixes = [
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###
     # Resources used by Prefix and PrefixClaim tests
-    Prefix( # Used by prefixclaim-ipv4-apply-exhausted
+    Prefix(
         prefix="2.0.1.0/24",
-        description="GivenPrefixClaimWhenAppliedThenFailedPrefixExhausted",
+        description="e2e test prefixclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -226,9 +226,9 @@ prefixes = [
         status="active",
         custom_fields={},
     ),
-    Prefix( # Used by prefixclaim-ipv4-apply-succeed
+    Prefix(
         prefix="2.0.2.0/24",
-        description="GivenPrefixClaimWithPreserveWhenAppliedThenSucceed",
+        description="e2e test prefixclaim-ipv4-apply",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -237,9 +237,9 @@ prefixes = [
         status="active",
         custom_fields={},
     ),
-    Prefix( # Used by prefixclaim-ipv4-restoration-succeed
+    Prefix(
         prefix="2.0.3.0/24",
-        description="GivenPrefixClaimWithPreserveWhenAppliedDeletedAppliedThenRestorationSucceed",
+        description="e2e test prefixclaim-ipv4-parentprefixselector-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -264,9 +264,9 @@ prefixes = [
             "cfDataTypeInteger": 1,
         },
     ),
-    Prefix( # Used by prefixclaim-ipv4-parentprefixselector-apply-succeed
+    Prefix(
         prefix="3.0.1.0/24",
-        description="GivenPrefixClaimWithIPv4ParentPrefixSelectorWhenAppliedThenSucceed",
+        description="e2e test prefixclaim-ipv4-parentprefixselector",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -319,9 +319,9 @@ prefixes = [
             "cfDataTypeInteger": 3,
         },
     ),
-    Prefix( # Used by prefixclaim-ipv4-parentprefixselector-restoration-succeed
+    Prefix(
         prefix="3.0.4.0/24",
-        description="GivenPrefixClaimWithPreserveWhenParentPrefixSelectorAppliedDeletedAppliedThenRestorationSucceed",
+        description="e2e test prefixclaim-ipv4-restore",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -413,9 +413,9 @@ prefixes = [
             "cfDataTypeInteger": 6,
         },
     ),
-    Prefix( # Used by prefixclaim-ipv6-parentprefixselector-apply-succeed
+    Prefix(
         prefix="2::/64",
-        description="GivenPrefixClaimWithPreserveWhenParentPrefixSelectorAppliedDeletedAppliedThenRestorationSucceed",
+        description="e2e test prefixclaim-ipv6-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -471,7 +471,7 @@ prefixes = [
     # Resources used by IpAddress and IpAddressClaim tests
     Prefix(
         prefix="3.1.0.0/24",
-        description="ipaddressclaim-ipv4-apply-update",
+        description="e2e test ipaddressclaim-ipv4-apply-update",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -487,7 +487,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.1.0/30",
-        description="ipaddressclaim-ipv4-prefixexhausted",
+        description="e2e test ipaddressclaim-ipv4-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -503,7 +503,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.2.0/24",
-        description="ipaddressclaim-ipv4-restore",
+        description="e2e test ipaddressclaim-ipv4-restore",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -693,8 +693,231 @@ prefixes = [
             "cfDataTypeInteger": 7,
         },
     ),
-
-
+    # Resources used by IpRange and IpRangeClaim tests
+    Prefix(
+        prefix="3.2.0.0/24",
+        description="e2e test iprangeclaim-ipv4-apply-update",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.1.0/30",
+        description="e2e test iprangeclaim-ipv4-prefixexhausted",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 8,
+        },
+    ),
+    Prefix(
+        prefix="3.2.2.0/24",
+        description="e2e test iprangeclaim-ipv4-restore",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.3.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.4.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.5.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.6.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.7.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.8.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.2.9.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3:2:0::/64",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3:2:1::/126",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3:2:2::/64",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3:2:3::/64",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
     ###                      END                    ###
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###

@@ -1,0 +1,80 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-apply-update
+  annotations:
+    description: Tests if creation and update is successful
+    # TODO(jstudler): Add update of custom fields
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-apply
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 2.0.2.0/24
+                prefixLength: /28
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                parentPrefix: 2.0.2.0/24
+                prefix: 2.0.2.0/28
+                prefixName: prefixclaim-ipv4-apply
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-apply
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2.0.2.0/28
+                site: MY_SITE
+                tenant: MY_TENANT
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-apply
+              spec:
+                comments: new comments
+                description: new description
+                parentPrefix: 2.0.2.0/24
+                prefixLength: /28
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                parentPrefix: 2.0.2.0/24
+                prefix: 2.0.2.0/28
+                prefixName: prefixclaim-ipv4-apply
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-apply
+              spec:
+                comments: new comments
+                description: new description
+                prefix: 2.0.2.0/28
+                site: MY_SITE
+                tenant: MY_TENANT

@@ -7,11 +7,12 @@ metadata:
     description: Tests if creation, deletion and re-creation is successfully restoring the same IP
 spec:
   steps:
-    - name: Install CR 1
-      description: Apply IpAddressClaim CR 1
+    - name: Apply CR 1
       try:
         - apply:
             file: netbox_v1_ipaddressclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -53,19 +54,20 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-    - name: Delete the applied CR 1
-      description: delete prefix claim CR 1 (we only delete CR1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
+    - name: Delete CR 1
+      description: delete CR 1 (we only delete CR 1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
       try:
         - delete:
             ref:
               apiVersion: netbox.dev/v1
               kind: IpAddressClaim
               name: ipaddressclaim-ipv4-restore-1
-    - name: Install CR 2
-      description: Apply IpAddressClaim CR 2
+    - name: Apply CR 2
       try:
         - apply:
             file: netbox_v1_ipaddressclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -106,11 +108,12 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-    - name: Install CR 1 again
-      description: Apply IpAddressClaim CR 1
+    - name: Apply CR 1 again and check if restored
       try:
         - apply:
             file: netbox_v1_ipaddressclaim_1.yaml
+    - name: Check CR 1 spec and status and make sure it is restored
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -152,11 +155,3 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-    - name: Delete the applied CR 1
-      description: delete prefix claim CR 1 (we only delete CR1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
-      try:
-        - delete:
-            ref:
-              apiVersion: netbox.dev/v1
-              kind: IpAddressClaim
-              name: ipaddressclaim-ipv4-restore-1

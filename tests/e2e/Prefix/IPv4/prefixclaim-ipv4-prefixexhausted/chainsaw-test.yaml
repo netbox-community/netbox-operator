@@ -1,20 +1,24 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: prefixclaim-ipv4-apply-exhausted
+  name: prefixclaim-ipv4-prefixexhausted
+  annotations:
+    description: Tests if creation fails in case the ParentPrefix is exhausted
 spec:
   steps:
-    - name: Install CR 1
-      description: Apply prefix claim CR 1
+    - name: Apply CR 1
       try:
         - apply:
             file: netbox_v1_prefixclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-apply-prefixexhausted-1
+                name: prefixclaim-ipv4-prefixexhausted-1
               spec:
                 comments: your comments
                 description: some description
@@ -26,30 +30,31 @@ spec:
               status:
                 parentPrefix: 2.0.1.0/24
                 prefix: 2.0.1.0/25
-                prefixName: prefixclaim-ipv4-apply-prefixexhausted-1
+                prefixName: prefixclaim-ipv4-prefixexhausted-1
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-apply-prefixexhausted-1
+                name: prefixclaim-ipv4-prefixexhausted-1
               spec:
                 comments: your comments
                 description: some description
                 prefix: 2.0.1.0/25
                 site: MY_SITE
                 tenant: MY_TENANT
-    - name: Install CR 2
-      description: Apply prefix claim CR 2
+    - name: Apply CR 2
       try:
         - apply:
             file: netbox_v1_prefixclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-apply-prefixexhausted-2
+                name: prefixclaim-ipv4-prefixexhausted-2
               spec:
                 comments: your comments
                 description: some description
@@ -61,24 +66,25 @@ spec:
               status:
                 parentPrefix: 2.0.1.0/24
                 prefix: 2.0.1.128/25
-                prefixName: prefixclaim-ipv4-apply-prefixexhausted-2
+                prefixName: prefixclaim-ipv4-prefixexhausted-2
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-apply-prefixexhausted-2
+                name: prefixclaim-ipv4-prefixexhausted-2
               spec:
                 comments: your comments
                 description: some description
                 prefix: 2.0.1.128/25
                 site: MY_SITE
                 tenant: MY_TENANT
-    - name: Install CR 3
-      description: Apply prefix claim CR 3
+    - name: Apply CR 3
       try:
         - apply:
             file: netbox_v1_prefixclaim_3.yaml
+    - name: Check CR spec and status and verify it fails
+      try:
         - assert:
             resource:
               apiVersion: v1
@@ -92,4 +98,4 @@ spec:
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: PrefixClaim
-                name: prefixclaim-ipv4-apply-prefixexhausted-3
+                name: prefixclaim-ipv4-prefixexhausted-3

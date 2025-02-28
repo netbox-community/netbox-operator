@@ -1,10 +1,13 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: prefixclaim-ipv4-parentprefixselector-restoration-succeed
+  name: prefixclaim-ipv4-restore
+  annotations:
+    description: Tests if creation, deletion and re-creation is successfully restoring the same Prefix
 spec:
   steps:
-    - name: Apply prefix claim CR 1 for the first time and go through each field and check for equality
+    - name: Apply CR 1
       try:
         - apply:
             file: netbox_v1_prefixclaim_1.yaml
@@ -13,7 +16,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+                name: prefixclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 description: some description
@@ -30,13 +33,15 @@ spec:
               status:
                 parentPrefix: 3.0.4.0/24
                 prefix: 3.0.4.0/28
-                prefixName: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+                prefixName: prefixclaim-ipv4-restore-1
+    - name: Check CR 1 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+                name: prefixclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 description: some description
@@ -45,8 +50,16 @@ spec:
                 site: MY_SITE_2
                 tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: d571cb2311db97e7564f32cf3543ac0e3526e362
-    - name: Apply prefix claim CR 2 for the first time and go through each field and check for equality
+                  netboxOperatorRestorationHash: 310f23f08db22c75902f36db71b69cfb84fbc4a7
+    - name: Delete CR 1
+      description: delete CR 1 (we only delete CR 1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              name: prefixclaim-ipv4-restore-1
+    - name: Apply CR 2
       try:
         - apply:
             file: netbox_v1_prefixclaim_2.yaml
@@ -55,7 +68,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-2
+                name: prefixclaim-ipv4-restore-2
               spec:
                 comments: your comments
                 description: some description
@@ -66,47 +79,38 @@ spec:
                   site: MY_SITE
                   tenant: MY_TENANT
                 prefixLength: /28
-                preserveInNetbox: true
                 site: MY_SITE_2
                 tenant: MY_TENANT_2
               status:
                 parentPrefix: 3.0.4.0/24
                 prefix: 3.0.4.16/28
-                prefixName: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-2
+                prefixName: prefixclaim-ipv4-restore-2
+    - name: Check CR 2 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-2
+                name: prefixclaim-ipv4-restore-2
               spec:
                 comments: your comments
                 description: some description
                 prefix: 3.0.4.16/28
-                preserveInNetbox: true
                 site: MY_SITE_2
                 tenant: MY_TENANT_2
-                customFields:
-                  netboxOperatorRestorationHash: 2fecef786a6c3590bc219c540d2a142f9e2ad907
-    - name: Delete the applied CR 1
-      description: delete prefix claim CR 1 (we only delete CR1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
-      try:
-        - delete:
-            ref:
-              apiVersion: netbox.dev/v1
-              kind: PrefixClaim
-              name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
-    - name: Apply prefix claim CR 1 for the second time and check after deletion and reapply of CR 1
-      description: 
+    - name: Apply CR 1 for the second time again
       try:
         - apply:
             file: netbox_v1_prefixclaim_1.yaml      
+    - name: Check CR 1 spec and status and make sure it is restored
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+                name: prefixclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 description: some description
@@ -123,13 +127,13 @@ spec:
               status:
                 parentPrefix: Prefix restored from hash, cannot infer the parent prefix
                 prefix: 3.0.4.0/28
-                prefixName: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+                prefixName: prefixclaim-ipv4-restore-1
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-1
+                name: prefixclaim-ipv4-restore-1
               spec:
                 comments: your comments
                 description: some description
@@ -138,42 +142,4 @@ spec:
                 site: MY_SITE_2
                 tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: d571cb2311db97e7564f32cf3543ac0e3526e362
-        - assert:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: PrefixClaim
-              metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-2
-              spec:
-                comments: your comments
-                description: some description
-                parentPrefixSelector:
-                  environment: Production
-                  family: IPv4
-                  poolName: Pool 2
-                  site: MY_SITE
-                  tenant: MY_TENANT
-                prefixLength: /28
-                preserveInNetbox: true
-                site: MY_SITE_2
-                tenant: MY_TENANT_2
-              status:
-                parentPrefix: 3.0.4.0/24
-                prefix: 3.0.4.16/28
-                prefixName: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-2
-        - assert:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: Prefix
-              metadata:
-                name: prefixclaim-ipv4-parentprefixselector-apply-delete-apply-restored-2
-              spec:
-                comments: your comments
-                description: some description
-                prefix: 3.0.4.16/28
-                preserveInNetbox: true
-                site: MY_SITE_2
-                tenant: MY_TENANT_2
-                customFields:
-                  netboxOperatorRestorationHash: 2fecef786a6c3590bc219c540d2a142f9e2ad907
+                  netboxOperatorRestorationHash: 310f23f08db22c75902f36db71b69cfb84fbc4a7
