@@ -195,11 +195,13 @@ class Prefix:
     site: dict
     tenant: dict
     status: str
-    custom_fields: dict 
+    custom_fields: dict
+    description: str
 
 prefixes = [
     Prefix(
-        prefix="2.0.0.0/16",    
+        prefix="2.0.0.0/16",
+        description="",
         site=None,
         tenant={
             "name": "Dunder-Mifflin, Inc.",
@@ -212,8 +214,10 @@ prefixes = [
     ###                     START                   ###
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###
+    # Resources used by Prefix and PrefixClaim tests
     Prefix( # Used by prefixclaim-ipv4-apply-exhausted
-        prefix="2.0.1.0/24",    
+        prefix="2.0.1.0/24",
+        description="GivenPrefixClaimWhenAppliedThenFailedPrefixExhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -223,7 +227,8 @@ prefixes = [
         custom_fields={},
     ),
     Prefix( # Used by prefixclaim-ipv4-apply-succeed
-        prefix="2.0.2.0/24",    
+        prefix="2.0.2.0/24",
+        description="GivenPrefixClaimWithPreserveWhenAppliedThenSucceed",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -233,7 +238,8 @@ prefixes = [
         custom_fields={},
     ),
     Prefix( # Used by prefixclaim-ipv4-restoration-succeed
-        prefix="2.0.3.0/24",    
+        prefix="2.0.3.0/24",
+        description="GivenPrefixClaimWithPreserveWhenAppliedDeletedAppliedThenRestorationSucceed",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -242,9 +248,9 @@ prefixes = [
         status="active",
         custom_fields={},
     ),
-
     Prefix( # TODO(henrybear327): debug why prefixclaim-ipv4-parentprefixselector-apply-succeed isn't using this prefix
-        prefix="3.0.0.0/24",    
+        prefix="3.0.0.0/24",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -259,7 +265,8 @@ prefixes = [
         },
     ),
     Prefix( # Used by prefixclaim-ipv4-parentprefixselector-apply-succeed
-        prefix="3.0.1.0/24",    
+        prefix="3.0.1.0/24",
+        description="GivenPrefixClaimWithIPv4ParentPrefixSelectorWhenAppliedThenSucceed",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -281,7 +288,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3.0.2.0/24",    
+        prefix="3.0.2.0/24",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -296,7 +304,8 @@ prefixes = [
         },
     ),
     Prefix( # TODO(henrybear327): debug why prefixclaim-ipv4-parentprefixselector-restoration-succeed isn't using this prefix
-        prefix="3.0.3.0/24",    
+        prefix="3.0.3.0/24",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -311,7 +320,8 @@ prefixes = [
         },
     ),
     Prefix( # Used by prefixclaim-ipv4-parentprefixselector-restoration-succeed
-        prefix="3.0.4.0/24",    
+        prefix="3.0.4.0/24",
+        description="GivenPrefixClaimWithPreserveWhenParentPrefixSelectorAppliedDeletedAppliedThenRestorationSucceed",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -333,7 +343,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3.0.5.0/24",    
+        prefix="3.0.5.0/24",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -348,7 +359,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3.0.6.0/24",    
+        prefix="3.0.6.0/24",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -363,7 +375,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3.0.7.0/24",    
+        prefix="3.0.7.0/24",
+        description="",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -385,7 +398,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="3.0.8.0/24",    
+        prefix="3.0.8.0/24",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -393,15 +407,177 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "development", 
-            "poolName": "pool 3", 
+            "environment": "development",
+            "poolName": "pool 3",
             "cfDataTypeBool": False,
             "cfDataTypeInteger": 6,
         },
     ),
+    # Resources used by IpAddress and IpAddressClaim tests
+    Prefix(
+        prefix="3.1.0.0/24",
+        description="GivenIpAddressClaimWhenAppliedUpdatedThenSucceed",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.1.0/30",
+        description="GivenIpAddressClaimWhenAppliedThenFailedPrefixExhausted",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 8,
+        },
+    ),
+    Prefix(
+        prefix="3.1.2.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.3.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.4.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.5.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.6.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.7.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.8.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
+    Prefix(
+        prefix="3.1.9.0/24",
+        description="",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "development",
+            "poolName": "pool 3",
+            "cfDataTypeBool": False,
+            "cfDataTypeInteger": 7,
+        },
+    ),
 
     Prefix( # Used by prefixclaim-ipv6-parentprefixselector-apply-succeed
-        prefix="2::/64",    
+        prefix="2::/64",
+        description="GivenPrefixClaimWithPreserveWhenParentPrefixSelectorAppliedDeletedAppliedThenRestorationSucceed",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -416,7 +592,8 @@ prefixes = [
         },
     ),
     Prefix( # TODO(henrybear327): debug why this entry is missing from NetBox after e2e test execution
-        prefix="2:0:0:1::/64",    
+        prefix="2:0:0:1::/64",
+        description="",
         site={
             "name": "MY_SITE",
             "slug": "my_site",
@@ -438,7 +615,8 @@ prefixes = [
         },
     ),
     Prefix(
-        prefix="2:0:0:2::/64",    
+        prefix="2:0:0:2::/64",
+        description="",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -462,6 +640,7 @@ for prefix in prefixes:
         nb.ipam.prefixes.create(
             prefix=prefix.prefix,
             site=prefix.site,
+            description=prefix.description,
             tenant=prefix.tenant,
             status=prefix.status,
             custom_fields=prefix.custom_fields,
