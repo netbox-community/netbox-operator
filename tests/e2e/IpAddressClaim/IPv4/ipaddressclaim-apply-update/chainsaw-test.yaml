@@ -1,7 +1,10 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: ipaddressclaim-ipv4-apply-update
+  annotations:
+    description: Tests if creation and update is successful
 spec:
   steps:
     - name: Install CR

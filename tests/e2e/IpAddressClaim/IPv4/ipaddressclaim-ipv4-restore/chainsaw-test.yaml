@@ -1,7 +1,10 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: ipaddressclaim-ipv4-restore
+  annotations:
+    description: Tests if creation, deletion and re-creation is successfully restoring the same IP
 spec:
   steps:
     - name: Install CR 1
@@ -42,7 +45,7 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3
+                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3  # note that this will require the tests to run in the e2e namespace!
                 description: some description
                 ipAddress: 3.1.2.1/32
                 preserveInNetbox: true
@@ -97,8 +100,6 @@ spec:
                     name: ipaddressclaim-ipv4-restore-2
               spec:
                 comments: your comments
-                customFields:
-                  netboxOperatorRestorationHash: 68f3c984db1760fd5a398dd6d6af7a1f3e3565f5
                 description: some description
                 ipAddress: 3.1.2.2/32
                 tenant: MY_TENANT
@@ -143,7 +144,7 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3
+                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3  # note that this will require the tests to run in the e2e namespace!
                 description: some description
                 ipAddress: 3.1.2.1/32
                 preserveInNetbox: true
