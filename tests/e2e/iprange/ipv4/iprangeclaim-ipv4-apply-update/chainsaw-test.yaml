@@ -116,3 +116,13 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl -n netbox-operator-system get lease -oname | grep -v netbox | xargs -n1 kubectl -n netbox-operator-system delete  # to be enhanced in usage of leaselocker
+                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-apply-update -n $NAMESPACE

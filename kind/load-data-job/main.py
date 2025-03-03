@@ -744,7 +744,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.2.3.0/24",
-        description="",
+        description="chainsaw test iprangeclaim-ipv4-invalid-*",
         site=None,
         tenant={
             "name": "MY_TENANT",
