@@ -5,7 +5,6 @@ metadata:
   name: iprangeclaim-ipv4-invalid-customfieldwrongdatatype
   annotations:
     description: Tests if creation fails
-    # TODO(jstudler): Add update of custom fields
 spec:
   steps:
     - name: Apply CR

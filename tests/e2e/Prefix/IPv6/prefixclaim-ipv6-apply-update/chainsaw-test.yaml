@@ -5,6 +5,7 @@ metadata:
   annotations:
     description: Tests if creation and update is successful
     # TODO(jstudler): Add update of custom fields
+    # TODO(jstudler): Add update of preserveInNetbox
 spec:
   steps:
     - name: Apply CR
