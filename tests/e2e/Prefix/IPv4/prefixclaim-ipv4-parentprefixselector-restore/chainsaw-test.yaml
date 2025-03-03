@@ -11,8 +11,6 @@ spec:
       try:
         - apply:
             file: netbox_v1_prefixclaim_1.yaml
-    - name: Check CR 1 spec and status
-      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -22,15 +20,22 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.3.0/24
+                parentPrefixSelector:
+                  environment: Production
+                  family: IPv4
+                  poolName: Pool 2
+                  site: MY_SITE
+                  tenant: MY_TENANT
                 prefixLength: /28
                 preserveInNetbox: true
-                site: MY_SITE
-                tenant: MY_TENANT
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
-                parentPrefix: 2.0.3.0/24
-                prefix: 2.0.3.0/28
+                parentPrefix: 3.0.4.0/24
+                prefix: 3.0.4.0/28
                 prefixName: prefixclaim-ipv4-parentprefixselector-restore-1
+    - name: Check CR 1 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -40,12 +45,12 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.3.0/28
+                prefix: 3.0.4.0/28
                 preserveInNetbox: true
-                site: MY_SITE
-                tenant: MY_TENANT
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: 8d8c8991ec5337d2a2852bde3bdc2b0ecf8b4345
+                  netboxOperatorRestorationHash: 8a5e15cd391ec02a7a2b2e316bc163f4fe46ef0b
     - name: Delete CR 1
       description: delete CR 1 (we only delete CR 1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
       try:
@@ -58,8 +63,6 @@ spec:
       try:
         - apply:
             file: netbox_v1_prefixclaim_2.yaml
-    - name: Check CR 2 spec and status
-      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -69,15 +72,21 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.3.0/24
+                parentPrefixSelector:
+                  environment: Production
+                  family: IPv4
+                  poolName: Pool 2
+                  site: MY_SITE
+                  tenant: MY_TENANT
                 prefixLength: /28
-                preserveInNetbox: true
-                site: MY_SITE
-                tenant: MY_TENANT
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
-                parentPrefix: 2.0.3.0/24
-                prefix: 2.0.3.16/28
+                parentPrefix: 3.0.4.0/24
+                prefix: 3.0.4.16/28
                 prefixName: prefixclaim-ipv4-parentprefixselector-restore-2
+    - name: Check CR 2 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
@@ -87,15 +96,14 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.3.16/28
-                preserveInNetbox: true
-                site: MY_SITE
-                tenant: MY_TENANT
-    - name: Apply CR 1 for the second time again and check if restored
+                prefix: 3.0.4.16/28
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
+    - name: Apply CR 1 for the second time again
       try:
         - apply:
-            file: netbox_v1_prefixclaim_1.yaml
-    - name: Check CR 1 spec and status
+            file: netbox_v1_prefixclaim_1.yaml      
+    - name: Check CR 1 spec and status and make sure it is restored
       try:
         - assert:
             resource:
@@ -106,14 +114,19 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                parentPrefix: 2.0.3.0/24
+                parentPrefixSelector:
+                  environment: Production
+                  family: IPv4
+                  poolName: Pool 2
+                  site: MY_SITE
+                  tenant: MY_TENANT
                 prefixLength: /28
                 preserveInNetbox: true
-                site: MY_SITE
-                tenant: MY_TENANT
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
               status:
-                parentPrefix: 2.0.3.0/24
-                prefix: 2.0.3.0/28
+                parentPrefix: Prefix restored from hash, cannot infer the parent prefix
+                prefix: 3.0.4.0/28
                 prefixName: prefixclaim-ipv4-parentprefixselector-restore-1
         - assert:
             resource:
@@ -124,9 +137,9 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                prefix: 2.0.3.0/28
+                prefix: 3.0.4.0/28
                 preserveInNetbox: true
-                site: MY_SITE
-                tenant: MY_TENANT
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: 8d8c8991ec5337d2a2852bde3bdc2b0ecf8b4345
+                  netboxOperatorRestorationHash: 8a5e15cd391ec02a7a2b2e316bc163f4fe46ef0b

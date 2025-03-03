@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-ipv4-parentprefixselector
+  name: prefixclaim-ipv4-parentprefixselector-apply
 spec:
   tenant: "MY_TENANT_2" # Use the `name` value instead of the `slug` value
   site: "MY_SITE_2" # Use the `name` value instead of the `slug` value

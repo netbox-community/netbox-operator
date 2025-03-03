@@ -2,21 +2,23 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: prefixclaim-ipv4-parentprefixselector
+  name: prefixclaim-ipv4-parentprefixselector-apply
   annotations:
     description: Tests if creation succeeds when using parentPrefixSelector
 spec:
   steps:
-    - name: Apply prefix claim CR and go through each field and check for equality
+    - name: Apply CR 1
       try:
         - apply:
             file: netbox_v1_prefixclaim.yaml
+    - name: Check CR 1 spec and status
+      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector
+                name: prefixclaim-ipv4-parentprefixselector-apply
               spec:
                 comments: your comments
                 description: some description
@@ -33,13 +35,13 @@ spec:
               status:
                 parentPrefix: 3.0.1.0/24
                 prefix: 3.0.1.0/31
-                prefixName: prefixclaim-ipv4-parentprefixselector
+                prefixName: prefixclaim-ipv4-parentprefixselector-apply
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-parentprefixselector
+                name: prefixclaim-ipv4-parentprefixselector-apply
               spec:
                 comments: your comments
                 description: some description
@@ -47,4 +49,4 @@ spec:
                 preserveInNetbox: true
                 tenant: MY_TENANT_2
                 customFields:
-                  netboxOperatorRestorationHash: d3b34075fe4018e470f7e235ed350e13f37a76ce
+                  netboxOperatorRestorationHash: 46116345cc81820fdb412dc83e7147d4b1dc1afa

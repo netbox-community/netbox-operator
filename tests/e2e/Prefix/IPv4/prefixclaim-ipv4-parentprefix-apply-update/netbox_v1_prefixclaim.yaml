@@ -5,12 +5,12 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-ipv4-apply
+  name: prefixclaim-ipv4-parentprefix-apply-update
 spec:
   tenant: "MY_TENANT"
   site: "MY_SITE"
-  description: "new description"
-  comments: "new comments"
+  description: "some description"
+  comments: "your comments"
   preserveInNetbox: false
   parentPrefix: "2.0.2.0/24"
   prefixLength: "/28"

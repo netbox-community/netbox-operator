@@ -2,9 +2,9 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: prefixclaim-ipv4-apply-update
+  name: prefixclaim-ipv4-parentprefix-apply-update
   annotations:
-    description: Tests if creation and update is successful
+    description: Tests if creation and update is successful using parentPrefix
     # TODO(jstudler): Add update of customFields
     # TODO(jstudler): Add update of preserveInNetbox
 spec:
@@ -20,7 +20,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-apply
+                name: prefixclaim-ipv4-parentprefix-apply-update
               spec:
                 comments: your comments
                 description: some description
@@ -31,13 +31,13 @@ spec:
               status:
                 parentPrefix: 2.0.2.0/24
                 prefix: 2.0.2.0/28
-                prefixName: prefixclaim-ipv4-apply
+                prefixName: prefixclaim-ipv4-parentprefix-apply-update
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-apply
+                name: prefixclaim-ipv4-parentprefix-apply-update
               spec:
                 comments: your comments
                 description: some description
@@ -55,7 +55,7 @@ spec:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                name: prefixclaim-ipv4-apply
+                name: prefixclaim-ipv4-parentprefix-apply-update
               spec:
                 comments: new comments
                 description: new description
@@ -66,13 +66,13 @@ spec:
               status:
                 parentPrefix: 2.0.2.0/24
                 prefix: 2.0.2.0/28
-                prefixName: prefixclaim-ipv4-apply
+                prefixName: prefixclaim-ipv4-parentprefix-apply-update
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Prefix
               metadata:
-                name: prefixclaim-ipv4-apply
+                name: prefixclaim-ipv4-parentprefix-apply-update
               spec:
                 comments: new comments
                 description: new description

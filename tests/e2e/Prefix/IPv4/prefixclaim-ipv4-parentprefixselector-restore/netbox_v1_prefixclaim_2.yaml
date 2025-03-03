@@ -7,10 +7,16 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-ipv4-parentprefixselector-restore-2
 spec:
-  tenant: "MY_TENANT"
-  site: "MY_SITE"
+  tenant: "MY_TENANT_2"
+  site: "MY_SITE_2"
   description: "some description"
   comments: "your comments"
-  preserveInNetbox: true
-  parentPrefix: "2.0.3.0/24"
+  preserveInNetbox: false
   prefixLength: "/28"
+  parentPrefixSelector: # The keys and values are case-sensitive
+    tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
+    site: "MY_SITE" # Use the `name` value instead of the `slug` value
+    family: "IPv4" # Can only be either IPv4 or IPv6"
+    # custom fields of your interest
+    environment: "Production"
+    poolName: "Pool 2"
