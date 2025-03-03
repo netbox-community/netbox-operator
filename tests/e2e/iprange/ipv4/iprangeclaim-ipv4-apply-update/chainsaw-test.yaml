@@ -5,7 +5,8 @@ metadata:
   name: iprangeclaim-ipv4-apply-update
   annotations:
     description: Tests if creation and update is successful
-    # TODO(jstudler): Add update of custom fields
+    # TODO(jstudler): Add update of customFields
+    # TODO(jstudler): Add update of preserveInNetbox
 spec:
   steps:
     - name: Apply CR
