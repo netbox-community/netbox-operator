@@ -58,7 +58,7 @@ spec:
       try:
         - apply:
             file: netbox_v1_prefixclaim_2.yaml
-    - name: Check CR 1 spec and status
+    - name: Check CR 2 spec and status
       try:
         - assert:
             resource:
