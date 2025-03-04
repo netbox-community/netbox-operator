@@ -1,0 +1,158 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv6-prefixexhausted
+  annotations:
+    description: Tests if creation fails in case the ParentPrefix is exhausted
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv6-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3:2:1::/122
+                size: 30
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3:2:1::1e/128
+                endAddressDotDecimal: 3:2:1::1e
+                ipAddressName: iprangeclaim-ipv6-prefixexhausted-1
+                ipRange: 3:2:1::1/128-3:2:1::1e/128
+                ipRangeDotDecimal: 3:2:1::1-3:2:1::1e
+                startAddress: 3:2:1::1/128
+                startAddressDotDecimal: 3:2:1::1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv6-prefixexhausted-1
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv6-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                startAddress: 3:2:1::1/128
+                endAddress: 3:2:1::1e/128
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv6-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3:2:1::/122
+                size: 30
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3:2:1::3c/128
+                endAddressDotDecimal: 3:2:1::3c
+                ipAddressName: iprangeclaim-ipv6-prefixexhausted-2
+                ipRange: 3:2:1::1f/128-3:2:1::3c/128
+                ipRangeDotDecimal: 3:2:1::1f-3:2:1::3c
+                startAddress: 3:2:1::1f/128
+                startAddressDotDecimal: 3:2:1::1f
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv6-prefixexhausted-2
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv6-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                startAddress: 3:2:1::1f/128
+                endAddress: 3:2:1::3c/128
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_3.yaml
+    - name: Check CR 3 spec and status and verify it fails
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv6-prefixexhausted-3
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3:2:1::/122
+                size: 30
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'IPRangeAssigned']):  # TODO(jstudler): Change this to Ready, will need change in SetConditionAndCreateEvent to also update Ready condition
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              count: 1
+              kind: Event
+              type: Warning
+              reason: IPRangeCRNotCreated
+              source:
+                component: ip-range-claim-controller
+              message: Failed to fetch new IP Range from NetBox. Check the logs for more information.
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: IpRangeClaim
+                name: iprangeclaim-ipv6-prefixexhausted-3
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl -n netbox-operator-system get lease -oname | grep -v netbox | xargs -n1 kubectl -n netbox-operator-system delete  # to be enhanced in usage of leaselocker
+                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv6-prefixexhausted-1 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv6-prefixexhausted-2 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv6-prefixexhausted-3 -n $NAMESPACE

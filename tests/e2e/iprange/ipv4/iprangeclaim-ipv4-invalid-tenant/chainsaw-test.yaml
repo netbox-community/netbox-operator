@@ -1,0 +1,53 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv4-invalid-tenant
+  annotations:
+    description: Tests if creation fails
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                labels:
+                  app.kubernetes.io/name: netbox-operator
+                  app.kubernetes.io/managed-by: kustomize
+                name: iprangeclaim-ipv4-invalid-tenant
+              spec:
+                tenant: "nonexistingtenant"
+              status:
+                (conditions[?type == 'IPRangeAssigned']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              count: 1
+              kind: Event
+              type: Warning
+              reason: IPRangeCRNotCreated
+              source:
+                component: ip-range-claim-controller
+              message: Failed to fetch new IP Range from NetBox. Check the logs for more information.
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: IpRangeClaim
+                name: iprangeclaim-ipv4-invalid-tenant
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl -n netbox-operator-system get lease -oname | grep -v netbox | xargs -n1 kubectl -n netbox-operator-system delete  # to be enhanced in usage of leaselocker
+                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-invalid-tenant -n $NAMESPACE

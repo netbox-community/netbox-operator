@@ -1,0 +1,109 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ipaddressclaim-ipv4-apply-update
+  annotations:
+    description: Tests if creation and update is successful
+    # TODO(jstudler): Add update of customFields
+    # TODO(jstudler): Add update of preserveInNetbox
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                labels:
+                  app.kubernetes.io/name: netbox-operator
+                  app.kubernetes.io/managed-by: kustomize
+                name: ipaddressclaim-ipv4-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "some description"
+                comments: "your comments"
+                preserveInNetbox: false
+                parentPrefix: "3.1.0.0/24"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.0.1/32
+                ipAddressDotDecimal: 3.1.0.1
+                ipAddressName: ipaddressclaim-ipv4-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-apply-update
+                finalizers:
+                  - ipaddress.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                ipAddress: 3.1.0.1/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                labels:
+                  app.kubernetes.io/name: netbox-operator
+                  app.kubernetes.io/managed-by: kustomize
+                name: ipaddressclaim-ipv4-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "new description"
+                comments: "new comments"
+                preserveInNetbox: false
+                parentPrefix: "3.1.0.0/24"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.0.1/32
+                ipAddressDotDecimal: 3.1.0.1
+                ipAddressName: ipaddressclaim-ipv4-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-apply-update
+                finalizers:
+                  - ipaddress.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                ipAddress: 3.1.0.1/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'

@@ -1,0 +1,72 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv4-invalid-customfieldwrongdatatype
+  annotations:
+    description: Tests if creation fails
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv4-invalid-customfieldwrongdatatype
+              spec:
+                customFields:
+                  cfDataTypeInteger: "butthisisastring"
+              status:
+                (conditions[?type == 'IPRangeAssigned']):
+                  - status: 'True'
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                name: iprangeclaim-ipv4-invalid-customfieldwrongdatatype
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv4-invalid-customfieldwrongdatatype
+              spec:
+                customFields:
+                  cfDataTypeInteger: "butthisisastring"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: FailedToReserveIPRangeInNetbox
+              source:
+                component: ip-range-controller
+              message: Failed to reserve IP Range in NetBox. 3.2.3.1/32-3.2.3.30/32 . Check the logs for more information.
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: IpRange
+                name: iprangeclaim-ipv4-invalid-customfieldwrongdatatype
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl -n netbox-operator-system get lease -oname | grep -v netbox | xargs -n1 kubectl -n netbox-operator-system delete  # to be enhanced in usage of leaselocker
+                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-invalid-customfieldwrongdatatype -n $NAMESPACE

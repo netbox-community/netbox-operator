@@ -1,0 +1,157 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ipaddressclaim-ipv4-restore
+  annotations:
+    description: Tests if creation, deletion and re-creation is successfully restoring the same IP
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                name: ipaddressclaim-ipv4-restore-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.1.2.0/24
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.2.1/32
+                ipAddressDotDecimal: 3.1.2.1
+                ipAddressName: ipaddressclaim-ipv4-restore-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-restore-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-restore-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3  # note that this will require the tests to run in the e2e namespace!
+                description: some description
+                ipAddress: 3.1.2.1/32
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Delete CR 1
+      description: delete CR 1 (we only delete CR 1, so if the restoration failed to claim, it will take the next available prefix which will be wrong)
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              name: ipaddressclaim-ipv4-restore-1
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                name: ipaddressclaim-ipv4-restore-2
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.1.2.0/24
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.2.2/32
+                ipAddressDotDecimal: 3.1.2.2
+                ipAddressName: ipaddressclaim-ipv4-restore-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-restore-2
+                finalizers:
+                  - ipaddress.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-restore-2
+              spec:
+                comments: your comments
+                description: some description
+                ipAddress: 3.1.2.2/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 1 again and check if restored
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim_1.yaml
+    - name: Check CR 1 spec and status and make sure it is restored
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                name: ipaddressclaim-ipv4-restore-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.1.2.0/24
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.2.1/32
+                ipAddressDotDecimal: 3.1.2.1
+                ipAddressName: ipaddressclaim-ipv4-restore-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-restore-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-restore-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: c7113eab8a61aad6a7618acb510622555d75d0c3  # note that this will require the tests to run in the e2e namespace!
+                description: some description
+                ipAddress: 3.1.2.1/32
+                preserveInNetbox: true
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'

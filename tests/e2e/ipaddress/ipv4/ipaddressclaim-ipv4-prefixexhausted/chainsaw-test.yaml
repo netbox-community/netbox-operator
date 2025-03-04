@@ -1,0 +1,136 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ipaddressclaim-ipv4-prefixexhausted
+  annotations:
+    description: Tests if creation fails in case the ParentPrefix is exhausted
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                name: ipaddressclaim-ipv4-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.1.1.0/30
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.1.1/32
+                ipAddressDotDecimal: 3.1.1.1
+                ipAddressName: ipaddressclaim-ipv4-prefixexhausted-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-prefixexhausted-1
+                finalizers:
+                  - ipaddress.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                ipAddress: 3.1.1.1/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                name: ipaddressclaim-ipv4-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.1.1.0/30
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                ipAddress: 3.1.1.2/32
+                ipAddressDotDecimal: 3.1.1.2
+                ipAddressName: ipaddressclaim-ipv4-prefixexhausted-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddress
+              metadata:
+                name: ipaddressclaim-ipv4-prefixexhausted-2
+                finalizers:
+                  - ipaddress.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpAddressClaim
+                    name: ipaddressclaim-ipv4-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                ipAddress: 3.1.1.2/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_ipaddressclaim_3.yaml
+    - name: Check CR 3 spec and status and verify it fails
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpAddressClaim
+              metadata:
+                name: ipaddressclaim-ipv4-prefixexhausted-3
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.1.1.0/30
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'IPAssigned']):  # TODO(jstudler): Change this to Ready, will need change in SetConditionAndCreateEvent to also update Ready condition
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              count: 1
+              kind: Event
+              type: Warning
+              reason: IPAddressCRNotCreated
+              source:
+                component: ip-address-claim-controller
+              message: Failed to fetch new IP from NetBox. parent prefix exhausted
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: IpAddressClaim
+                name: ipaddressclaim-ipv4-prefixexhausted-3

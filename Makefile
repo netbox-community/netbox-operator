@@ -190,6 +190,7 @@ create-kind:
 .PHONY: deploy-kind
 deploy-kind: docker-build-local manifests kustomize
 	kind load docker-image ${LOCAL_IMG}
+	kind load docker-image ${LOCAL_IMG}  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 	$(KUSTOMIZE) build kind | $(KUBECTL) apply -f -
 
 .PHONY: undeploy-kind

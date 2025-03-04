@@ -1,0 +1,88 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv6-apply-update
+  annotations:
+    description: Tests if creation and update is successful
+    # TODO(jstudler): Add update of custom fields
+    # TODO(jstudler): Add update of preserveInNetbox
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv6-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefixSelector:
+                  environment: production
+                  family: IPv6
+                  poolName: pool 4
+                  tenant: MY_TENANT
+                prefixLength: /124
+                preserveInNetbox: true
+                tenant: MY_TENANT_2
+              status:
+                parentPrefix: 2::/64
+                prefix: 2::/124
+                prefixName: prefixclaim-ipv6-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv6-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2::/124
+                preserveInNetbox: true
+                tenant: MY_TENANT_2
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv6-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                parentPrefixSelector:
+                  environment: production
+                  family: IPv6
+                  poolName: pool 4
+                  tenant: MY_TENANT
+                prefixLength: /124
+                preserveInNetbox: true
+                tenant: MY_TENANT_2
+              status:
+                parentPrefix: 2::/64
+                prefix: 2::/124
+                prefixName: prefixclaim-ipv6-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv6-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                prefix: 2::/124
+                preserveInNetbox: true
+                tenant: MY_TENANT_2
