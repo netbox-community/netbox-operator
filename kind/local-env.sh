@@ -128,6 +128,10 @@ helm upgrade --install --namespace="${NAMESPACE}" netbox \
   --set externalDatabase.existingSecretName="netbox.netbox-db.credentials.postgresql.acid.zalan.do" \
   --set externalDatabase.existingSecretKey="password" \
   --set redis.auth.password="password" \
+  --set resources.requests.cpu="500m" \
+  --set resources.requests.memory="512Mi" \
+  --set resources.limits.cpu="2000m" \
+  --set resources.limits.memory="2Gi" \
   ${NETBOX_HELM_CHART}
 
 kubectl rollout status --namespace="${NAMESPACE}" deployment netbox

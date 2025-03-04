@@ -1,0 +1,101 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-prefixexhausted
+  annotations:
+    description: Tests if creation fails in case the ParentPrefix is exhausted
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 2.0.1.0/24
+                prefixLength: /25
+                preserveInNetbox: false
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                parentPrefix: 2.0.1.0/24
+                prefix: 2.0.1.0/25
+                prefixName: prefixclaim-ipv4-prefixexhausted-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-prefixexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2.0.1.0/25
+                site: MY_SITE
+                tenant: MY_TENANT
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 2.0.1.0/24
+                prefixLength: /25
+                preserveInNetbox: false
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                parentPrefix: 2.0.1.0/24
+                prefix: 2.0.1.128/25
+                prefixName: prefixclaim-ipv4-prefixexhausted-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-prefixexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 2.0.1.128/25
+                site: MY_SITE
+                tenant: MY_TENANT
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_3.yaml
+    - name: Check CR spec and status and verify it fails
+      try:
+        - assert:
+            resource:
+              apiVersion: v1
+              count: 1
+              kind: Event
+              type: Warning
+              reason: PrefixCRNotCreated
+              source:
+                component: prefix-claim-controller
+              message: Failed to fetch new Prefix from NetBox. parent prefix exhausted, will restart the parent prefix selection process
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: PrefixClaim
+                name: prefixclaim-ipv4-prefixexhausted-3

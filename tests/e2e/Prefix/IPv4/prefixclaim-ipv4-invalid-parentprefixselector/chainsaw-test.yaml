@@ -1,0 +1,52 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-invalid-parentprefixselector
+  annotations:
+    description: Tests if creation fails
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-invalid-parentprefixselector
+              spec:
+                tenant: "MY_TENANT_2" # Use the `name` value instead of the `slug` value
+                site: "MY_SITE_2" # Use the `name` value instead of the `slug` value
+                description: "some description"
+                comments: "your comments"
+                preserveInNetbox: true
+                prefixLength: "/31"
+                parentPrefixSelector: # The keys and values are case-sensitive
+                  tenant: "niltenant" # Use the `name` value instead of the `slug` value
+                  site: "nilsite" # Use the `name` value instead of the `slug` value
+                  family: "IPv4" # Can only be either IPv4 or IPv6"
+                  # custom fields of your interest
+                  environment: "nilenv"
+                  poolName: "nilpool"
+              status:
+                (conditions[?type == 'ParentPrefixSelected']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              count: 1
+              kind: Event
+              type: Warning
+              reason: ParentPrefixNotSelected
+              source:
+                component: prefix-claim-controller
+              message: "The parent prefix was not able to be selected. no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = failed to fetch tenant 'niltenant': not found, number of candidates = 0"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: PrefixClaim
+                name: prefixclaim-ipv4-invalid-parentprefixselector

@@ -17,10 +17,12 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
@@ -30,6 +32,7 @@ import (
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
+	"k8s.io/client-go/tools/metrics"
 )
 
 const (
@@ -64,6 +67,20 @@ func (r *NetboxClient) VerifyNetboxConfiguration() error {
 	return nil
 }
 
+type InstrumentedRoundTripper struct {
+	Transport http.RoundTripper
+}
+
+func (irt *InstrumentedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := irt.Transport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics.RequestResult.Increment(context.TODO(), strconv.Itoa(resp.StatusCode), req.Method, req.Host)
+	return resp, nil
+}
+
 func GetNetboxClient() (*NetboxClient, error) {
 
 	logger := log.StandardLogger()
@@ -92,8 +109,10 @@ func GetNetboxClient() (*NetboxClient, error) {
 	}
 
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
+		Transport: &InstrumentedRoundTripper{
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
 		},
 		Timeout: time.Second * time.Duration(RequestTimeout),
 	}
