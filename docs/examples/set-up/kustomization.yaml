@@ -1,0 +1,18 @@
+resources:
+  - ../../../kind
+
+patches:
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: controller-manager
+        namespace: system
+      spec:
+        template:
+          spec:
+            containers:
+              - name: manager
+                env:
+                  - name: NETBOX_HOST
+                    value: "172.18.1.2"

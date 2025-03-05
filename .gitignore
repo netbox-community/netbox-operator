@@ -31,3 +31,6 @@ go.work
 *~
 .drawio.dtmp
 .DS_Store
+
+# Temporary files
+tmp
