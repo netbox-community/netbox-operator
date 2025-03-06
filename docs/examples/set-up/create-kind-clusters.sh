@@ -41,6 +41,12 @@ for clustername in "$@"; do
 
     # install MetalLB
     kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+
+    # install kro
+    helm install kro oci://ghcr.io/kro-run/kro/kro \
+      --namespace kro \
+      --create-namespace \
+      --version=0.2.1
   else
     echo -e "${RED}Error: Configuration file $config_file not found${NC}"
     exit 1

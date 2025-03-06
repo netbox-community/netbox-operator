@@ -1,0 +1,15 @@
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-sample
+spec:
+  tenant: "MY_TENANT"
+  site: "DM-Akron"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  parentPrefix: 3.0.4.8/29
+  prefixLength: "/32"
