@@ -1,0 +1,14 @@
+resources:
+  - ../../../../podinfo/kustomize
+  - podinfo-int-ipaddresspool.yaml
+
+patches:
+  - patch: |-
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: podinfo
+        annotations:
+          metallb.universe.tf/allow-shared-ip: podinfo-int
+      spec:
+        type: LoadBalancer
