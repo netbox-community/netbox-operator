@@ -25,16 +25,6 @@ jobs:
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
-    - name: Wait for cluster to finish bootstraping
-      run: |
-        echo "Waiting for all nodes to be ready..."
-        kubectl wait --for=condition=Ready nodes --all --timeout=120s
-        kubectl get nodes
-        echo "Waiting for all pods to be ready..."
-        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
-        kubectl get pods -A
-        echo "Cluster information"
-        kubectl cluster-info
     - name: Run e2e tests
       run: |
         make test-e2e-3.7.8
@@ -49,16 +39,6 @@ jobs:
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
-    - name: Wait for cluster to finish bootstraping
-      run: |
-        echo "Waiting for all nodes to be ready..."
-        kubectl wait --for=condition=Ready nodes --all --timeout=120s
-        kubectl get nodes
-        echo "Waiting for all pods to be ready..."
-        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
-        kubectl get pods -A
-        echo "Cluster information"
-        kubectl cluster-info
     - name: Run e2e tests
       run: |
         make test-e2e-4.0.11
@@ -73,16 +53,6 @@ jobs:
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
-    - name: Wait for cluster to finish bootstraping
-      run: |
-        echo "Waiting for all nodes to be ready..."
-        kubectl wait --for=condition=Ready nodes --all --timeout=120s
-        kubectl get nodes
-        echo "Waiting for all pods to be ready..."
-        kubectl wait --for=condition=Ready pods --all --all-namespaces --timeout=300s
-        kubectl get pods -A
-        echo "Cluster information"
-        kubectl cluster-info
     - name: Run e2e tests
       run: |
         make test-e2e-4.1.8
