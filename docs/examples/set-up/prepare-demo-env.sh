@@ -1,28 +1,28 @@
 #!/bin/bash
 set -e
-# create the kind clusters netbox, prod and dev
-./docs/examples/set-up/create-kind-clusters.sh prod dev
+# create the kind clusters zurich and london
+./docs/examples/set-up/create-kind-clusters.sh zurich london
 
-# install netbox in the netbox cluster and load demo data
-kubectl config use-context kind-prod
-./kind/deploy-netbox.sh prod "4.1.8" default
+# install netbox in the london cluster and load demo data
+kubectl config use-context kind-london
+./kind/deploy-netbox.sh london "4.1.8" default
 kubectl apply -f docs/examples/set-up/netbox-svc.yaml
 kubectl apply -f docs/examples/set-up/netbox-l2advertisement.yaml
 
 
 # install NetBox Operator
-kubectl config use-context kind-prod
-kind load docker-image netbox-operator:build-local --name prod
-kind load docker-image netbox-operator:build-local --name prod  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
+kubectl config use-context kind-london
+kind load docker-image netbox-operator:build-local --name london
+kind load docker-image netbox-operator:build-local --name london  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
 # install resource graph defintions
 kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox-parent-prefix.yaml
 kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox.yaml
 
 
-kubectl config use-context kind-dev
-kind load docker-image netbox-operator:build-local --name dev
-kind load docker-image netbox-operator:build-local --name dev  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
+kubectl config use-context kind-zurich
+kind load docker-image netbox-operator:build-local --name zurich
+kind load docker-image netbox-operator:build-local --name zurich  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
 # install resource graph defintions
 kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox-parent-prefix.yaml

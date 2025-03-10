@@ -6,6 +6,7 @@ metadata:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-exhaustion-sample-1
+  namespace: restore
 spec:
   tenant: "MY_TENANT"
   preserveInNetbox: true
@@ -20,6 +21,7 @@ metadata:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-exhaustion-sample-2
+  namespace: restore
 spec:
   tenant: "MY_TENANT"
   preserveInNetbox: true
@@ -34,6 +36,7 @@ metadata:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-exhaustion-sample-3
+  namespace: restore
 spec:
   tenant: "MY_TENANT"
   preserveInNetbox: true
