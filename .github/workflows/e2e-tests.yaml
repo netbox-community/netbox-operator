@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
     - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
       with:
-        go-version: 1.23.6
+        go-version: 1.24.1
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
@@ -35,7 +35,7 @@ jobs:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
     - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
       with:
-        go-version: 1.23.6
+        go-version: 1.24.1
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
@@ -49,7 +49,7 @@ jobs:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
     - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
       with:
-        go-version: 1.23.6
+        go-version: 1.24.1
     - name: Import environment variables from file
       run: |
         cat ".github/env" >> "$GITHUB_ENV"
