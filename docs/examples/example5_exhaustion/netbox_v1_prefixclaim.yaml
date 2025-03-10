@@ -1,0 +1,42 @@
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-exhaustion-sample-1
+spec:
+  tenant: "MY_TENANT"
+  preserveInNetbox: true
+  parentPrefixSelector:
+    environment: dev
+  prefixLength: "/25"
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-exhaustion-sample-2
+spec:
+  tenant: "MY_TENANT"
+  preserveInNetbox: true
+  parentPrefixSelector:
+    environment: dev
+  prefixLength: "/25"
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-exhaustion-sample-3
+spec:
+  tenant: "MY_TENANT"
+  preserveInNetbox: true
+  parentPrefixSelector:
+    environment: dev
+  prefixLength: "/25"
