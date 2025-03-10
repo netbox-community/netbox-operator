@@ -13,6 +13,7 @@ kubectl apply -f docs/examples/set-up/netbox-l2advertisement.yaml
 # install NetBox Operator
 kubectl config use-context kind-prod
 kind load docker-image netbox-operator:build-local --name prod
+kind load docker-image netbox-operator:build-local --name prod  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
 # install resource graph defintions
 kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox-parent-prefix.yaml
@@ -21,6 +22,7 @@ kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox.yaml
 
 kubectl config use-context kind-dev
 kind load docker-image netbox-operator:build-local --name dev
+kind load docker-image netbox-operator:build-local --name dev  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
 # install resource graph defintions
 kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox-parent-prefix.yaml
