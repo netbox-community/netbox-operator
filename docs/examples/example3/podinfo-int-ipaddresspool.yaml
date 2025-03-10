@@ -11,7 +11,4 @@ spec:
   preserveInNetbox: true
   prefixLength: "/32"
   parentPrefixSelector:
-    tenant: MY_TENANT
-    site: DM-Akron
-    environment: "Production"
-    poolName: "Pool 1"
+    environment: prod
