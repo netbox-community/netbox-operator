@@ -58,22 +58,35 @@ spec:
             description: IpAddressSpec defines the desired state of IpAddress
             properties:
               comments:
+                description: Comment that should be added to the resource in NetBox
                 type: string
               customFields:
                 additionalProperties:
                   type: string
+                description: 'NetBox Custom Fields that should be added to the resource
+                  in NetBox. Note that currently only Text Type is supported (GitHub
+                  #129)'
                 type: object
               description:
+                description: Description that should be added to the resource in NetBox
                 type: string
               ipAddress:
+                description: The actual IP Address that should be reserved in NetBox
                 format: cidr
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'ipAddress' is immutable
                   rule: self == oldSelf
               preserveInNetbox:
+                description: |-
+                  preserveInNetbox defines whether or not the Resource should stay in NetBox when the Kubernetes Resource is deleted
+                  When set to true, the resource will not be deleted in NetBox upon CR deletion
+                  When set to false, the resource will be cleaned up in NetBox upon CR deletion
+                  If you want to restore resources from NetBox (e.g. recreation of an entire cluster), preserveInNetbox set to true is a prerequisite.
                 type: boolean
               tenant:
+                description: The NetBox Tenant to be used for creating this resource
+                  in Netbox
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'tenant' is immutable
@@ -144,9 +157,12 @@ spec:
                 description: |-
                   INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
                   Important: Run "make" to regenerate code after modifying this file
+                  The ID of the resource in NetBox
                 format: int64
                 type: integer
               url:
+                description: The URL to the NetBox UI to display this resource. Note
+                  that the base depends on the runtime config of NetBox Operator
                 type: string
             type: object
         type: object

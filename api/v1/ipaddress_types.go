@@ -31,17 +31,26 @@ type IpAddressSpec struct {
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'ipAddress' is immutable"
 	//+kubebuilder:validation:Required
+	// The actual IP Address that should be reserved in NetBox
 	IpAddress string `json:"ipAddress"`
 
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
+	// The NetBox Tenant to be used for creating this resource in Netbox
 	Tenant string `json:"tenant,omitempty"`
 
+	// NetBox Custom Fields that should be added to the resource in NetBox. Note that currently only Text Type is supported (GitHub #129)
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
+	// Comment that should be added to the resource in NetBox
 	Comments string `json:"comments,omitempty"`
 
+	// Description that should be added to the resource in NetBox
 	Description string `json:"description,omitempty"`
 
+	// preserveInNetbox defines whether or not the Resource should stay in NetBox when the Kubernetes Resource is deleted
+	// When set to true, the resource will not be deleted in NetBox upon CR deletion
+	// When set to false, the resource will be cleaned up in NetBox upon CR deletion
+	// If you want to restore resources from NetBox (e.g. recreation of an entire cluster), preserveInNetbox set to true is a prerequisite.
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 
@@ -49,8 +58,10 @@ type IpAddressSpec struct {
 type IpAddressStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	// The ID of the resource in NetBox
 	IpAddressId int64 `json:"id,omitempty"`
 
+	// The URL to the NetBox UI to display this resource. Note that the base depends on the runtime config of NetBox Operator
 	IpAddressUrl string `json:"url,omitempty"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
