@@ -95,8 +95,8 @@ spec:
                   recreated in Kubernetes)
                 type: boolean
               tenant:
-                description: The NetBox Tenant to be used for creating this resource
-                  in Netbox
+                description: The NetBox Tenant to be assigned to this resource in
+                  NetBox. Use the `name` value instead of the `slug` value
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'tenant' is immutable

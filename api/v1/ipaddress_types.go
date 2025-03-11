@@ -28,7 +28,7 @@ type IpAddressSpec struct {
 	//+kubebuilder:validation:Required
 	IpAddress string `json:"ipAddress"`
 
-	// The NetBox Tenant to be used for creating this resource in Netbox
+	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
