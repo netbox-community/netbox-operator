@@ -17,6 +17,15 @@ NetBox Operator extends the Kubernetes API by allowing users to manage NetBox re
 - kind
 - docker cli
 
+## Installation methods
+
+There are several ways to install NetBox Operator on your Cluster:
+
+- NetBox Operator Helm Chart. More information: <https://github.com/netbox-community/netbox-chart/>
+- Manifests in <config/default> of this repo. Make sure to first set the correct image using `kustomize edit set image controller=<correctimage>`. Images can be found on the Releases page on GitHub
+- The Makefile targets in this repository.
+- For debugging and developing, please read further below.
+
 # How to use NetBox Operator
 
 ## Running both NetBox Operator and NetBox on a local kind cluster
