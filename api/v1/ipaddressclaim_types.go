@@ -20,42 +20,54 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // IpAddressClaimSpec defines the desired state of IpAddressClaim
 type IpAddressClaimSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
+	// The NetBox Prefix from which this IP Address should be claimed from
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix"`
 
+	// The NetBox Tenant to be used for creating this resource in Netbox
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// The NetBox Custom Fields that should be added to the resource in NetBox.
+	// Note that currently only Text Type is supported (GitHub #129)
+	// More info on NetBox Custom Fields:
+	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
+	// Comment that should be added to the resource in NetBox
 	Comments string `json:"comments,omitempty"`
 
+	// Description that should be added to the resource in NetBox
 	Description string `json:"description,omitempty"`
 
+	// Defines whether the Resource should be preserved in NetBox when the
+	// Kubernetes Resource is deleted.
+	// - When set to true, the resource will not be deleted but preserved in
+	//   NetBox upon CR deletion
+	// - When set to false, the resource will be cleaned up in NetBox
+	//   upon CR deletion
+	// Setting preserveInNetbox to true is mandatory if the user wants to restore
+	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
+	// recreated in Kubernetes)
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 
 // IpAddressClaimStatus defines the observed state of IpAddressClaim
 type IpAddressClaimStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
+	// The assigned IP Address in CIDR notation
 	IpAddress string `json:"ipAddress,omitempty"`
 
+	// The assigned IP Address in Dot Decimal notation
 	IpAddressDotDecimal string `json:"ipAddressDotDecimal,omitempty"`
 
+	// The name of the IpAddress CR created by the IpAddressClaim Controller
 	IpAddressName string `json:"ipAddressName,omitempty"`
 
+	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
@@ -68,7 +80,11 @@ type IpAddressClaimStatus struct {
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=ipc
 
-// IpAddressClaim is the Schema for the ipaddressclaims API
+// IpAddressClaim allows to claim a NetBox IP Address from an existing Prefix.
+// The IpAddressClaim Controller will try to assign an available IP Address
+// from the Prefix that is defined in the spec and if successful it will create
+// the IpAddress CR. More info about NetBox IP Addresses:
+// https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/ipaddress.md
 type IpAddressClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -20,25 +20,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // IpAddressSpec defines the desired state of IpAddress
 type IpAddressSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
+	// The IP Address in CIDR notation that should be reserved in NetBox
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'ipAddress' is immutable"
 	//+kubebuilder:validation:Required
-	// The actual IP Address that should be reserved in NetBox
 	IpAddress string `json:"ipAddress"`
 
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	// The NetBox Tenant to be used for creating this resource in Netbox
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
-	// NetBox Custom Fields that should be added to the resource in NetBox. Note that currently only Text Type is supported (GitHub #129)
+	// The NetBox Custom Fields that should be added to the resource in NetBox.
+	// Note that currently only Text Type is supported (GitHub #129)
+	// More info on NetBox Custom Fields:
+	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
 	// Comment that should be added to the resource in NetBox
@@ -47,23 +44,28 @@ type IpAddressSpec struct {
 	// Description that should be added to the resource in NetBox
 	Description string `json:"description,omitempty"`
 
-	// preserveInNetbox defines whether or not the Resource should stay in NetBox when the Kubernetes Resource is deleted
-	// When set to true, the resource will not be deleted in NetBox upon CR deletion
-	// When set to false, the resource will be cleaned up in NetBox upon CR deletion
-	// If you want to restore resources from NetBox (e.g. recreation of an entire cluster), preserveInNetbox set to true is a prerequisite.
+	// Defines whether the Resource should be preserved in NetBox when the
+	// Kubernetes Resource is deleted.
+	// - When set to true, the resource will not be deleted but preserved in
+	//   NetBox upon CR deletion
+	// - When set to false, the resource will be cleaned up in NetBox
+	//   upon CR deletion
+	// Setting preserveInNetbox to true is mandatory if the user wants to restore
+	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
+	// recreated in Kubernetes)
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 
 // IpAddressStatus defines the observed state of IpAddress
 type IpAddressStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 	// The ID of the resource in NetBox
 	IpAddressId int64 `json:"id,omitempty"`
 
-	// The URL to the NetBox UI to display this resource. Note that the base depends on the runtime config of NetBox Operator
+	// The URL to the resource in the NetBox UI. Note that the base of this
+	// URL depends on the runtime config of NetBox Operator
 	IpAddressUrl string `json:"url,omitempty"`
 
+	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
@@ -77,7 +79,7 @@ type IpAddressStatus struct {
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=ip
 
-// IpAddress is the Schema for the ipaddresses API
+// IpAddress allows to create a NetBox IP Address. More info about NetBox IP Addresses: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/ipaddress.md
 type IpAddress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

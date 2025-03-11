@@ -35,7 +35,8 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: IpAddress is the Schema for the ipaddresses API
+        description: 'IpAddress allows to create a NetBox IP Address. More info about
+          NetBox IP Addresses: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/ipaddress.md'
         properties:
           apiVersion:
             description: |-
@@ -63,15 +64,18 @@ spec:
               customFields:
                 additionalProperties:
                   type: string
-                description: 'NetBox Custom Fields that should be added to the resource
-                  in NetBox. Note that currently only Text Type is supported (GitHub
-                  #129)'
+                description: |-
+                  The NetBox Custom Fields that should be added to the resource in NetBox.
+                  Note that currently only Text Type is supported (GitHub #129)
+                  More info on NetBox Custom Fields:
+                  https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
                 type: object
               description:
                 description: Description that should be added to the resource in NetBox
                 type: string
               ipAddress:
-                description: The actual IP Address that should be reserved in NetBox
+                description: The IP Address in CIDR notation that should be reserved
+                  in NetBox
                 format: cidr
                 type: string
                 x-kubernetes-validations:
@@ -79,10 +83,15 @@ spec:
                   rule: self == oldSelf
               preserveInNetbox:
                 description: |-
-                  preserveInNetbox defines whether or not the Resource should stay in NetBox when the Kubernetes Resource is deleted
-                  When set to true, the resource will not be deleted in NetBox upon CR deletion
-                  When set to false, the resource will be cleaned up in NetBox upon CR deletion
-                  If you want to restore resources from NetBox (e.g. recreation of an entire cluster), preserveInNetbox set to true is a prerequisite.
+                  Defines whether the Resource should be preserved in NetBox when the
+                  Kubernetes Resource is deleted.
+                  - When set to true, the resource will not be deleted but preserved in
+                    NetBox upon CR deletion
+                  - When set to false, the resource will be cleaned up in NetBox
+                    upon CR deletion
+                  Setting preserveInNetbox to true is mandatory if the user wants to restore
+                  resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
+                  recreated in Kubernetes)
                 type: boolean
               tenant:
                 description: The NetBox Tenant to be used for creating this resource
@@ -98,6 +107,8 @@ spec:
             description: IpAddressStatus defines the observed state of IpAddress
             properties:
               conditions:
+                description: Conditions represent the latest available observations
+                  of an object's state
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -154,15 +165,13 @@ spec:
                   type: object
                 type: array
               id:
-                description: |-
-                  INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                  The ID of the resource in NetBox
+                description: The ID of the resource in NetBox
                 format: int64
                 type: integer
               url:
-                description: The URL to the NetBox UI to display this resource. Note
-                  that the base depends on the runtime config of NetBox Operator
+                description: |-
+                  The URL to the resource in the NetBox UI. Note that the base of this
+                  URL depends on the runtime config of NetBox Operator
                 type: string
             type: object
         type: object
