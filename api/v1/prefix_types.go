@@ -20,44 +20,57 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // PrefixSpec defines the desired state of Prefix
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.site) || has(self.site)", message="Site is required once set"
 type PrefixSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
+	// The Prefix in CIDR notation that should be reserved in NetBox
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefix' is immutable"
 	Prefix string `json:"prefix"`
 
+	// The NetBox Site to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf || self != ''",message="Field 'site' is required once set"
 	Site string `json:"site,omitempty"`
 
+	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// The NetBox Custom Fields that should be added to the resource in NetBox.
+	// Note that currently only Text Type is supported (GitHub #129)
+	// More info on NetBox Custom Fields:
+	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
+	// Description that should be added to the resource in NetBox
 	Description string `json:"description,omitempty"`
 
+	// Comment that should be added to the resource in NetBox
 	Comments string `json:"comments,omitempty"`
 
+	// Defines whether the Resource should be preserved in NetBox when the
+	// Kubernetes Resource is deleted.
+	// - When set to true, the resource will not be deleted but preserved in
+	//   NetBox upon CR deletion
+	// - When set to false, the resource will be cleaned up in NetBox
+	//   upon CR deletion
+	// Setting preserveInNetbox to true is mandatory if the user wants to restore
+	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
+	// recreated in Kubernetes)
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 
 // PrefixStatus defines the observed state of Prefix
 type PrefixStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-	// Prefix status: container, active, reserved , deprecated
+	// The ID of the resource in NetBox
 	PrefixId int64 `json:"id,omitempty"`
 
+	// The URL to the resource in the NetBox UI. Note that the base of this
+	// URL depends on the runtime config of NetBox Operator
 	PrefixUrl string `json:"url,omitempty"`
 
+	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
@@ -69,7 +82,8 @@ type PrefixStatus struct {
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=px
-// Prefix is the Schema for the prefixes API
+
+// Prefix allows to create a NetBox Prefix. More info about NetBox Prefixes: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/prefix.md
 type Prefix struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

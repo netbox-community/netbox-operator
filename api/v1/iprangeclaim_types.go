@@ -20,55 +20,82 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // IpRangeClaimSpec defines the desired state of IpRangeClaim
 type IpRangeClaimSpec struct {
+	// The NetBox Prefix from which this IP Range should be claimed from
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix"`
 
-	// Size is the amount of consecutive IP Addresses you wish to reserve. Currently only sizes up to 50 are supported due to pagination of the NetBox API. In practice, this might be even lower depending on the fragmentation of the parent prefix.
+	// The amount of consecutive IP Addresses you wish to reserve.
+	// Currently only sizes up to 50 are supported due to pagination of the
+	// NetBox API. In practice, this might be even lower depending on the
+	// fragmentation of the parent prefix.
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=2
 	//+kubebuilder:validation:Maximum=50
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'size' is immutable"
 	Size int `json:"size,omitempty"`
 
+	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// The NetBox Custom Fields that should be added to the resource in NetBox.
+	// Note that currently only Text Type is supported (GitHub #129)
+	// More info on NetBox Custom Fields:
+	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
+	// Comment that should be added to the resource in NetBox
 	Comments string `json:"comments,omitempty"`
 
+	// Description that should be added to the resource in NetBox
 	Description string `json:"description,omitempty"`
 
+	// Defines whether the Resource should be preserved in NetBox when the
+	// Kubernetes Resource is deleted.
+	// - When set to true, the resource will not be deleted but preserved in
+	//   NetBox upon CR deletion
+	// - When set to false, the resource will be cleaned up in NetBox
+	//   upon CR deletion
+	// Setting preserveInNetbox to true is mandatory if the user wants to restore
+	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
+	// recreated in Kubernetes)
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 
 // IpRangeClaimStatus defines the observed state of IpRangeClaim
 type IpRangeClaimStatus struct {
+	// The assigned IP Range in CIDR notation (e.g. 192.168.0.1/32-192.168.0.123/32)
 	IpRange string `json:"ipRange,omitempty"`
 
+	// The assigned IP Range in Dot Decimal notation (e.g. 192.168.0.1-192.168.0.123)
 	IpRangeDotDecimal string `json:"ipRangeDotDecimal,omitempty"`
 
+	// The full list of IP Addresses in CIDR notation
 	IpAddresses []string `json:"ipAddresses,omitempty"`
 
+	// The full list of IP Addresses in Dot Decimal notation
 	IpAddressesDotDecimal []string `json:"ipAddressesDotDecimal,omitempty"`
 
+	// The first IP Addresses in CIDR notation
 	StartAddress string `json:"startAddress,omitempty"`
 
+	// The first IP Addresses in Dot Decimal notation
 	StartAddressDotDecimal string `json:"startAddressDotDecimal,omitempty"`
 
+	// The last IP Addresses in CIDR notation
 	EndAddress string `json:"endAddress,omitempty"`
 
+	// The last IP Addresses in Dot Decimal notation
 	EndAddressDotDecimal string `json:"endAddressDotDecimal,omitempty"`
 
+	// The name of the IpRange CR created by the IpRangeClaim Controller
 	IpRangeName string `json:"ipAddressName,omitempty"`
 
+	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
@@ -81,7 +108,11 @@ type IpRangeClaimStatus struct {
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +kubebuilder:resource:shortName=iprc
 
-// IpRangeClaim is the Schema for the iprangeclaims API
+// IpRangeClaim allows to claim a NetBox IP Range from an existing Prefix.
+// The IpRangeClaim Controller will try to assign an available IP Range
+// from the Prefix that is defined in the spec and if successful it will create
+// the IpRange CR. More info about NetBox IP Ranges:
+// https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/iprange.md
 type IpRangeClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
