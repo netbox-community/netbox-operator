@@ -25,42 +25,58 @@ import (
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.site) || has(self.site)", message="Site is required once set"
 // +kubebuilder:validation:XValidation:rule="(!has(self.parentPrefix) && has(self.parentPrefixSelector)) || (has(self.parentPrefix) && !has(self.parentPrefixSelector))"
 type PrefixClaimSpec struct {
-	// The NetBox Prefix from which this Prefix should be claimed from.
-	// `parentPrefix` and `parentPrefixSelector` are mutually exclusive.
+	// The NetBox Prefix from which this Prefix should be claimed from
+	// Field is immutable, required (`parentPrefix` and `parentPrefixSelector` are mutually exclusive)
+	// Example: "192.168.0.0/20"
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
 	ParentPrefix string `json:"parentPrefix,omitempty"`
 
 	// The `parentPrefixSelector` is a key-value map, where all the entries are of data type `<string-string>` The map contains a set of query conditions for selecting a set of prefixes that can be used as the parent prefix The query conditions will be chained by the AND operator, and exact match of the keys and values will be performed The built-in fields `tenant`, `site`, and `family`, along with custom fields, can be used. Note that since the key value pairs in this map are used to generate the URL for the query in NetBox, this also supports non-Text Custom Field types. For more information, please see ParentPrefixSelectorGuide.md
-	// `parentPrefix` and `parentPrefixSelector` are mutually exclusive.
+	// Field is immutable, required (`parentPrefix` and `parentPrefixSelector` are mutually exclusive)
+	// Example:
+	//   customfield1: "Production"
+	//   family: "IPv4"
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefixSelector' is immutable"
 	//+kubebuilder:validation:XValidation:rule="!has(self.family) || (self.family == 'IPv4' || self.family == 'IPv6')"
 	ParentPrefixSelector map[string]string `json:"parentPrefixSelector,omitempty"`
 
 	// The desired prefix length of your Prefix using slash notation. Example: `/24` for an IPv4 Prefix or `/64` for an IPv6 Prefix
+	// Field is immutable, required
+	// Example: "/24"
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Pattern=`^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$`
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefixLength' is immutable"
 	PrefixLength string `json:"prefixLength"`
 
 	// The NetBox Site to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+	// Field is immutable, not required
+	// Example: "DM-Buffalo"
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'site' is immutable"
 	Site string `json:"site,omitempty"`
 
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+	// Field is immutable, not required
+	// Example: "Initech" or "Cyberdyne Systems"
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
 	// Description that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Description string `json:"description,omitempty"`
 
 	// Comment that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Comments string `json:"comments,omitempty"`
 
 	// The NetBox Custom Fields that should be added to the resource in NetBox.
 	// Note that currently only Text Type is supported (GitHub #129)
 	// More info on NetBox Custom Fields:
 	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
+	// Field is mutable, not required
+	// Example:
+	//   customfield1: "Production"
+	//   customfield2: "This is a string"
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
 	// Defines whether the Resource should be preserved in NetBox when the
@@ -72,6 +88,7 @@ type PrefixClaimSpec struct {
 	// Setting preserveInNetbox to true is mandatory if the user wants to restore
 	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
 	// recreated in Kubernetes)
+	// Field is mutable, not required
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 

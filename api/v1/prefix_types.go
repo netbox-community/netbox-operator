@@ -24,16 +24,21 @@ import (
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.site) || has(self.site)", message="Site is required once set"
 type PrefixSpec struct {
 	// The Prefix in CIDR notation that should be reserved in NetBox
+	// Field is immutable, required
+	// Example: "192.168.0.0/24"
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefix' is immutable"
 	Prefix string `json:"prefix"`
 
 	// The NetBox Site to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+	// Field is immutable, not required
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf || self != ''",message="Field 'site' is required once set"
 	Site string `json:"site,omitempty"`
 
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+	// Field is immutable, not required
+	// Example: "Initech" or "Cyberdyne Systems"
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
@@ -41,12 +46,18 @@ type PrefixSpec struct {
 	// Note that currently only Text Type is supported (GitHub #129)
 	// More info on NetBox Custom Fields:
 	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
+	// Field is mutable, not required
+	// Example:
+	//   customfield1: "Production"
+	//   customfield2: "This is a string"
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
 	// Description that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Description string `json:"description,omitempty"`
 
 	// Comment that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Comments string `json:"comments,omitempty"`
 
 	// Defines whether the Resource should be preserved in NetBox when the
@@ -58,6 +69,7 @@ type PrefixSpec struct {
 	// Setting preserveInNetbox to true is mandatory if the user wants to restore
 	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
 	// recreated in Kubernetes)
+	// Field is mutable, not required
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 

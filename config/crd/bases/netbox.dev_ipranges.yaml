@@ -62,7 +62,9 @@ spec:
             description: IpRangeSpec defines the desired state of IpRange
             properties:
               comments:
-                description: Comment that should be added to the resource in NetBox
+                description: |-
+                  Comment that should be added to the resource in NetBox
+                  Field is mutable, not required
                 type: string
               customFields:
                 additionalProperties:
@@ -72,13 +74,21 @@ spec:
                   Note that currently only Text Type is supported (GitHub #129)
                   More info on NetBox Custom Fields:
                   https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
+                  Field is mutable, not required
+                  Example:
+                    customfield1: "Production"
+                    customfield2: "This is a string"
                 type: object
               description:
-                description: Description that should be added to the resource in NetBox
+                description: |-
+                  Description that should be added to the resource in NetBox
+                  Field is mutable, not required
                 type: string
               endAddress:
-                description: The last IP in CIDR notation that should be included
-                  in the NetBox IP Range
+                description: |-
+                  The last IP in CIDR notation that should be included in the NetBox IP Range
+                  Field is immutable, required
+                  Example: "192.168.0.20/32"
                 format: cidr
                 type: string
                 x-kubernetes-validations:
@@ -95,18 +105,23 @@ spec:
                   Setting preserveInNetbox to true is mandatory if the user wants to restore
                   resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
                   recreated in Kubernetes)
+                  Field is mutable, not required
                 type: boolean
               startAddress:
-                description: The first IP in CIDR notation that should be included
-                  in the NetBox IP Range
+                description: |-
+                  The first IP in CIDR notation that should be included in the NetBox IP Range
+                  Field is immutable, required
+                  Example: "192.168.0.1/32"
                 format: cidr
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'startAddress' is immutable
                   rule: self == oldSelf
               tenant:
-                description: The NetBox Tenant to be assigned to this resource in
-                  NetBox. Use the `name` value instead of the `slug` value
+                description: |-
+                  The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+                  Field is immutable, not required
+                  Example: "Initech" or "Cyberdyne Systems"
                 type: string
                 x-kubernetes-validations:
                 - message: Field 'tenant' is immutable

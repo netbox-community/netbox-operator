@@ -23,6 +23,8 @@ import (
 // IpRangeClaimSpec defines the desired state of IpRangeClaim
 type IpRangeClaimSpec struct {
 	// The NetBox Prefix from which this IP Range should be claimed from
+	// Field is immutable, required
+	// Example: "192.168.0.0/20"
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentPrefix' is immutable"
@@ -32,6 +34,7 @@ type IpRangeClaimSpec struct {
 	// Currently only sizes up to 50 are supported due to pagination of the
 	// NetBox API. In practice, this might be even lower depending on the
 	// fragmentation of the parent prefix.
+	// Field is immutable, required, range from 2-50
 	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=2
 	//+kubebuilder:validation:Maximum=50
@@ -39,6 +42,8 @@ type IpRangeClaimSpec struct {
 	Size int `json:"size,omitempty"`
 
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+	// Field is immutable, not required
+	// Example: "Initech" or "Cyberdyne Systems"
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
@@ -46,12 +51,18 @@ type IpRangeClaimSpec struct {
 	// Note that currently only Text Type is supported (GitHub #129)
 	// More info on NetBox Custom Fields:
 	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
+	// Field is mutable, not required
+	// Example:
+	//   customfield1: "Production"
+	//   customfield2: "This is a string"
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
 	// Comment that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Comments string `json:"comments,omitempty"`
 
 	// Description that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Description string `json:"description,omitempty"`
 
 	// Defines whether the Resource should be preserved in NetBox when the
@@ -63,6 +74,7 @@ type IpRangeClaimSpec struct {
 	// Setting preserveInNetbox to true is mandatory if the user wants to restore
 	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
 	// recreated in Kubernetes)
+	// Field is mutable, not required
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 

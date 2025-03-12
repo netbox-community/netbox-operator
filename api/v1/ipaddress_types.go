@@ -23,12 +23,16 @@ import (
 // IpAddressSpec defines the desired state of IpAddress
 type IpAddressSpec struct {
 	// The IP Address in CIDR notation that should be reserved in NetBox
+	// Field is immutable, required
+	// Example: "192.168.0.1/32"
 	//+kubebuilder:validation:Format=cidr
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'ipAddress' is immutable"
 	//+kubebuilder:validation:Required
 	IpAddress string `json:"ipAddress"`
 
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
+	// Field is immutable, not required
+	// Example: "Initech" or "Cyberdyne Systems"
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
@@ -36,12 +40,18 @@ type IpAddressSpec struct {
 	// Note that currently only Text Type is supported (GitHub #129)
 	// More info on NetBox Custom Fields:
 	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
+	// Field is mutable, not required
+	// Example:
+	//   customfield1: "Production"
+	//   customfield2: "This is a string"
 	CustomFields map[string]string `json:"customFields,omitempty"`
 
 	// Comment that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Comments string `json:"comments,omitempty"`
 
 	// Description that should be added to the resource in NetBox
+	// Field is mutable, not required
 	Description string `json:"description,omitempty"`
 
 	// Defines whether the Resource should be preserved in NetBox when the
@@ -53,6 +63,7 @@ type IpAddressSpec struct {
 	// Setting preserveInNetbox to true is mandatory if the user wants to restore
 	// resources from NetBox (e.g. Sticky CIDRs even if resources are deleted and
 	// recreated in Kubernetes)
+	// Field is mutable, not required
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
 }
 
