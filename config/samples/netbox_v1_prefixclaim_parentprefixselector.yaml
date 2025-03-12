@@ -6,20 +6,15 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-parentprefixselector-sample
 spec:
-  tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
-  site: "DM-Akron" # Use the `name` value instead of the `slug` value
+  tenant: "MY_TENANT"
+  site: "DM-Akron"
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
   prefixLength: "/31"
-  parentPrefixSelector: # The keys and values are case-sensitive
-    # if the entry for tenant or site is missing, it will *not* inherit from the tenant and site from the Spec
-    tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
-    site: "DM-Buffalo" # Use the `name` value instead of the `slug` value
-    family: "IPv4" # Can only be either IPv4 or IPv6"
-    
-    # custom fields of your interest
+  parentPrefixSelector:
+    tenant: "MY_TENANT"
+    site: "DM-Buffalo"
+    family: "IPv4"
     environment: "Production"
     poolName: "Pool 1"
-    # environment: "production"
-    # poolName: "pool 3"

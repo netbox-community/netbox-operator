@@ -6,23 +6,15 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-parentprefixselector-bool-int-sample
 spec:
-  tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
-  site: "DM-Akron" # Use the `name` value instead of the `slug` value
+  tenant: "MY_TENANT"
+  site: "DM-Akron"
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
   prefixLength: "/31"
-  parentPrefixSelector: # The keys and values are case-sensitive
-    # should return a prefix in 3.0.0.0/24
+  parentPrefixSelector:
+    # should return a prefix in 3.0.0.0/24 with the sample data
     environment: "Production"
     poolName: "Pool 1"
-    # same condition as above, should return a prefix in 3.0.0.0/24
-    # cfDataTypeBool: "true"
-    # cfDataTypeInteger: "1"
-
-    # should return a prefix in 3.0.2.0/24
-    # environment: "Development"
-    # poolName: "Pool 1"
-    # same condition as above, should return a prefix in 3.0.0.0/24
-    # cfDataTypeBool: "false"
-    # cfDataTypeInteger: "2"
+    cfDataTypeBool: "true"
+    cfDataTypeInteger: "1"
