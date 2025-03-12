@@ -1,0 +1,25 @@
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  namespace: metallb-system
+  name: output-l2-advertisement
+spec:
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: db-ipaddresspool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.18.1.1/32
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: netbox-ipaddresspool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.18.1.2/32

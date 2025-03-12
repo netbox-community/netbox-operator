@@ -29,5 +29,9 @@ go.work
 *.swp
 *.swo
 *~
-.drawio.dtmp
+*.drawio.dtmp
+*drawio.svg.bkp
 .DS_Store
+
+# Temporary files
+tmp
