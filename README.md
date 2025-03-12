@@ -17,6 +17,15 @@ NetBox Operator extends the Kubernetes API by allowing users to manage NetBox re
 - kind
 - docker cli
 
+## Installation methods
+
+There are several ways to install NetBox Operator on your Cluster:
+
+- NetBox Operator Helm Chart. More information: <https://github.com/netbox-community/netbox-chart/>
+- Manifests in <config/default> of this repo. Make sure to first set the correct image using `kustomize edit set image controller=<correctimage>`. Images can be found on the Releases page on GitHub
+- The Makefile targets in this repository.
+- For debugging and developing, please read further below.
+
 # How to use NetBox Operator
 
 ## Running both NetBox Operator and NetBox on a local kind cluster
@@ -45,6 +54,25 @@ Example of assigning a Prefix using PrefixClaim:
 4. In the prefix status fields you’ll be able to see the netbox URL of the resource. Login with the default `admin`/`admin` credentials to access the NetBox resources.
 
 Key information can be found in the yaml formatted output of these resources, as well as in the events and Operator logs.
+
+# Mixed usage of Prefixes
+
+Note that NetBox does handle the Address management of Prefixes separately from IP Ranges and IP Addresses. This is important to know when you plan to use the same NetBox Prefix as a parentPrefix for your IpAddressClaims, IpRangeClaims and PrefixClaims.
+
+Example:
+
+- Assume you use an existing empty NetBox Prefix "192.168.0.0/24" as the `.spec.parentPrefix` for your PrefixClaims, IpAddressClaims and IpRangeClaims.
+- You create a PrefixClaim with `.spec.prefixLength` of `/25`, NetBox Operator will assign "192.168.0.0/25"
+- You create a IpAddressClaim, NetBox Operator will assign "192.168.0.1/32". Important: NetBox ignores the Prefix in that case and will not return "192.168.0.129" as the first available IP!
+- You create a IpAddressClaim with `.spec.size` of `2`, NetBox Operator will assign "192.168.0.2/32" to "192.168.0.3/32". Important: NetBox ignores the Prefix in that case and will not return "192.168.0.129" as the first available IP!
+
+
+This means that you need to plan your automation carefully. As a rule of thumb:
+- If you plan mixed use of the same parentPrefix for both single IPs (/32s) as well as Prefixes (non /32s), use PrefixClaims for everything and avoid using IpRangeClaims and IpAddressClaims.
+- If you are in full control of a Prefix and you know it will only be used for assigning IP Addresses and IP Ranges, you can use IpAddressClaims and IpRangeClaims.
+- If you don't know what the parentPrefix is used for, avoid using IpAddressClaims and IpRangeClaims.
+
+The same applies if you use parentPrefixSelector with PrefixClaims. The above example is IPv4 based but will be the same with IPv6 equivalents.
 
 # Restoration from NetBox
 
@@ -96,6 +124,18 @@ When the operator is deployed with the default kustomization (located at config/
 For the monitoring of the state of the CRs reconciled by the operator [kube state metrics] can be used, check the kube-state-metrics documentation for instructions on configuring it to collect metrics from custom resources.
 
 [kube state metrics]: https://github.com/kubernetes/kube-state-metrics
+
+# FAQ
+
+## What is the difference between `.spec.customFields` and `.spec.parentPrefixSelector`?
+
+`.spec.customFields` are the NetBox Custom Fields assigned to the resource in NetBox.
+`.spec.parentPrefixSelector` is used by a Claim Controller (e.g. the controller of PrefixClaim) to find a suitable Prefix to get e.g. a Prefix from.
+
+## What is the difference between `.spec.tenant` and `.spec.parentPrefixSelector.tenant`?
+
+`.spec.tenant` is the tenant that is assigned to the resource in NetBox.
+`.spec.parentPrefixSelector.tenant` is used by a Claim Controller (e.g. the controller of PrefixClaim) to find a suitable Prefix to get e.g. a Prefix from.
 
 # Contributing
 
