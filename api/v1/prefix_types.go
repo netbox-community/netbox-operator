@@ -104,6 +104,10 @@ type Prefix struct {
 	Status PrefixStatus `json:"status,omitempty"`
 }
 
+func (i *Prefix) Conditions() *[]metav1.Condition {
+	return &i.Status.Conditions
+}
+
 // +kubebuilder:object:root=true
 
 // PrefixList contains a list of Prefix

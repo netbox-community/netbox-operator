@@ -29,11 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -45,11 +43,11 @@ const IpRangeClaimFinalizerName = "iprangeclaim.netbox.dev/finalizer"
 // IpRangeClaimReconciler reconciles a IpRangeClaim object
 type IpRangeClaimReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	NetboxClient      *api.NetboxClient
-	Recorder          record.EventRecorder
-	OperatorNamespace string
-	RestConfig        *rest.Config
+	Scheme              *runtime.Scheme
+	NetboxClient        *api.NetboxClient
+	EventStatusRecorder *EventStatusRecorder
+	OperatorNamespace   string
+	RestConfig          *rest.Config
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=iprangeclaims,verbs=get;list;watch;create;update;patch;delete
@@ -124,15 +122,15 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		err = r.Client.Create(ctx, ipRangeResource)
 		if err != nil {
-			errSetCondition := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err)
+			errSetCondition := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
 			if errSetCondition != nil {
 				return ctrl.Result{}, errSetCondition
 			}
 			return ctrl.Result{}, err
 		}
 
-		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
-			fmt.Sprintf(" , assigned ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress), nil)
+		err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
+			nil, fmt.Sprintf(" , assigned ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -148,7 +146,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	if !apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
-		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, "", nil)
+		err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -160,7 +158,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	o.Status, err = r.generateIpRangeClaimStatus(o, ipRange)
 	if err != nil {
 		logger.Error(err, "failed to generate ip range status")
-		err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, "", err)
+		err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, err)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -171,7 +169,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, "", nil)
+	err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, nil)
 	if err != nil {
 		return ctrl.Result{}, err
 
@@ -186,32 +184,6 @@ func (r *IpRangeClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&netboxv1.IpRangeClaim{}).
 		Owns(&netboxv1.IpRange{}).
 		Complete(r)
-}
-
-// logErrorSetConditionAndCreateEvent updates the condition and creates a log entry and event for this condition change and logs an error if errIn is not nil
-func (r *IpRangeClaimReconciler) logErrorSetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpRangeClaim, condition metav1.Condition, eventType string, conditionMessageAppend string, errIn error) error {
-	if len(conditionMessageAppend) > 0 {
-		condition.Message = condition.Message + ". " + conditionMessageAppend
-	}
-
-	if errIn != nil {
-		// log errors here, so we do not need to aggregate them in the reconcile loop with the error of updating the status
-		logger := log.FromContext(ctx)
-		logger.Error(errIn, condition.Message+errIn.Error())
-		condition.Message = condition.Message + ". Check the logs for more information."
-	}
-
-	conditionChanged := apismeta.SetStatusCondition(&o.Status.Conditions, condition)
-	if conditionChanged {
-		r.Recorder.Event(o, eventType, condition.Reason, condition.Message)
-	}
-
-	err := r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *netboxv1.IpRangeClaim) (*leaselocker.LeaseLocker, ctrl.Result, error) {
@@ -240,7 +212,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	if !locked {
 		// lock for parent prefix was not available, rescheduling
 		logger.Info(fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix))
-		r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+		r.EventStatusRecorder.rec.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
 			o.Spec.ParentPrefix)
 		return nil, ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 	}
@@ -290,7 +262,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 	h := generateIpRangeRestorationHash(o)
 	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		if err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err); err != nil {
+		if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err); err != nil {
 			return nil, ctrl.Result{}, err
 		}
 		return nil, ctrl.Result{Requeue: true}, nil
@@ -309,7 +281,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 			},
 		)
 		if err != nil {
-			if err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, "", err); err != nil {
+			if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err); err != nil {
 				return nil, ctrl.Result{}, err
 			}
 			return nil, ctrl.Result{Requeue: true}, nil
@@ -320,9 +292,12 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 
 		// check if the restored ip range has the size requested by the claim
 		availableIpRanges, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRangeModel.Id)
+		if err != nil {
+			return nil, ctrl.Result{}, err
+		}
 		if len(availableIpRanges.Payload) != o.Spec.Size {
 			ll.Unlock()
-			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMismatch, corev1.EventTypeWarning, "", err)
+			err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMismatch, corev1.EventTypeWarning, err)
 			if err != nil {
 				return nil, ctrl.Result{}, err
 			}

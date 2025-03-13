@@ -32,11 +32,9 @@ import (
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -48,11 +46,11 @@ const IPRManagedCustomFieldsAnnotationName = "iprange.netbox.dev/managed-custom-
 // IpRangeReconciler reconciles a IpRange object
 type IpRangeReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	NetboxClient      *api.NetboxClient
-	Recorder          record.EventRecorder
-	OperatorNamespace string
-	RestConfig        *rest.Config
+	Scheme              *runtime.Scheme
+	NetboxClient        *api.NetboxClient
+	EventStatusRecorder *EventStatusRecorder
+	OperatorNamespace   string
+	RestConfig          *rest.Config
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipranges,verbs=get;list;watch;create;update;patch;delete
@@ -78,8 +76,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		if !o.Spec.PreserveInNetbox {
 			err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
 			if err != nil {
-				err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
-					corev1.EventTypeWarning, "", err)
+				err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
+					corev1.EventTypeWarning, err)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -122,7 +120,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefix))
-			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+			r.EventStatusRecorder.rec.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
 				parentPrefix)
 			return ctrl.Result{Requeue: true}, nil
 		}
@@ -150,8 +148,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
 			err = r.Client.Delete(ctx, o)
 			if err != nil {
-				if err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-					corev1.EventTypeWarning, "", err); err != nil {
+				if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
+					corev1.EventTypeWarning, err); err != nil {
 					return ctrl.Result{}, err
 				}
 				return ctrl.Result{Requeue: true}, nil
@@ -159,8 +157,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return ctrl.Result{}, nil
 		}
 
-		if err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-			corev1.EventTypeWarning, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress), err); err != nil {
+		if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
+			corev1.EventTypeWarning, err, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress)); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -202,7 +200,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, "", nil)
+	err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -217,27 +215,6 @@ func (r *IpRangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&netboxv1.IpRange{}).
 		Complete(r)
-}
-
-// logErrorSetConditionAndCreateEvent updates the condition and creates a log entry and event for this condition change and logs an error if errIn is not nil
-func (r *IpRangeReconciler) logErrorSetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpRange, condition metav1.Condition, eventType string, conditionMessageAppend string, errIn error) error {
-	if len(conditionMessageAppend) > 0 {
-		condition.Message = condition.Message + ". " + conditionMessageAppend
-	}
-
-	if errIn != nil {
-		// log errors here, so we do not need to aggregate them in the reconcile loop with the error of updating the status
-		logger := log.FromContext(ctx)
-		logger.Error(errIn, condition.Message+errIn.Error())
-		condition.Message = condition.Message + ". Check the logs for more information."
-	}
-
-	conditionChanged := apismeta.SetStatusCondition(&o.Status.Conditions, condition)
-	if conditionChanged {
-		r.Recorder.Event(o, eventType, condition.Reason, condition.Message)
-	}
-
-	return r.Client.Status().Update(ctx, o)
 }
 
 func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv1.IpRange, req ctrl.Request, lastIpRangeMetadata string) (*models.IpRange, error) {
@@ -268,7 +245,7 @@ func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv
 	// check if created ip range contains entire description from spec
 	_, found := strings.CutPrefix(description, req.NamespacedName.String()+" // "+o.Spec.Description)
 	if !found {
-		r.Recorder.Event(o, corev1.EventTypeWarning, "IpRangeDescriptionTruncated", "ip range was created with truncated description")
+		r.EventStatusRecorder.rec.Event(o, corev1.EventTypeWarning, "IpRangeDescriptionTruncated", "ip range was created with truncated description")
 	}
 
 	return &models.IpRange{
