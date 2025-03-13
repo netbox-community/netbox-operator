@@ -29,11 +29,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -43,11 +41,11 @@ import (
 // IpAddressClaimReconciler reconciles a IpAddressClaim object
 type IpAddressClaimReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	NetboxClient      *api.NetboxClient
-	Recorder          record.EventRecorder
-	OperatorNamespace string
-	RestConfig        *rest.Config
+	Scheme              *runtime.Scheme
+	NetboxClient        *api.NetboxClient
+	EventStatusRecorder *EventStatusRecorder
+	OperatorNamespace   string
+	RestConfig          *rest.Config
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipaddressclaims,verbs=get;list;watch;create;update;patch;delete
@@ -111,7 +109,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix)
-			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+			r.EventStatusRecorder.rec.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
@@ -122,7 +120,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		h := generateIpAddressRestorationHash(o)
 		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(h)
 		if err != nil {
-			if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+			if setConditionErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, looking up ip by hash failed: %w", setConditionErr, err)
 			}
 			return ctrl.Result{Requeue: true}, nil
@@ -139,7 +137,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					},
 				})
 			if err != nil {
-				if setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err.Error()); setConditionErr != nil {
+				if setConditionErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); setConditionErr != nil {
 					return ctrl.Result{}, fmt.Errorf("error updating status: %w, when assignment of ip address failed: %w", setConditionErr, err)
 				}
 				return ctrl.Result{Requeue: true}, nil
@@ -160,14 +158,14 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		err = r.Client.Create(ctx, ipAddressResource)
 		if err != nil {
-			setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, "")
+			setConditionErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err)
 			if setConditionErr != nil {
 				return ctrl.Result{}, fmt.Errorf("error updating status: %w, when creation of ip address object failed: %w", setConditionErr, err)
 			}
 			return ctrl.Result{}, err
 		}
 
-		err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, "")
+		err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -202,13 +200,13 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		o.Status.IpAddress = ipAddress.Spec.IpAddress
 		o.Status.IpAddressDotDecimal = strings.Split(ipAddress.Spec.IpAddress, "/")[0]
 		o.Status.IpAddressName = ipAddress.Name
-		err := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpClaimReadyTrue, corev1.EventTypeNormal, "")
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpClaimReadyTrue, corev1.EventTypeNormal, nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
 		debugLogger.Info("ipaddress status ready false")
-		err := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, "")
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, nil)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -225,20 +223,4 @@ func (r *IpAddressClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&netboxv1.IpAddressClaim{}).
 		Owns(&netboxv1.IpAddress{}).
 		Complete(r)
-}
-
-// SetConditionAndCreateEvent updates the condition and creates a log entry and event for this condition change
-func (r *IpAddressClaimReconciler) SetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpAddressClaim, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
-	if len(conditionMessageAppend) > 0 {
-		condition.Message = condition.Message + ". " + conditionMessageAppend
-	}
-	conditionChanged := apismeta.SetStatusCondition(&o.Status.Conditions, condition)
-	if conditionChanged {
-		r.Recorder.Event(o, eventType, condition.Reason, condition.Message)
-	}
-	err := r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return err
-	}
-	return nil
 }
