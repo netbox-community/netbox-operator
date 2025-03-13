@@ -5,9 +5,6 @@ metadata:
 spec:
   name: podinfo-test
   tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
-  site: "DM-Akron" # Use the `name` value instead of the `slug` value
-  description: "podinfo"
-  comments: "podinfo in podinfo namespace"
   preserveInNetbox: true
-  prefixLength: "/32"
-  parentPrefix: 3.0.4.8/29
+  prefixLength: "/30"
+  parentPrefix: 3.0.0.64/26

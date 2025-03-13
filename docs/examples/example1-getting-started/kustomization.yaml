@@ -1,6 +1,8 @@
+metadata:
+  namespace: test
 resources:
   - ../../../../podinfo/kustomize
-  - podinfo-int-ipaddresspool.yaml
+  - sample-deployment.yaml
 
 patches:
   - patch: |-
@@ -9,6 +11,6 @@ patches:
       metadata:
         name: podinfo
         annotations:
-          metallb.universe.tf/allow-shared-ip: podinfo-int
+          metallb.universe.tf/allow-shared-ip: podinfo-test
       spec:
         type: LoadBalancer

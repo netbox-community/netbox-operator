@@ -1,20 +1,19 @@
 apiVersion: kro.run/v1alpha1
 kind: ResourceGraphDefinition
 metadata:
-  name: metallb-ip-address-pool-from-netbox-parent-prefix
+  name: metallb-ip-address-pool--netbox
 spec:
   schema:
     apiVersion: v1alpha1
-    kind: MetalLBIPAddressPoolFromNetBoxParentPrefix
+    kind: MetalLBIPAddressPoolNetBox
     spec:
       name: string
       tenant: string
-      site: string
-      description: string
-      comments: string
       preserveInNetbox: boolean
       prefixLength: string
-      parentPrefix: string
+      parentPrefixSelector:
+        environment: string
+        family: string
     status:
 
   # Define the resources this API will manage.
@@ -27,11 +26,9 @@ spec:
           name: ${schema.spec.name} # Use the name provided by user
         spec:
           tenant: ${schema.spec.tenant}
-          description: ${schema.spec.description}
-          comments: ${schema.spec.comments}
           preserveInNetbox: ${schema.spec.preserveInNetbox}
-          parentPrefix: ${schema.spec.parentPrefix}
           prefixLength: ${schema.spec.prefixLength}
+          parentPrefixSelector: ${schema.spec.parentPrefixSelector}
 
     - id: ipaddresspool
       template:

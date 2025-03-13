@@ -4,12 +4,11 @@ metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-sample
+  name: dynamic-prefix-claim
 spec:
   tenant: "MY_TENANT"
-  site: "DM-Akron"
-  description: "some description"
-  comments: "your comments"
   preserveInNetbox: true
-  parentPrefix: 3.0.4.8/29
-  prefixLength: "/32"
+  parentPrefixSelector:
+    environment: prod
+    family: IPv4
+  prefixLength: "/30"
