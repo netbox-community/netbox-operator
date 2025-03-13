@@ -16,8 +16,7 @@ kind load docker-image netbox-operator:build-local --name london
 kind load docker-image netbox-operator:build-local --name london  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
 # install resource graph defintions
-kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox-parent-prefix.yaml
-kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox.yaml
+kubectl apply --context kind-london -f docs/examples/set-up/metallb-ip-address-pool-netbox.yaml
 
 
 kubectl config use-context kind-zurich
@@ -25,5 +24,39 @@ kind load docker-image netbox-operator:build-local --name zurich
 kind load docker-image netbox-operator:build-local --name zurich  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
 # install resource graph defintions
-kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox-parent-prefix.yaml
-kubectl apply -f docs/examples/set-up/metallb-ip-address-pool-from-netbox.yaml
+kubectl apply -context kind-zurich -f docs/examples/set-up/metallb-ip-address-pool-netbox.yaml
+
+DEPLOYMENT_NAME=netbox-operator
+NAMESPACE=netbox-operator-system
+CONTEXT=kind-london
+
+while true; do
+  # Check if the deployment is ready
+  READY_REPLICAS=$(kubectl --context $CONTEXT get deployment $DEPLOYMENT_NAME -n $NAMESPACE -o jsonpath='{.status.readyReplicas}')
+  DESIRED_REPLICAS=$(kubectl --context $CONTEXT get deployment $DEPLOYMENT_NAME -n $NAMESPACE -o jsonpath='{.status.replicas}')
+
+  if [[ "$READY_REPLICAS" == "$DESIRED_REPLICAS" ]] && [[ "$READY_REPLICAS" -gt 0 ]]; then
+    echo "Deployment $DEPLOYMENT_NAME in cluster $CONTEXT is ready."
+    break
+  else
+    echo "Waiting... Ready replicas in cluster $CONTEXT: $READY_REPLICAS / $DESIRED_REPLICAS"
+    sleep 5
+  fi
+done
+kubectl apply --context $CONTEXT -f docs/examples/set-up/metallb-ip-address-pool-netbox.yaml
+
+CONTEXT=kind-zurich
+while true; do
+  # Check if the deployment is ready
+  READY_REPLICAS=$(kubectl --context $CONTEXT get deployment $DEPLOYMENT_NAME -n $NAMESPACE -o jsonpath='{.status.readyReplicas}')
+  DESIRED_REPLICAS=$(kubectl --context $CONTEXT get deployment $DEPLOYMENT_NAME -n $NAMESPACE -o jsonpath='{.status.replicas}')
+
+  if [[ "$READY_REPLICAS" == "$DESIRED_REPLICAS" ]] && [[ "$READY_REPLICAS" -gt 0 ]]; then
+    echo "Deployment $DEPLOYMENT_NAME in cluster $CONTEXT is ready."
+    break
+  else
+    echo "Waiting... Ready replicas in cluster $CONTEXT: $READY_REPLICAS / $DESIRED_REPLICAS"
+    sleep 5
+  fi
+done
+kubectl apply --context $CONTEXT -f docs/examples/set-up/metallb-ip-address-pool-netbox.yaml
