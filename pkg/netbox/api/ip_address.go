@@ -17,10 +17,12 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
@@ -33,14 +35,18 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 	}
 
 	desiredIPAddress := &netboxModels.WritableIPAddress{
-		Address:      &ipAddress.IpAddress,
-		Comments:     ipAddress.Metadata.Comments + warningComment,
-		CustomFields: ipAddress.Metadata.Custom,
-		Description:  TruncateDescription(ipAddress.Metadata.Description),
-		Status:       "active",
+		Address:     &ipAddress.IpAddress,
+		Description: TruncateDescription(""),
+		Status:      "active",
 	}
 
-	if ipAddress.Metadata.Tenant != "" {
+	if ipAddress.Metadata != nil {
+		desiredIPAddress.CustomFields = ipAddress.Metadata.Custom
+		desiredIPAddress.Comments = ipAddress.Metadata.Comments + warningComment
+		desiredIPAddress.Description = TruncateDescription(ipAddress.Metadata.Description)
+	}
+
+	if ipAddress.Metadata != nil && ipAddress.Metadata.Tenant != "" {
 		tenantDetails, err := r.GetTenantDetails(ipAddress.Metadata.Tenant)
 		if err != nil {
 			return nil, err
@@ -52,7 +58,22 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 	if len(responseIpAddress.Payload.Results) == 0 {
 		return r.CreateIpAddress(desiredIPAddress)
 	}
-	//update ip address since it does exist
+
+	ipToUpdate := responseIpAddress.Payload.Results[0]
+
+	// if the desired ip address has a restoration hash
+	// check that the ip address to update has the same restoration hash
+	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
+	if ipAddress.Metadata != nil {
+		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
+			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
+				//update ip address since it does exist and the restoration hash matches
+				return r.UpdateIpAddress(ipToUpdate.ID, desiredIPAddress)
+			}
+			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMissmatch, ipAddress.IpAddress)
+		}
+	}
+
 	ipAddressId := responseIpAddress.Payload.Results[0].ID
 	return r.UpdateIpAddress(ipAddressId, desiredIPAddress)
 }

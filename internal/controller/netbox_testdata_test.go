@@ -55,6 +55,7 @@ var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
 
 var customFields = map[string]string{"example_field": "example value"}
 var customFieldsWithHash = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
+var customFieldsWithHashMissmatch = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": "different hash"}
 
 var netboxLabel = "Status"
 var value = "active"
@@ -171,6 +172,22 @@ func mockedResponsePrefixList() *ipam.IpamPrefixesListOKBody {
 				Prefix:      &parentPrefix,
 				Site:        mockedResponseNestedSite(),
 				Tenant:      mockedResponseNestedTenant(),
+			},
+		},
+	}
+}
+
+func mockedResponseIPAddressListWithHash(customFields map[string]string) *ipam.IpamIPAddressesListOKBody {
+	return &ipam.IpamIPAddressesListOKBody{
+		Results: []*netboxModels.IPAddress{
+			{
+				ID:           mockedResponseIPAddress().ID,
+				Address:      mockedResponseIPAddress().Address,
+				Comments:     mockedResponseIPAddress().Comments,
+				CustomFields: customFields,
+				Description:  mockedResponseIPAddress().Description,
+				Display:      mockedResponseIPAddress().Display,
+				Tenant:       mockedResponseIPAddress().Tenant,
 			},
 		},
 	}
