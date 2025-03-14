@@ -24,6 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -494,5 +495,43 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		// skip assertion on retured values as the payload of IpamPrefixesUpdate() is returened
 		// without manipulation by the code
 		assert.Nil(t, err)
+	})
+
+	t.Run("restoration hash missmatch", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+
+		//prefix mock output
+		prefixListOutput := &ipam.IpamPrefixesListOK{
+			Payload: &ipam.IpamPrefixesListOKBody{
+				Results: []*netboxModels.Prefix{
+					{
+						ID:           prefixId,
+						CustomFields: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash"},
+						Display:      prefix,
+						Prefix:       &prefix,
+					},
+				},
+			},
+		}
+
+		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(prefixListOutput, nil)
+
+		netboxClient := &NetboxClient{
+			Ipam: mockIpam,
+		}
+
+		prefixModel := models.Prefix{
+			Prefix: prefix,
+			Metadata: &models.NetboxMetadata{
+				Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash-not-matching"},
+			},
+		}
+
+		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
+		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returened
+		// without manipulation by the code
+		AssertError(t, err, "restoration hash missmatch, assigned prefix 10.112.140.0/24")
 	})
 }

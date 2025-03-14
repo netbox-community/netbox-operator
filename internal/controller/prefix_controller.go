@@ -184,8 +184,25 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(prefixModel)
 	if err != nil {
-		updateStatusErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, prefix.Spec.Prefix)
-		return ctrl.Result{}, fmt.Errorf("failed at update prefix status: %w, "+"after reservation of prefix in netbox failed: %w", updateStatusErr, err)
+		if errors.Is(err, api.ErrRestorationHashMissmatch) && prefix.Status.PrefixId == 0 {
+			// if there is a restoration has missmatch and the PrefixId status field is not set,
+			// delete the prefix so it can be recreated by the prefix claim controller
+			logger.Info("restoration hash missmatch, deleting prefix custom resource", "prefix", prefix.Spec.Prefix)
+			err = r.Client.Delete(ctx, prefix)
+			if err != nil {
+				updateStatusErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionIpaddressReadyFalse,
+					corev1.EventTypeWarning, err.Error())
+				return ctrl.Result{}, fmt.Errorf("failed to update prefix status: %w, "+
+					"after deletion of prefix cr failed: %w", updateStatusErr, err)
+			}
+			return ctrl.Result{}, nil
+		}
+		if updateStatusErr := r.SetConditionAndCreateEvent(ctx, prefix, netboxv1.ConditionIpaddressReadyFalse,
+			corev1.EventTypeWarning, prefix.Spec.Prefix); updateStatusErr != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update prefix status: %w, "+
+				"after reservation of prefix netbox failed: %w", updateStatusErr, err)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	/* 3. unlock lease of parent prefix */
