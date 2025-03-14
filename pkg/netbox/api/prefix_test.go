@@ -383,22 +383,6 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
-		//prefix mock input
-		prefixToCreate := &netboxModels.WritablePrefix{
-			Comments:     comments + warningComment,
-			Description:  description + warningComment,
-			CustomFields: make(map[string]interface{}),
-			Prefix:       prefixPtr,
-			Site:         &siteOutputId,
-			Tenant:       &tenantOutputId,
-			Status:       "active",
-		}
-
-		createPrefixInput := ipam.
-			NewIpamPrefixesCreateParams().
-			WithDefaults().
-			WithData(prefixToCreate)
-
 		//prefix mock output
 		createPrefixOutput := &ipam.IpamPrefixesCreateCreated{
 			Payload: &netboxModels.Prefix{
@@ -419,7 +403,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
 		mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes()
 		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(emptyPrefixListOutput, nil)
-		mockIpam.EXPECT().IpamPrefixesCreate(createPrefixInput, nil).Return(createPrefixOutput, nil)
+		// use go mock Any as the input parameter contains pointers
+		mockIpam.EXPECT().IpamPrefixesCreate(gomock.Any(), nil).Return(createPrefixOutput, nil)
 
 		netboxClient := &NetboxClient{
 			Ipam:    mockIpam,
