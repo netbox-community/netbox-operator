@@ -199,7 +199,7 @@ func TestIpRange(t *testing.T) {
 						ID:           expectedIPRange().ID,
 						StartAddress: &startAddress,
 						EndAddress:   &endAddress,
-						CustomFields: map[string]string{
+						CustomFields: map[string]interface{}{
 							config.GetOperatorConfig().NetboxRestorationHashFieldName: "different hash",
 						},
 						Comments:    expectedIPRange().Comments,

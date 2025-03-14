@@ -62,7 +62,7 @@ func TestIPAddress(t *testing.T) {
 		}
 	}
 
-	customFields := map[string]string{
+	customFields := map[string]interface{}{
 		config.GetOperatorConfig().NetboxRestorationHashFieldName: "fioaf9289rjfhaeuih",
 	}
 

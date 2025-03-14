@@ -387,7 +387,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		prefixToCreate := &netboxModels.WritablePrefix{
 			Comments:     comments + warningComment,
 			Description:  description + warningComment,
-			CustomFields: make(map[string]string),
+			CustomFields: make(map[string]interface{}),
 			Prefix:       prefixPtr,
 			Site:         &siteOutputId,
 			Tenant:       &tenantOutputId,
@@ -507,10 +507,12 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Payload: &ipam.IpamPrefixesListOKBody{
 				Results: []*netboxModels.Prefix{
 					{
-						ID:           prefixId,
-						CustomFields: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash"},
-						Display:      prefix,
-						Prefix:       &prefix,
+						ID: prefixId,
+						CustomFields: map[string]interface{}{
+							config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash",
+						},
+						Display: prefix,
+						Prefix:  &prefix,
 					},
 				},
 			},
