@@ -41,7 +41,7 @@ func mockIpAddressListWithIpAddressFilter(ipamMock *mock_interfaces.MockIpamInte
 				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList was called with expected input\n")
-			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressList()}, nil
+			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressListWithHash(customFieldsWithHash)}, nil
 		}).MinTimes(1)
 }
 
@@ -89,6 +89,22 @@ func mockIpAddressListWithHashFilter(ipamMock *mock_interfaces.MockIpamInterface
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressList()}, nil
+		}).MinTimes(1)
+}
+
+func mockIpAddressListWithHashFilterMissmatch(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
+			got := params.(*ipam.IpamIPAddressesListParams)
+			diff := deep.Equal(got, ExpectedIpAddressListParamsWithIpAddressData)
+			// skip check for the 3rd input parameter as it is a method, method is a non comparable type
+			if len(diff) > 0 {
+				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesList, diff to expected params diff: %+v", diff)
+				catchUnexpectedParams <- err
+				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
+			}
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
+			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressListWithHash(customFieldsWithHashMissmatch)}, nil
 		}).MinTimes(1)
 }
 

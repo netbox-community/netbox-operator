@@ -23,4 +23,5 @@ var (
 	ErrParentPrefixNotFound            = errors.New("parent prefix not found")
 	ErrWrongMatchingPrefixSubnetFormat = errors.New("wrong matchingPrefix subnet format")
 	ErrInvalidIpFamily                 = errors.New("invalid IP Family")
+	ErrRestorationHashMissmatch        = errors.New("restoration hash missmatch")
 )

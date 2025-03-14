@@ -17,10 +17,12 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
@@ -43,7 +45,13 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 		Status:       "active",
 	}
 
-	if prefix.Metadata.Tenant != "" {
+	if prefix.Metadata != nil {
+		desiredPrefix.CustomFields = prefix.Metadata.Custom
+		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
+		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
+	}
+
+	if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
 		tenantDetails, err := r.GetTenantDetails(prefix.Metadata.Tenant)
 		if err != nil {
 			return nil, err
@@ -51,7 +59,7 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 		desiredPrefix.Tenant = &tenantDetails.Id
 	}
 
-	if prefix.Metadata.Site != "" {
+	if prefix.Metadata != nil && prefix.Metadata.Site != "" {
 		siteDetails, err := r.GetSiteDetails(prefix.Metadata.Site)
 		if err != nil {
 			return nil, err
@@ -62,6 +70,21 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 	// create prefix since it doesn't exist
 	if len(responsePrefix.Payload.Results) == 0 {
 		return r.CreatePrefix(desiredPrefix)
+	}
+
+	prefixToUpdate := responsePrefix.Payload.Results[0]
+
+	// if the desired ip address has a restoration hash
+	// check that the ip address to update has the same restoration hash
+	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
+	if prefix.Metadata != nil {
+		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
+			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
+				//update ip address since it does exist and the restoration hash matches
+				return r.UpdatePrefix(prefixToUpdate.ID, desiredPrefix)
+			}
+			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMissmatch, prefix.Prefix)
+		}
 	}
 
 	//update ip address since it does exist
