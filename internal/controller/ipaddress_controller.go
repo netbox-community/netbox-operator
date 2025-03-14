@@ -170,10 +170,25 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
 	if err != nil {
-		updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
-			corev1.EventTypeWarning, o.Spec.IpAddress)
-		return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
-			"after reservation of ip in netbox failed: %w", updateStatusErr, err)
+		if errors.Is(err, api.ErrRestorationHashMissmatch) && o.Status.IpAddressId == 0 {
+			// if there is a restoration has missmatch and the IpAddressId status field is not set,
+			// delete the ip address so it can be recreated by the ip address claim controller
+			logger.Info("restoration hash missmatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
+			err = r.Client.Delete(ctx, o)
+			if err != nil {
+				updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
+					corev1.EventTypeWarning, err.Error())
+				return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
+					"after deletion of ip address cr failed: %w", updateStatusErr, err)
+			}
+			return ctrl.Result{}, nil
+		}
+		if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
+			corev1.EventTypeWarning, o.Spec.IpAddress); updateStatusErr != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
+				"after reservation of ip in netbox failed: %w", updateStatusErr, err)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	// 3. unlock lease of parent prefix

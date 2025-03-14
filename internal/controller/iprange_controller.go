@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"strconv"
@@ -142,6 +143,20 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ipRangeModel)
 	if err != nil {
+		if errors.Is(err, api.ErrRestorationHashMissmatch) && o.Status.IpRangeId == 0 {
+			// if there is a restoration has missmatch and the IpRangeId status field is not set,
+			// delete the ip range so it can be recreated by the ip range claim controller
+			logger.Info("restoration hash missmatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
+			err = r.Client.Delete(ctx, o)
+			if err != nil {
+				if err := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
+					corev1.EventTypeWarning, "", err); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+
 		if loggingErr := r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
 			corev1.EventTypeWarning, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress), err); loggingErr != nil {
 			return ctrl.Result{}, fmt.Errorf("logging error: %w. Original error from ReserveOrUpdateIpRange: %w", loggingErr, err)
