@@ -89,11 +89,11 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 	logger := log.FromContext(ctx)
 
 	if errExt != nil {
-		condition.Message = condition.Message + "," + errExt.Error()
+		condition.Message = condition.Message + ", " + errExt.Error()
 		logger.Error(errExt, condition.Message)
 	}
 
-	condition.Message = strings.Join(append([]string{condition.Message}, additionalMessages...), ",")
+	condition.Message = strings.Join(append([]string{condition.Message}, additionalMessages...), ", ")
 	condition.ObservedGeneration = o.GetGeneration()
 
 	conditionChanged := apismeta.SetStatusCondition(o.Conditions(), condition)
