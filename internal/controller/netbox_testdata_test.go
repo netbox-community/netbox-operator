@@ -56,7 +56,6 @@ var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
 var customFieldsCR = map[string]string{"example_field": "example value"}
 var customFieldsWithHashCR = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
 
-var customFields = map[string]interface{}{"example_field": "example value"}
 var customFieldsWithHash = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
 var customFieldsWithHashMissmatch = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": "different hash"}
 
