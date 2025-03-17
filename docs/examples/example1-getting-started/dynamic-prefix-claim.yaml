@@ -7,7 +7,6 @@ metadata:
   name: dynamic-prefix-claim
 spec:
   tenant: "MY_TENANT"
-  preserveInNetbox: true
   parentPrefixSelector:
     environment: prod
     family: IPv4

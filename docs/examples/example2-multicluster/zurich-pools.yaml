@@ -1,0 +1,109 @@
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-1
+spec:
+  name: zurich-network-1
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-2
+spec:
+  name: zurich-network-2
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-3
+spec:
+  name: zurich-network-3
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-4
+spec:
+  name: zurich-network-4
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-5
+spec:
+  name: zurich-network-5
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-6
+spec:
+  name: zurich-network-6
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-7
+spec:
+  name: zurich-network-7
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-8
+spec:
+  name: zurich-network-8
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-9
+spec:
+  name: zurich-network-9
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: zurich-network-10
+spec:
+  name: zurich-network-10
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
