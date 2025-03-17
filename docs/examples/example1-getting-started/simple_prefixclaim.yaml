@@ -7,6 +7,5 @@ metadata:
   name: simple-prefixclaim
 spec:
   tenant: "MY_TENANT"
-  preserveInNetbox: true
-  parentPrefix: 3.0.0.64/26
+  parentPrefix: 3.0.0.64/25
   prefixLength: "/30"

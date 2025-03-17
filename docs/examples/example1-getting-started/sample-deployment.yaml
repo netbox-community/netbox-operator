@@ -1,10 +1,43 @@
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolFromNetBoxParentPrefix
+---
+apiVersion: v1
+kind: Namespace
 metadata:
-  name: podinfo-test
+  name: nginx
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+  namespace: nginx
 spec:
-  name: podinfo-test
-  tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
-  preserveInNetbox: true
-  prefixLength: "/30"
-  parentPrefix: 3.0.0.64/26
+  selector:
+    matchLabels:
+      run: my-nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        run: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  namespace: nginx
+  labels:
+    run: my-nginx
+  annotations:
+    metallb.universe.tf/address-pool: zurich-pool
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    run: my-nginx

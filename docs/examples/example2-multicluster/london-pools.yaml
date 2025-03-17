@@ -1,0 +1,109 @@
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-1
+spec:
+  name: london-network-1
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-2
+spec:
+  name: london-network-2
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-3
+spec:
+  name: london-network-3
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-4
+spec:
+  name: london-network-4
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-5
+spec:
+  name: london-network-5
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-6
+spec:
+  name: london-network-6
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-7
+spec:
+  name: london-network-7
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-8
+spec:
+  name: london-network-8
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-9
+spec:
+  name: london-network-9
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: london-network-10
+spec:
+  name: london-network-10
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
