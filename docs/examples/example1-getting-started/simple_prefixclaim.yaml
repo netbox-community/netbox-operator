@@ -7,5 +7,5 @@ metadata:
   name: simple-prefixclaim
 spec:
   tenant: "MY_TENANT"
-  parentPrefix: 3.0.0.64/25
+  parentPrefix: 3.0.0.64/26
   prefixLength: "/30"
