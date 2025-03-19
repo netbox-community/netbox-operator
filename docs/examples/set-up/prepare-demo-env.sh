@@ -20,6 +20,9 @@ kubectl config use-context kind-zurich
 kind load docker-image netbox-operator:build-local --name zurich
 kind load docker-image netbox-operator:build-local --name zurich  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 kustomize build docs/examples/set-up/ | kubectl apply -f -
+kind load docker-image curlimages/curl --name zurich
+kind load docker-image curlimages/curl --name zurich
+kubectl run curl --image curlimages/curl --image-pull-policy=Never -- sleep infinity
 
 DEPLOYMENT_NAME=netbox-operator-controller-manager
 NAMESPACE=netbox-operator-system
