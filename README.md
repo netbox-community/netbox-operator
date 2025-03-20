@@ -55,6 +55,14 @@ Example of assigning a Prefix using PrefixClaim:
 
 Key information can be found in the yaml formatted output of these resources, as well as in the events and Operator logs.
 
+To test at scale, you can use yq to patch the Kubernetes manifests. The following is an example to create 100 IpAddressClaims based on the sample yaml file:
+
+```bash
+for i in {001..100}; do
+  name="ipc-${i}" yq e '.metadata.name=strenv(name)' config/samples/netbox_v1_ipaddressclaim.yaml | kubectl apply -f -
+done
+```
+
 # Mixed usage of Prefixes
 
 Note that NetBox does handle the Address management of Prefixes separately from IP Ranges and IP Addresses. This is important to know when you plan to use the same NetBox Prefix as a parentPrefix for your IpAddressClaims, IpRangeClaims and PrefixClaims.
