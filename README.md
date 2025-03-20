@@ -46,6 +46,14 @@ Example of assigning a Prefix using PrefixClaim:
 
 Key information can be found in the yaml formatted output of these resources, as well as in the events and Operator logs.
 
+To test at scale, you can use yq to patch the Kubernetes manifests. The following is an example to create 100 IpAddressClaims based on the sample yaml file:
+
+```bash
+for i in {001..100}; do
+  name="ipc-${i}" yq e '.metadata.name=strenv(name)' config/samples/netbox_v1_ipaddressclaim.yaml | kubectl apply -f -
+done
+```
+
 # Restoration from NetBox
 
 In the case that the cluster containing the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
