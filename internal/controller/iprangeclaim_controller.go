@@ -322,7 +322,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 		availableIpRanges, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRangeModel.Id)
 		if len(availableIpRanges.Payload) != o.Spec.Size {
 			ll.Unlock()
-			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMissmatch, corev1.EventTypeWarning, "", err)
+			err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMismatch, corev1.EventTypeWarning, "", err)
 			if err != nil {
 				return nil, ctrl.Result{}, err
 			}
