@@ -92,7 +92,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			}, timeout, interval).Should(BeTrue())
 		} else {
 
-			// check that reconcile loop did run a least once by checking that conditions are set
+			// check that reconcile loop did run at least once by checking that conditions are set
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 				return err == nil && len(createdCR.Status.Conditions) > 0

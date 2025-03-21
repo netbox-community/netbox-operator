@@ -67,7 +67,7 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 	if ipAddress.Metadata != nil {
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
-				//update ip address since it does exist and the restoration hash matches
+				// update ip address since it does exist and the restoration hash matches
 				return r.UpdateIpAddress(ipToUpdate.ID, desiredIPAddress)
 			}
 			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
