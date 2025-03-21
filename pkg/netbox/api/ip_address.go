@@ -70,7 +70,7 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 				//update ip address since it does exist and the restoration hash matches
 				return r.UpdateIpAddress(ipToUpdate.ID, desiredIPAddress)
 			}
-			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMissmatch, ipAddress.IpAddress)
+			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
 		}
 	}
 

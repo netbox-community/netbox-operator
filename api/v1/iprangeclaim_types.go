@@ -181,7 +181,7 @@ var ConditionIpRangeAssignedFalse = metav1.Condition{
 	Message: "Failed to fetch new IP Range from NetBox",
 }
 
-var ConditionIpRangeAssignedFalseSizeMissmatch = metav1.Condition{
+var ConditionIpRangeAssignedFalseSizeMismatch = metav1.Condition{
 	Type:    "IPRangeAssigned",
 	Status:  "False",
 	Reason:  "IPRangeCRNotCreated",

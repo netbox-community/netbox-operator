@@ -57,7 +57,7 @@ var customFieldsCR = map[string]string{"example_field": "example value"}
 var customFieldsWithHashCR = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
 
 var customFieldsWithHash = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
-var customFieldsWithHashMissmatch = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": "different hash"}
+var customFieldsWithHashMismatch = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": "different hash"}
 
 var netboxLabel = "Status"
 var value = "active"

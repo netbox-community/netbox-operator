@@ -52,7 +52,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		cr *netboxv1.IpAddress, // our CR as typed object
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
-		restorationHashMissmatch bool, // To check for deletion if restoration hash does not match
+		restorationHashMismatch bool, // To check for deletion if restoration hash does not match
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
 		expectedCRStatus netboxv1.IpAddressStatus, // Expected status of the CR
 	) {
@@ -85,7 +85,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 
 		createdCR := &netboxv1.IpAddress{}
 
-		if restorationHashMissmatch {
+		if restorationHashMismatch {
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 				return apierrors.IsNotFound(err)
@@ -163,10 +163,10 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 				mockTenancyTenancyTenantsList,
 			},
 			false, false, ExpectedIpAddressFailedStatus),
-		Entry("Create IpAddress CR, restoration hash missmatch",
+		Entry("Create IpAddress CR, restoration hash mismatch",
 			defaultIpAddressCreatedByClaim(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithHashFilterMissmatch,
+				mockIpAddressListWithHashFilterMismatch,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
