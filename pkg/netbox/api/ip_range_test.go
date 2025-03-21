@@ -184,13 +184,14 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().Tenant.Slug, actual.Tenant.Slug)
 	})
 
-	t.Run("ReserveOrUpdate, restoration hash missmatch", func(t *testing.T) {
+	t.Run("ReserveOrUpdate, restoration hash mismatch", func(t *testing.T) {
 
 		// ip range mock input
 		listInput := ipam.NewIpamIPRangesListParams().
 			WithStartAddress(&startAddress).
 			WithEndAddress(&endAddress)
 
+		wrongHash := "89hqvs0ud89qhdi"
 		// ip range mock output
 		listOutput := &ipam.IpamIPRangesListOK{
 			Payload: &ipam.IpamIPRangesListOKBody{
@@ -200,7 +201,7 @@ func TestIpRange(t *testing.T) {
 						StartAddress: &startAddress,
 						EndAddress:   &endAddress,
 						CustomFields: map[string]interface{}{
-							config.GetOperatorConfig().NetboxRestorationHashFieldName: "different hash",
+							config.GetOperatorConfig().NetboxRestorationHashFieldName: wrongHash,
 						},
 						Comments:    expectedIPRange().Comments,
 						Description: expectedIPRange().Description,
@@ -217,18 +218,19 @@ func TestIpRange(t *testing.T) {
 			Ipam: mockIpam,
 		}
 
+		expectedHash := "ffjrep8b29fdaikb"
 		_, err := client.ReserveOrUpdateIpRange(&models.IpRange{
 			StartAddress: startAddress,
 			EndAddress:   endAddress,
 			Metadata: &models.NetboxMetadata{
 				Custom: map[string]string{
-					config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash",
+					config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
 				},
 			},
 		})
 
 		// assert error return
-		AssertError(t, err, "restoration hash missmatch, assigned ip range 10.112.140.1-10.112.140.3")
+		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.112.140.1-10.112.140.3")
 	})
 
 	t.Run("ReserveOrUpdate, update existing ip range", func(t *testing.T) {

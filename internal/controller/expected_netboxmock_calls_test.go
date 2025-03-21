@@ -92,7 +92,7 @@ func mockIpAddressListWithHashFilter(ipamMock *mock_interfaces.MockIpamInterface
 		}).MinTimes(1)
 }
 
-func mockIpAddressListWithHashFilterMissmatch(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpAddressListWithHashFilterMismatch(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
 			got := params.(*ipam.IpamIPAddressesListParams)
@@ -104,7 +104,7 @@ func mockIpAddressListWithHashFilterMissmatch(ipamMock *mock_interfaces.MockIpam
 				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
-			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressListWithHash(customFieldsWithHashMissmatch)}, nil
+			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressListWithHash(customFieldsWithHashMismatch)}, nil
 		}).MinTimes(1)
 }
 

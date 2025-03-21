@@ -482,11 +482,12 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("restoration hash missmatch", func(t *testing.T) {
+	t.Run("restoration hash mismatch", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 
+		wrongHash := "89327r7fhui"
 		//prefix mock output
 		prefixListOutput := &ipam.IpamPrefixesListOK{
 			Payload: &ipam.IpamPrefixesListOKBody{
@@ -494,7 +495,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 					{
 						ID: prefixId,
 						CustomFields: map[string]interface{}{
-							config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash",
+							config.GetOperatorConfig().NetboxRestorationHashFieldName: wrongHash,
 						},
 						Display: prefix,
 						Prefix:  &prefix,
@@ -509,16 +510,17 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Ipam: mockIpam,
 		}
 
+		expectedHash := "jfioaw0e9gh"
 		prefixModel := models.Prefix{
 			Prefix: prefix,
 			Metadata: &models.NetboxMetadata{
-				Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash-not-matching"},
+				Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash},
 			},
 		}
 
 		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
 		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returened
 		// without manipulation by the code
-		AssertError(t, err, "restoration hash missmatch, assigned prefix 10.112.140.0/24")
+		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
 	})
 }

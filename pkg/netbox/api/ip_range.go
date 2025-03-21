@@ -73,7 +73,7 @@ func (r *NetboxClient) ReserveOrUpdateIpRange(ipRange *models.IpRange) (*netboxM
 				//update ip address since it does exist and the restoration hash matches
 				return r.UpdateIpRange(ipRangeToUpdate.ID, desiredIpRange)
 			}
-			return nil, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMissmatch, ipRange.StartAddress, ipRange.EndAddress)
+			return nil, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
 		}
 	}
 

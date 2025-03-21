@@ -83,7 +83,7 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 				//update ip address since it does exist and the restoration hash matches
 				return r.UpdatePrefix(prefixToUpdate.ID, desiredPrefix)
 			}
-			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMissmatch, prefix.Prefix)
+			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
 		}
 	}
 

@@ -62,8 +62,10 @@ func TestIPAddress(t *testing.T) {
 		}
 	}
 
+	expectedHash := "fioaf9289rjfhaeuih"
+
 	customFields := map[string]interface{}{
-		config.GetOperatorConfig().NetboxRestorationHashFieldName: "fioaf9289rjfhaeuih",
+		config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
 	}
 
 	// example output IP address
@@ -331,12 +333,12 @@ func TestIPAddress(t *testing.T) {
 			Ipam: mockIPAddress,
 		}
 
-		ipAddressModel := ipAddressModel("fioaf9289rjfhaeuih")
+		ipAddressModel := ipAddressModel(expectedHash)
 		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
 		AssertNil(t, err)
 	})
 
-	t.Run("Check ReserveOrUpdate with hash missmatch", func(t *testing.T) {
+	t.Run("Check ReserveOrUpdate with hash mismatch", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
 			Payload: &ipam.IpamIPAddressesListOKBody{
@@ -358,6 +360,6 @@ func TestIPAddress(t *testing.T) {
 
 		ipAddressModel := ipAddressModel("iwfohs7v82fe9w0")
 		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
-		AssertError(t, err, "restoration hash missmatch, assigned ip address 10.112.140.0")
+		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
 	})
 }
