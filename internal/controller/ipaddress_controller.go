@@ -170,30 +170,22 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) {
-			if o.Status.IpAddressId == 0 {
-				// if there is a restoration hash mismatch and the IpAddressId status field is not set,
-				// delete the ip address so it can be recreated by the ip address claim controller
-				// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
-				logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
-				err = r.Client.Delete(ctx, o)
-				if err != nil {
-					if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
-						corev1.EventTypeWarning, err.Error()); updateStatusErr != nil {
-						return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
-							"after deletion of ip address cr failed: %w", updateStatusErr, err)
-					}
-					return ctrl.Result{Requeue: true}, nil
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
+			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
+			// delete the ip address so it can be recreated by the ip address claim controller
+			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
+			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
+			err = r.Client.Delete(ctx, o)
+			if err != nil {
+				if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
+					corev1.EventTypeWarning, err.Error()); updateStatusErr != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
+						"after deletion of ip address cr failed: %w", updateStatusErr, err)
 				}
-				return ctrl.Result{}, nil
+				return ctrl.Result{Requeue: true}, nil
 			}
-		} else {
-			if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
-				corev1.EventTypeWarning, err.Error()); updateStatusErr != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
-					"after reservation of ip in netbox failed: %w", updateStatusErr, err)
-			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, nil
+
 		}
 
 		if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
