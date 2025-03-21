@@ -358,7 +358,8 @@ func TestIPAddress(t *testing.T) {
 			Ipam: mockIPAddress,
 		}
 
-		ipAddressModel := ipAddressModel("iwfohs7v82fe9w0")
+		expectedHash := "iwfohs7v82fe9w0"
+		ipAddressModel := ipAddressModel(expectedHash)
 		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
 		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
 	})
