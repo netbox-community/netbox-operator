@@ -143,28 +143,20 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ipRangeModel)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) {
-			if o.Status.IpRangeId == 0 {
-				// if there is a restoration hash mismatch and the IpRangeId status field is not set,
-				// delete the ip range so it can be recreated by the ip range claim controller
-				// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
-				logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
-				err = r.Client.Delete(ctx, o)
-				if err != nil {
-					if err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-						corev1.EventTypeWarning, "", err); err != nil {
-						return ctrl.Result{}, err
-					}
-					return ctrl.Result{Requeue: true}, nil
-				}
-				return ctrl.Result{}, nil
-			} else {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
+			// if there is a restoration hash mismatch and the IpRangeId status field is not set,
+			// delete the ip range so it can be recreated by the ip range claim controller
+			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
+			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
+			err = r.Client.Delete(ctx, o)
+			if err != nil {
 				if err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
 					corev1.EventTypeWarning, "", err); err != nil {
 					return ctrl.Result{}, err
 				}
 				return ctrl.Result{Requeue: true}, nil
 			}
+			return ctrl.Result{}, nil
 		}
 
 		if err = r.logErrorSetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
