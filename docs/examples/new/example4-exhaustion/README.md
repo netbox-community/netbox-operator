@@ -15,9 +15,9 @@ Create a /24 Prefix (e.g. 1.122.0.0/24) with Custom Field Environment set to "pr
 Apply Resource and show PrefixClaims:
 
 ```bash
-kubectl --context kind-london create ns advanced
-kubectl --context kind-london apply -f kro-rdg-poolfromnetbox.yaml
-kubectl --context kind-london -n advanced get prefixclaims,prefixes
+kubectl create ns advanced
+kubectl apply -f kro-rdg-poolfromnetbox.yaml
+kubectl -n advanced get prefixclaims,prefixes
 ```
 
 Note that only 2 out of the 3 PrefixClaims will become Ready. This is because the /24 Prefix is exhausted already after two Prefixes. This will look similar to this (note the order is non-deterministic):
@@ -41,13 +41,13 @@ Create another /24 Prefix (e.g. 1.100.0.0/24) with Custom Field Environment set 
 Wait for the PrefixClaim to be reconciled again or trigger reconciliation by e.g. adding an annotation:
 
 ```bash
-kubectl --context kind-london -n advanced annotate prefixclaim prefixclaim-exhaustion-sample-3 reconcile="$(date)" --overwrite
+kubectl -n advanced annotate prefixclaim prefixclaim-exhaustion-sample-3 reconcile="$(date)" --overwrite
 ```
 
 Confirm that the third Prefix is now also assigned:
 
 ```bash
-kubectl --context kind-london -n advanced get prefixclaims,prefixes
+kubectl -n advanced get prefixclaims,prefixes
 ```
 
 Which should look as follows:

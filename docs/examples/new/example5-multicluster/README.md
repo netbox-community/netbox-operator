@@ -1,4 +1,4 @@
-# Example 4: Multi Cluster capabilities
+# Example 4: Advanced Feature Multi Cluster Support
 
 ## Introduction
 
