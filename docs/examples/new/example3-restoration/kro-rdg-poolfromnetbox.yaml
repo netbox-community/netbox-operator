@@ -1,0 +1,39 @@
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: prefixclaim-restoration-sample-1
+spec:
+  name: prefixclaim-restoration-sample-1
+  tenant: "Dunder-Mifflin, Inc."
+  preserveInNetbox: true
+  parentPrefixSelector:
+    tenant: "Dunder-Mifflin, Inc."
+    family: IPv4
+  prefixLength: "/32"
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: prefixclaim-restoration-sample-2
+spec:
+  name: prefixclaim-restoration-sample-2
+  tenant: "Dunder-Mifflin, Inc."
+  preserveInNetbox: true
+  parentPrefixSelector:
+    tenant: "Dunder-Mifflin, Inc."
+    family: IPv4
+  prefixLength: "/32"
+---
+apiVersion: kro.run/v1alpha1
+kind: MetalLBIPAddressPoolNetBox
+metadata:
+  name: prefixclaim-restoration-sample-3
+spec:
+  name: prefixclaim-restoration-sample-3
+  tenant: "Dunder-Mifflin, Inc."
+  preserveInNetbox: true
+  parentPrefixSelector:
+    tenant: "Dunder-Mifflin, Inc."
+    family: IPv4
+  prefixLength: "/32"

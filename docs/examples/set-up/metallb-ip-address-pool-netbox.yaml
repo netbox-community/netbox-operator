@@ -10,7 +10,9 @@ spec:
       name: string
       tenant: string
       prefixLength: string
+      preserveInNetbox: boolean
       parentPrefixSelector:
+        tenant: string
         environment: string
         family: string
     status:
