@@ -27,6 +27,7 @@ spec:
           tenant: ${schema.spec.tenant}
           prefixLength: ${schema.spec.prefixLength}
           parentPrefixSelector: ${schema.spec.parentPrefixSelector}
+          preserveInNetbox: ${schema.spec.preserveInNetbox}
 
     - id: ipaddresspool
       template:
