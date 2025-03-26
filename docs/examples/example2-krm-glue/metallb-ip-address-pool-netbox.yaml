@@ -1,7 +1,7 @@
 apiVersion: kro.run/v1alpha1
 kind: ResourceGraphDefinition
 metadata:
-  name: metallb-ip-address-pool--netbox
+  name: metallb-ip-address-pool-netbox
 spec:
   schema:
     apiVersion: v1alpha1
@@ -10,7 +10,6 @@ spec:
       name: string
       tenant: string
       prefixLength: string
-      preserveInNetbox: boolean
       parentPrefixSelector:
         tenant: string
         environment: string
@@ -29,7 +28,6 @@ spec:
           tenant: ${schema.spec.tenant}
           prefixLength: ${schema.spec.prefixLength}
           parentPrefixSelector: ${schema.spec.parentPrefixSelector}
-          preserveInNetbox: ${schema.spec.preserveInNetbox}
 
     - id: ipaddresspool
       template:

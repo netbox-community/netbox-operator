@@ -16,11 +16,11 @@ kubectl create --context kind-zurich -f docs/examples/example2-multicluster/zuri
 ```
 3. Look up the created prefix claims and metalLB ipaddresspools
 ```bash
-watch kubectl get --context kind-london pxc,ipaddresspools -A
+kubectl get --context kind-london pxc,ipaddresspools -A
 ```
 and
 ```bash
-watch kubectl get --context kind-zurich pxc,ipaddresspools -A
+kubectl get --context kind-zurich pxc,ipaddresspools -A
 ```
 
 ![Example 2](multicluster.drawio.svg)
