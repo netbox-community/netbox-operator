@@ -10,16 +10,16 @@ First, let's create some resources we want to restoration later.
 
 ```bash
 kubectl create ns restoration
-echo "\n\nCreating kro-rdg-poolfromnetbox1.yaml"
-kubectl -n restoration apply -f kro-rdg-poolfromnetbox1.yaml
+
+kubectl -n restoration apply -f prefixclaim-restore1.yaml
 kubectl -n restoration wait --for=condition=Ready prefixclaims --all
 kubectl -n restoration get prefixclaims
-echo "\n\nCreating kro-rdg-poolfromnetbox2.yaml"
-kubectl -n restoration apply -f kro-rdg-poolfromnetbox2.yaml
+
+kubectl -n restoration apply -f prefixclaim-restore2.yaml
 kubectl -n restoration wait --for=condition=Ready prefixclaims --all
 kubectl -n restoration get prefixclaims
-echo "\n\nCreating kro-rdg-poolfromnetbox3.yaml"
-kubectl -n restoration apply -f kro-rdg-poolfromnetbox3.yaml
+
+kubectl -n restoration apply -f prefixclaim-restore3.yaml
 kubectl -n restoration wait --for=condition=Ready prefixclaims --all
 kubectl -n restoration get prefixclaims
 ```
@@ -44,18 +44,24 @@ Now apply the manifests again and verify they become ready. We apply the manifes
 
 ```bash
 kubectl create ns restoration
-echo "\n\nCreating kro-rdg-poolfromnetbox3.yaml"
-kubectl -n restoration apply -f kro-rdg-poolfromnetbox3.yaml
+
+kubectl -n restoration apply -f prefixclaim-restore3.yaml
 kubectl -n restoration wait --for=condition=Ready prefixclaims --all
 kubectl -n restoration get prefixclaims
-echo "\n\nCreating kro-rdg-poolfromnetbox2.yaml"
-kubectl -n restoration apply -f kro-rdg-poolfromnetbox2.yaml
+
+kubectl -n restoration apply -f prefixclaim-restore2.yaml
 kubectl -n restoration wait --for=condition=Ready prefixclaims --all
 kubectl -n restoration get prefixclaims
-echo "\n\nCreating kro-rdg-poolfromnetbox1.yaml"
-kubectl -n restoration apply -f kro-rdg-poolfromnetbox1.yaml
+
+kubectl -n restoration apply -f prefixclaim-restore1.yaml
 kubectl -n restoration wait --for=condition=Ready prefixclaims --all
 kubectl -n restoration get prefixclaims
+```
+
+Delete Leases to speed up:
+
+```bash
+kubectl -n netbox-operator-system get lease -oname | grep -v netbox | xargs -n1 kubectl -n netbox-operator-system delete
 ```
 
 Note that the assigned Prefixes are the same as before. You can also play around with this by just restoring single prefixes. If you're curious about how this is done, make sure to read [the "Restoration from NetBox" section in the main README.md](https://github.com/netbox-community/netbox-operator/tree/main?tab=readme-ov-file#restoration-from-netbox) and to check out the code. Also have a look at the "Netbox Restoration Hash" custom field in NetBox.

@@ -1,10 +1,9 @@
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
   name: prefixclaim-exhaustion-sample-1
 spec:
-  name: prefixclaim-exhaustion-sample-1
   tenant: "MY_TENANT"
   preserveInNetbox: true
   parentPrefixSelector:
@@ -12,12 +11,11 @@ spec:
     family: IPv4
   prefixLength: "/25"
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
   name: prefixclaim-exhaustion-sample-2
 spec:
-  name: prefixclaim-exhaustion-sample-2
   tenant: "MY_TENANT"
   preserveInNetbox: true
   parentPrefixSelector:
@@ -25,12 +23,11 @@ spec:
     family: IPv4
   prefixLength: "/25"
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
   name: prefixclaim-exhaustion-sample-3
 spec:
-  name: prefixclaim-exhaustion-sample-3
   tenant: "MY_TENANT"
   preserveInNetbox: true
   parentPrefixSelector:

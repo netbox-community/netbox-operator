@@ -1,10 +1,9 @@
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
-  name: prefixclaim-restoration-sample-1
+  name: prefixclaim-restoration-sample-3
 spec:
-  name: prefixclaim-restoration-sample-1
   tenant: "Dunder-Mifflin, Inc."
   preserveInNetbox: true
   parentPrefixSelector:

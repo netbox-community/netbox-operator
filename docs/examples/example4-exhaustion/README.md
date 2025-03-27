@@ -16,7 +16,7 @@ Apply Resource and show PrefixClaims:
 
 ```bash
 kubectl create ns advanced
-kubectl apply -f kro-rdg-poolfromnetbox.yaml
+kubectl apply -f prefixclaim-exhaustion.yaml
 kubectl -n advanced get prefixclaims,prefixes
 ```
 
