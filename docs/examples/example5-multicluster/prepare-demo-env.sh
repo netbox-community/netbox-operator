@@ -57,4 +57,3 @@ while true; do
     sleep 5
   fi
 done
-kubectl apply --context $CONTEXT -f docs/examples/set-up/metallb-ip-address-pool-netbox.yaml

@@ -1,54 +1,54 @@
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
-  name: london-network-1
+  name: london-prefix-1
 spec:
-  name: london-network-1
   tenant: "MY_TENANT"
   prefixLength: "/30"
   parentPrefixSelector:
     environment: prod
+    familily: IPv4
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
-  name: london-network-2
+  name: london-prefix-2
 spec:
-  name: london-network-2
   tenant: "MY_TENANT"
   prefixLength: "/30"
   parentPrefixSelector:
     environment: prod
+    familily: IPv4
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
-  name: london-network-3
+  name: london-prefix-3
 spec:
-  name: london-network-3
   tenant: "MY_TENANT"
   prefixLength: "/30"
   parentPrefixSelector:
     environment: prod
+    familily: IPv4
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
-  name: london-network-4
+  name: london-prefix-4
 spec:
-  name: london-network-4
   tenant: "MY_TENANT"
   prefixLength: "/30"
   parentPrefixSelector:
     environment: prod
+    familily: IPv4
 ---
-apiVersion: kro.run/v1alpha1
-kind: MetalLBIPAddressPoolNetBox
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
 metadata:
-  name: london-network-5
+  name: london-prefix-5
 spec:
-  name: london-network-5
   tenant: "MY_TENANT"
   prefixLength: "/30"
   parentPrefixSelector:
     environment: prod
+    familily: IPv4

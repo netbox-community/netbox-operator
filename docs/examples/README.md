@@ -1,10 +1,8 @@
 # NetBox Operator Examples
 
-This folder shows some examples how the NetBox Operator can be used. The demo environment can be prepared with the 'docs/examples/set-up/prepare-demo-env.sh' script, which creates two kind clusters with NetBox Operator and [kro] installed. One one of the clusters a NetBox instance is installed which is available to both NetBox Operator deployments.
+This folder shows some examples how the NetBox Operator can be used.
 
-![Demo Set Up](demo-setup.drawio.svg)
-
-[kro]: https://github.com/kro-run/kro/
+Each example folder contains a README.md which explains how you can set up your local enviroment to step through the examples.
 
 Prerequisites:
 - go version v1.24.0+

@@ -2,9 +2,10 @@
 
 # 0.1 Create a local cluster with nebox-installed
 
-1. use the 'create-kind' target from the Makefile to create a kind cluster and deploy NetBox on it
+1. use the 'create-kind' and 'deploy-kind' targets from the Makefile to create a kind cluster and deploy NetBox and NetBox Operator on it
 ```bash
 make create-kind
+make deploy-kind
 ```
 
 # 0.2 Manually Create a Prefix in NetBox
@@ -18,11 +19,13 @@ kubectl port-forward deploy/netbox 8080:8080
 2. Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`
 3. Create a new prefix '3.0.0.64/26' with custom field 'environment: prod'
 
+# 0.3 Navigate to the example
+
+Navigate to 'docs/examples/example1-getting-started' to run the examples below
+
 # 1.1 Claim a Prefix
 
 In this example, we use a `.spec.parentPrefix` that we know in advance. This is useful if you already know exactly from which prefix you want to claim from.
-
-Navigate to 'docs/examples/example1-getting-started' to run the following commands.
 
 1. Inspect the spec of the sample prefix claim CR
 ```bash

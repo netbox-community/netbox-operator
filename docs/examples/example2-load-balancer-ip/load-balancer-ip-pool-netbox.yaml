@@ -1,17 +1,16 @@
 apiVersion: kro.run/v1alpha1
 kind: ResourceGraphDefinition
 metadata:
-  name: metallb-ip-address-pool-netbox
+  name: load-balancer-ip-pool-netbox
 spec:
   schema:
     apiVersion: v1alpha1
-    kind: MetalLBIPAddressPoolNetBox
+    kind: LoadBalancerIPPoolNetBox
     spec:
       name: string
       tenant: string
       prefixLength: string
       parentPrefixSelector:
-        tenant: string
         environment: string
         family: string
     status:
@@ -25,7 +24,6 @@ spec:
         metadata:
           name: ${schema.spec.name}
         spec:
-          tenant: ${schema.spec.tenant}
           prefixLength: ${schema.spec.prefixLength}
           parentPrefixSelector: ${schema.spec.parentPrefixSelector}
 

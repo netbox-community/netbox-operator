@@ -6,18 +6,16 @@ So we have Prefixes represented as Kubernetes Resources. Now what can we do with
 
 We use kro.run to glue this to MetalLB IPAddressPools
 
-Navigate to 'docs/examples/example2-krm-glue' to run the following commands.
-
-0. Install kro and metallb with the installation script `docs/examples/new/example2-krm-glue/prepare-demo-env.sh`
-Then navigate to 'docs/examples/example2-krm-glue' to follow the steps below.
+0. Install kro and metallb with the installation script `docs/examples/example2-load-balancer-ip/prepare-demo-env.sh`
+Then navigate to 'docs/examples/example2-load-balancer-ip' to follow the steps below.
 
 1. Inspect the spec of the sample prefix claim CR
 ```bash
-cat kro-rdg-poolfromnetbox.yaml
+cat zurich-pool.yaml
 ```
 2. Apply the manifests to create a deployment with a service and a metallb-ip-address-pool-netbox to create a metalLB IPAddressPool from the prefix claimed from NetBox
 ```bash
-kubectl apply -f kro-rdg-poolfromnetbox.yaml
+kubectl apply -f zurich-pool.yaml
 ```
 3. Check if the prefixclaim CR and the metalLB ipaddresspool CR got created
 ```bash
@@ -31,9 +29,9 @@ cat sample-deployment.yaml
 ```bash
 kubectl apply -f sample-deployment.yaml
 ```
-6. check if the service got an external ip address assigned
+6. check if the service got an external ip address assigned and that the nginx deployment is ready
 ```bash
-kubectl get svc my-nginx -n nginx
+kubectl get deploy,svc -n nginx
 ```
 7. try to connect to your service with the external ip
 ```bash

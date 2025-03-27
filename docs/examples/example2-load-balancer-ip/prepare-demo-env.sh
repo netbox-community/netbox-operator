@@ -39,4 +39,4 @@ while true; do
     sleep 5
   fi
 done
-kubectl apply --context $CONTEXT -f docs/examples/new/example2-krm-glue/metallb-ip-address-pool-netbox.yaml
+kubectl apply --context $CONTEXT -f docs/examples/example2-load-balancer-ip/load-balancer-ip-pool-netbox.yaml
