@@ -6,6 +6,31 @@ So we have Prefixes represented as Kubernetes Resources. Now what can we do with
 
 We use kro.run to glue this to MetalLB IPAddressPools
 
+### 0.1 Create a local cluster with nebox-installed
+
+1. use the 'create-kind' and 'deploy-kind' targets from the Makefile to create a kind cluster and deploy NetBox and NetBox Operator on it
+```bash
+make create-kind
+make deploy-kind
+```
+
+### 0.2 Manually Create a Prefix in NetBox
+
+Before prefixes and ip addresses can be claimed with the NetBox operator, a prefix has to be created in NetBox.
+
+1. Port-forward NetBox:
+```bash
+kubectl port-forward deploy/netbox 8080:8080
+```
+2. Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`
+3. Create a new prefix '3.0.0.64/26' with custom field 'environment: prod'
+
+### 0.3 Navigate to the example folder
+
+Navigate to 'docs/examples/example2-load-balancer-ip/' to run the examples below
+
+## Example Steps
+
 0. Install kro and metallb with the installation script `docs/examples/example2-load-balancer-ip/prepare-demo-env.sh`
 Then navigate to 'docs/examples/example2-load-balancer-ip' to follow the steps below.
 

@@ -20,7 +20,7 @@ i=0
 
 # Loop to create the specified number of clusters
 for clustername in "$@"; do
-  config_file="docs/examples/set-up/cluster-cfg.yaml"
+  config_file="docs/examples/example5-multicluster/cluster-cfg.yaml"
   temp_config="tmp/cluster-$clustername-cfg.yaml"
   i=$((i + 1))
 
@@ -38,6 +38,9 @@ for clustername in "$@"; do
       continue
     fi
     kind create cluster --name $clustername --config $temp_config || { echo -e "${RED}Error: Failed to create cluster ${clustername}${NC}"; rm -f "$temp_config"; exit 1; }
+
+    # Install MetalLB
+    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
 
   else
     echo -e "${RED}Error: Configuration file $config_file not found${NC}"

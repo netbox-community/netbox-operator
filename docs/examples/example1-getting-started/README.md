@@ -19,7 +19,7 @@ kubectl port-forward deploy/netbox 8080:8080
 2. Open <http://localhost:8080> in your favorite browser and log in with the username `admin` and password `admin`
 3. Create a new prefix '3.0.0.64/26' with custom field 'environment: prod'
 
-# 0.3 Navigate to the example
+# 0.3 Navigate to the example folder
 
 Navigate to 'docs/examples/example1-getting-started' to run the examples below
 
