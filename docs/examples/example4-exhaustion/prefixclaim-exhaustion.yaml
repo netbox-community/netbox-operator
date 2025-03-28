@@ -1,0 +1,36 @@
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: prefixclaim-exhaustion-sample-1
+spec:
+  tenant: "MY_TENANT"
+  preserveInNetbox: true
+  parentPrefixSelector:
+    environment: prod
+    family: IPv4
+  prefixLength: "/25"
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: prefixclaim-exhaustion-sample-2
+spec:
+  tenant: "MY_TENANT"
+  preserveInNetbox: true
+  parentPrefixSelector:
+    environment: prod
+    family: IPv4
+  prefixLength: "/25"
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: prefixclaim-exhaustion-sample-3
+spec:
+  tenant: "MY_TENANT"
+  preserveInNetbox: true
+  parentPrefixSelector:
+    environment: prod
+    family: IPv4
+  prefixLength: "/25"

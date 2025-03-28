@@ -1,0 +1,54 @@
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: london-prefix-1
+spec:
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+    familily: IPv4
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: london-prefix-2
+spec:
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+    familily: IPv4
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: london-prefix-3
+spec:
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+    familily: IPv4
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: london-prefix-4
+spec:
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+    familily: IPv4
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: london-prefix-5
+spec:
+  tenant: "MY_TENANT"
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+    familily: IPv4

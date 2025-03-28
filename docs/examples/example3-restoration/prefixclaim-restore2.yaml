@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: prefixclaim-restoration-sample-2
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  preserveInNetbox: true
+  parentPrefixSelector:
+    tenant: "Dunder-Mifflin, Inc."
+    family: IPv4
+  prefixLength: "/32"

@@ -1,0 +1,11 @@
+apiVersion: kro.run/v1alpha1
+kind: LoadBalancerIPPoolNetBox
+metadata:
+  name: zurich-pool
+spec:
+  name: zurich-pool
+  tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
+  prefixLength: "/30"
+  parentPrefixSelector:
+    environment: prod
+    family: IPv4

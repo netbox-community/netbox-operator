@@ -1,0 +1,39 @@
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: load-balancer-ip-pool-netbox
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: LoadBalancerIPPoolNetBox
+    spec:
+      name: string
+      tenant: string
+      prefixLength: string
+      parentPrefixSelector:
+        environment: string
+        family: string
+    status:
+
+  # Define the resources this API will manage.
+  resources:
+    - id: prefixclaim
+      template:
+        apiVersion: netbox.dev/v1
+        kind: PrefixClaim
+        metadata:
+          name: ${schema.spec.name}
+        spec:
+          prefixLength: ${schema.spec.prefixLength}
+          parentPrefixSelector: ${schema.spec.parentPrefixSelector}
+
+    - id: ipaddresspool
+      template:
+        apiVersion: metallb.io/v1beta1
+        kind: IPAddressPool
+        metadata:
+          name: ${schema.spec.name}
+          namespace: metallb-system
+        spec:
+          addresses:
+            - ${prefixclaim.status.prefix}
