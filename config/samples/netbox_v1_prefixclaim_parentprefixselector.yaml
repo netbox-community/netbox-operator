@@ -14,7 +14,6 @@ spec:
   prefixLength: "/31"
   parentPrefixSelector:
     tenant: "MY_TENANT"
-    site: "DM-Buffalo"
     family: "IPv4"
     environment: "Production"
     poolName: "Pool 1"

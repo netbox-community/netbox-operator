@@ -24,6 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -37,7 +38,7 @@ const (
 )
 
 func TestIPAddress(t *testing.T) {
-	ctrl := gomock.NewController(t)
+	ctrl := gomock.NewController(t, gomock.WithOverridableExpectations())
 	defer ctrl.Finish()
 	mockIPAddress := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockPrefixTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
@@ -61,14 +62,21 @@ func TestIPAddress(t *testing.T) {
 		}
 	}
 
+	expectedHash := "fioaf9289rjfhaeuih"
+
+	customFields := map[string]interface{}{
+		config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+	}
+
 	// example output IP address
 	expectedIPAddress := func() *netboxModels.IPAddress {
 		return &netboxModels.IPAddress{
-			ID:          int64(1),
-			Address:     &ipAddress,
-			Display:     ipAddress,
-			Comments:    Comments,
-			Description: Description,
+			ID:           int64(1),
+			Address:      &ipAddress,
+			Display:      ipAddress,
+			Comments:     Comments,
+			Description:  Description,
+			CustomFields: customFields,
 			Tenant: &netboxModels.NestedTenant{
 				ID: tenantId,
 			},
@@ -91,6 +99,21 @@ func TestIPAddress(t *testing.T) {
 				},
 			},
 		}
+	}
+
+	ipAddressModel := func(restorationHash string) *models.IPAddress {
+		model := &models.IPAddress{
+			IpAddress: ipAddress,
+		}
+		if restorationHash != "" {
+			if model.Metadata == nil {
+				model.Metadata = &models.NetboxMetadata{}
+			}
+			model.Metadata.Custom = map[string]string{
+				config.GetOperatorConfig().NetboxRestorationHashFieldName: restorationHash,
+			}
+		}
+		return model
 	}
 
 	t.Run("Retrieve Existing static IP Address.", func(t *testing.T) {
@@ -254,4 +277,90 @@ func TestIPAddress(t *testing.T) {
 		AssertNil(t, err)
 	})
 
+	t.Run("Check ReserveOrUpdate without hash", func(t *testing.T) {
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{
+						ID:      expectedIPAddress().ID,
+						Address: expectedIPAddress().Address,
+						Display: expectedIPAddress().Display,
+					}},
+			},
+		}
+
+		outputUpdate := &ipam.IpamIPAddressesUpdateOK{
+			Payload: expectedIPAddress(),
+		}
+
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
+		// use gomock.Any() because the input contains a pointer
+		mockIPAddress.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Return(outputUpdate, nil)
+
+		client := &NetboxClient{
+			Ipam: mockIPAddress,
+		}
+
+		ipAddressModel := ipAddressModel("")
+		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
+		AssertNil(t, err)
+	})
+
+	t.Run("Check ReserveOrUpdate with hash", func(t *testing.T) {
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{
+						ID:           expectedIPAddress().ID,
+						Address:      expectedIPAddress().Address,
+						Display:      expectedIPAddress().Display,
+						CustomFields: expectedIPAddress().CustomFields,
+					}},
+			},
+		}
+
+		outputUpdate := &ipam.IpamIPAddressesUpdateOK{
+			Payload: expectedIPAddress(),
+		}
+
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
+		// use gomock.Any() because the input contains a pointer
+		mockIPAddress.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Return(outputUpdate, nil)
+
+		client := &NetboxClient{
+			Ipam: mockIPAddress,
+		}
+
+		ipAddressModel := ipAddressModel(expectedHash)
+		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
+		AssertNil(t, err)
+	})
+
+	t.Run("Check ReserveOrUpdate with hash mismatch", func(t *testing.T) {
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{
+						ID:           expectedIPAddress().ID,
+						Address:      expectedIPAddress().Address,
+						Display:      expectedIPAddress().Display,
+						CustomFields: expectedIPAddress().CustomFields,
+					}},
+			},
+		}
+
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
+
+		client := &NetboxClient{
+			Ipam: mockIPAddress,
+		}
+
+		expectedHash := "iwfohs7v82fe9w0"
+		ipAddressModel := ipAddressModel(expectedHash)
+		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
+		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
+	})
 }
