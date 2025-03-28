@@ -63,6 +63,3 @@ kubectl get deploy,svc -n nginx
 k exec curl -it -- sh
 curl <external-ip>
 ```
-
-
-![Example 2](metallb-ipaddresspool-netbox.drawio.svg)

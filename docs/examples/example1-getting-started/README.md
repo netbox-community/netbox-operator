@@ -40,8 +40,6 @@ kubectl apply  -f prefixclaim-simple.yaml
 kubectl get  pxc,px
 ```
 
-![Example 1.1](prefixclaim-simple.drawio.svg)
-
 # 1.2 Dynamically Claim a Prefix with a Parent Prefix Selector
 
 In this example, we use a `.spec.parentPrefixSelector`, which is a list of selectors that tell NetBox Operator from which parent prefixes to claim our Prefix from.
@@ -60,5 +58,3 @@ kubectl apply   -f prefixclaim-dynamic.yaml
 ```bash
 kubectl get  pxc,px
 ```
-
-![Example 1.2](prefixclaim-dynamic.drawio.svg)
