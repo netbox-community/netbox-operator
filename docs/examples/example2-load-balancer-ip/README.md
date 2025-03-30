@@ -11,8 +11,9 @@ We use kro.run to glue this to MetalLB IPAddressPools
 1. use the 'create-kind' and 'deploy-kind' targets from the Makefile to create a kind cluster and deploy NetBox and NetBox Operator on it
 ```bash
 make create-kind
-make deploy-kind
 ```
+2. Install kro and metallb with the installation script `docs/examples/example2-load-balancer-ip/prepare-demo-env.sh`
+Then navigate to 'docs/examples/example2-load-balancer-ip' to follow the steps below.
 
 ### 0.2 Manually Create a Prefix in NetBox
 
@@ -30,9 +31,6 @@ kubectl port-forward deploy/netbox 8080:8080
 Navigate to 'docs/examples/example2-load-balancer-ip/' to run the examples below
 
 ## Example Steps
-
-0. Install kro and metallb with the installation script `docs/examples/example2-load-balancer-ip/prepare-demo-env.sh`
-Then navigate to 'docs/examples/example2-load-balancer-ip' to follow the steps below.
 
 1. Inspect the spec of the sample prefix claim CR
 ```bash
@@ -60,6 +58,5 @@ kubectl get deploy,svc -n nginx
 ```
 7. try to connect to your service with the external ip
 ```bash
-k exec curl -it -- sh
-curl <external-ip>
+k exec curl -it -- curl <external-ip>
 ```
