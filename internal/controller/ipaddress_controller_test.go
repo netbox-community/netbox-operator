@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 var _ = Describe("IpAddress Controller", Ordered, func() {
@@ -51,6 +52,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		cr *netboxv1.IpAddress, // our CR as typed object
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
+		restorationHashMismatch bool, // To check for deletion if restoration hash does not match
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
 		expectedCRStatus netboxv1.IpAddressStatus, // Expected status of the CR
 	) {
@@ -81,31 +83,40 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		By("Creating IpAddress CR")
 		Eventually(k8sClient.Create(ctx, cr), timeout, interval).Should(Succeed())
 
-		// check that reconcile loop did run a least once by checking that conditions are set
 		createdCR := &netboxv1.IpAddress{}
-		Eventually(func() bool {
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
-			return err == nil && len(createdCR.Status.Conditions) > 0
-		}, timeout, interval).Should(BeTrue())
 
-		// Now check if conditions are set as expected
-		Eventually(func() bool {
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
-			return err == nil &&
-				apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
-		}, timeout, interval).Should(BeTrue())
+		if restorationHashMismatch {
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
+				return apierrors.IsNotFound(err)
+			}, timeout, interval).Should(BeTrue())
+		} else {
 
-		// Check that the expected ip address is present in the status
-		Expect(createdCR.Status.IpAddressId).To(Equal(expectedCRStatus.IpAddressId))
+			// check that reconcile loop did run a least once by checking that conditions are set
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
+				return err == nil && len(createdCR.Status.Conditions) > 0
+			}, timeout, interval).Should(BeTrue())
 
-		// Cleanup the netbox resources
-		Expect(k8sClient.Delete(ctx, createdCR)).Should(Succeed())
+			// Now check if conditions are set as expected
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
+				return err == nil &&
+					apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
+			}, timeout, interval).Should(BeTrue())
 
-		// Wait until the resource is deleted to make sure that it will not interfere with the next test case
-		Eventually(func() bool {
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
-			return err != client.IgnoreNotFound(err)
-		}, timeout, interval).Should(BeTrue())
+			// Check that the expected ip address is present in the status
+			Expect(createdCR.Status.IpAddressId).To(Equal(expectedCRStatus.IpAddressId))
+
+			// Cleanup the netbox resources
+			Expect(k8sClient.Delete(ctx, createdCR)).Should(Succeed())
+
+			// Wait until the resource is deleted to make sure that it will not interfere with the next test case
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
+				return err != client.IgnoreNotFound(err)
+			}, timeout, interval).Should(BeTrue())
+		}
 
 		catchCtxCancel()
 	},
@@ -119,7 +130,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			true, ExpectedIpAddressStatus),
+			false, true, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox, preserved in netbox, ",
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -129,7 +140,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			true, ExpectedIpAddressStatus),
+			false, true, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -140,7 +151,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			true, ExpectedIpAddressStatus),
+			false, true, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, reserve or update failure",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -151,6 +162,15 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			false, ExpectedIpAddressFailedStatus),
+			false, false, ExpectedIpAddressFailedStatus),
+		Entry("Create IpAddress CR, restoration hash mismatch",
+			defaultIpAddressCreatedByClaim(true),
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithHashFilterMismatch,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			true, false, nil),
 	)
 })

@@ -24,6 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -181,6 +182,55 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().Tenant.ID, actual.Tenant.ID)
 		assert.Equal(t, expectedIPRange().Tenant.Name, actual.Tenant.Name)
 		assert.Equal(t, expectedIPRange().Tenant.Slug, actual.Tenant.Slug)
+	})
+
+	t.Run("ReserveOrUpdate, restoration hash mismatch", func(t *testing.T) {
+
+		// ip range mock input
+		listInput := ipam.NewIpamIPRangesListParams().
+			WithStartAddress(&startAddress).
+			WithEndAddress(&endAddress)
+
+		wrongHash := "89hqvs0ud89qhdi"
+		// ip range mock output
+		listOutput := &ipam.IpamIPRangesListOK{
+			Payload: &ipam.IpamIPRangesListOKBody{
+				Results: []*netboxModels.IPRange{
+					{
+						ID:           expectedIPRange().ID,
+						StartAddress: &startAddress,
+						EndAddress:   &endAddress,
+						CustomFields: map[string]interface{}{
+							config.GetOperatorConfig().NetboxRestorationHashFieldName: wrongHash,
+						},
+						Comments:    expectedIPRange().Comments,
+						Description: expectedIPRange().Description,
+						Tenant:      expectedIPRange().Tenant,
+					},
+				},
+			},
+		}
+
+		mockIpam.EXPECT().IpamIPRangesList(listInput, nil).Return(listOutput, nil).AnyTimes()
+
+		// init client
+		client := &NetboxClient{
+			Ipam: mockIpam,
+		}
+
+		expectedHash := "ffjrep8b29fdaikb"
+		_, err := client.ReserveOrUpdateIpRange(&models.IpRange{
+			StartAddress: startAddress,
+			EndAddress:   endAddress,
+			Metadata: &models.NetboxMetadata{
+				Custom: map[string]string{
+					config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+				},
+			},
+		})
+
+		// assert error return
+		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.112.140.1-10.112.140.3")
 	})
 
 	t.Run("ReserveOrUpdate, update existing ip range", func(t *testing.T) {

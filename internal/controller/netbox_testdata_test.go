@@ -53,8 +53,11 @@ var tenantSlug = "test-tenant-slug"
 
 var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
 
-var customFields = map[string]string{"example_field": "example value"}
-var customFieldsWithHash = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
+var customFieldsCR = map[string]string{"example_field": "example value"}
+var customFieldsWithHashCR = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
+
+var customFieldsWithHash = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
+var customFieldsWithHashMismatch = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": "different hash"}
 
 var netboxLabel = "Status"
 var value = "active"
@@ -72,7 +75,7 @@ func defaultIpAddressCR(preserveInNetbox bool) *netboxv1.IpAddress {
 		Spec: netboxv1.IpAddressSpec{
 			IpAddress:        ipAddress,
 			Tenant:           tenant,
-			CustomFields:     customFields,
+			CustomFields:     customFieldsCR,
 			Comments:         comments,
 			Description:      description,
 			PreserveInNetbox: preserveInNetbox,
@@ -89,7 +92,7 @@ func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *netboxv1.IpAddress {
 		Spec: netboxv1.IpAddressSpec{
 			IpAddress:        ipAddress,
 			Tenant:           tenant,
-			CustomFields:     customFieldsWithHash,
+			CustomFields:     customFieldsWithHashCR,
 			Comments:         comments,
 			Description:      description,
 			PreserveInNetbox: preserveInNetbox,
@@ -106,7 +109,7 @@ func defaultIpAddressClaimCR() *netboxv1.IpAddressClaim {
 		Spec: netboxv1.IpAddressClaimSpec{
 			ParentPrefix:     parentPrefix,
 			Tenant:           tenant,
-			CustomFields:     customFields,
+			CustomFields:     customFieldsCR,
 			Comments:         comments,
 			Description:      description,
 			PreserveInNetbox: false,
@@ -171,6 +174,22 @@ func mockedResponsePrefixList() *ipam.IpamPrefixesListOKBody {
 				Prefix:      &parentPrefix,
 				Site:        mockedResponseNestedSite(),
 				Tenant:      mockedResponseNestedTenant(),
+			},
+		},
+	}
+}
+
+func mockedResponseIPAddressListWithHash(customFields map[string]interface{}) *ipam.IpamIPAddressesListOKBody {
+	return &ipam.IpamIPAddressesListOKBody{
+		Results: []*netboxModels.IPAddress{
+			{
+				ID:           mockedResponseIPAddress().ID,
+				Address:      mockedResponseIPAddress().Address,
+				Comments:     mockedResponseIPAddress().Comments,
+				CustomFields: customFields,
+				Description:  mockedResponseIPAddress().Description,
+				Display:      mockedResponseIPAddress().Display,
+				Tenant:       mockedResponseIPAddress().Tenant,
 			},
 		},
 	}

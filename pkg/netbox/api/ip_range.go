@@ -17,10 +17,12 @@ limitations under the License.
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
@@ -41,7 +43,13 @@ func (r *NetboxClient) ReserveOrUpdateIpRange(ipRange *models.IpRange) (*netboxM
 		Status:       "active",
 	}
 
-	if ipRange.Metadata.Tenant != "" {
+	if ipRange.Metadata != nil {
+		desiredIpRange.CustomFields = ipRange.Metadata.Custom
+		desiredIpRange.Comments = ipRange.Metadata.Comments + warningComment
+		desiredIpRange.Description = TruncateDescription(ipRange.Metadata.Description)
+	}
+
+	if ipRange.Metadata != nil && ipRange.Metadata.Tenant != "" {
 		tenantDetails, err := r.GetTenantDetails(ipRange.Metadata.Tenant)
 		if err != nil {
 			return nil, err
@@ -53,6 +61,22 @@ func (r *NetboxClient) ReserveOrUpdateIpRange(ipRange *models.IpRange) (*netboxM
 	if len(responseIpRange.Payload.Results) == 0 {
 		return r.CreateIpRange(desiredIpRange)
 	}
+
+	ipRangeToUpdate := responseIpRange.Payload.Results[0]
+
+	// if the desired ip address has a restoration hash
+	// check that the ip address to update has the same restoration hash
+	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
+	if ipRange.Metadata != nil {
+		if restorationHash, ok := ipRange.Metadata.Custom[restorationHashKey]; ok {
+			if ipRangeToUpdate.CustomFields != nil && ipRangeToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
+				//update ip address since it does exist and the restoration hash matches
+				return r.UpdateIpRange(ipRangeToUpdate.ID, desiredIpRange)
+			}
+			return nil, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
+		}
+	}
+
 	//update ip range since it does exist
 	ipRangeId := responseIpRange.Payload.Results[0].ID
 	return r.UpdateIpRange(ipRangeId, desiredIpRange)

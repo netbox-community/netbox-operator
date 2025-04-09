@@ -24,6 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -382,22 +383,6 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
-		//prefix mock input
-		prefixToCreate := &netboxModels.WritablePrefix{
-			Comments:     comments + warningComment,
-			Description:  description + warningComment,
-			CustomFields: make(map[string]string),
-			Prefix:       prefixPtr,
-			Site:         &siteOutputId,
-			Tenant:       &tenantOutputId,
-			Status:       "active",
-		}
-
-		createPrefixInput := ipam.
-			NewIpamPrefixesCreateParams().
-			WithDefaults().
-			WithData(prefixToCreate)
-
 		//prefix mock output
 		createPrefixOutput := &ipam.IpamPrefixesCreateCreated{
 			Payload: &netboxModels.Prefix{
@@ -418,7 +403,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
 		mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes()
 		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(emptyPrefixListOutput, nil)
-		mockIpam.EXPECT().IpamPrefixesCreate(createPrefixInput, nil).Return(createPrefixOutput, nil)
+		// use go mock Any as the input parameter contains pointers
+		mockIpam.EXPECT().IpamPrefixesCreate(gomock.Any(), nil).Return(createPrefixOutput, nil)
 
 		netboxClient := &NetboxClient{
 			Ipam:    mockIpam,
@@ -494,5 +480,47 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		// skip assertion on retured values as the payload of IpamPrefixesUpdate() is returened
 		// without manipulation by the code
 		assert.Nil(t, err)
+	})
+
+	t.Run("restoration hash mismatch", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+
+		wrongHash := "89327r7fhui"
+		//prefix mock output
+		prefixListOutput := &ipam.IpamPrefixesListOK{
+			Payload: &ipam.IpamPrefixesListOKBody{
+				Results: []*netboxModels.Prefix{
+					{
+						ID: prefixId,
+						CustomFields: map[string]interface{}{
+							config.GetOperatorConfig().NetboxRestorationHashFieldName: wrongHash,
+						},
+						Display: prefix,
+						Prefix:  &prefix,
+					},
+				},
+			},
+		}
+
+		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(prefixListOutput, nil)
+
+		netboxClient := &NetboxClient{
+			Ipam: mockIpam,
+		}
+
+		expectedHash := "jfioaw0e9gh"
+		prefixModel := models.Prefix{
+			Prefix: prefix,
+			Metadata: &models.NetboxMetadata{
+				Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash},
+			},
+		}
+
+		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
+		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returened
+		// without manipulation by the code
+		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
 	})
 }
