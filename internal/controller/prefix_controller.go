@@ -159,7 +159,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// create lock
 			if locked := ll.TryLock(lockCtx); !locked {
 				errorMsg := fmt.Sprintf("failed to lock parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
-				r.EventStatusRecorder.rec.Eventf(prefix, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+				r.EventStatusRecorder.Recorder().Eventf(prefix, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 				return ctrl.Result{
 					RequeueAfter: 2 * time.Second,
 				}, nil
@@ -242,7 +242,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// check if the created prefix contains the entire description from spec
 	if _, found := strings.CutPrefix(netboxPrefixModel.Description, req.NamespacedName.String()+" // "+prefix.Spec.Description); !found {
-		r.EventStatusRecorder.rec.Event(prefix, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
+		r.EventStatusRecorder.Recorder().Event(prefix, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 
 	debugLogger.Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", prefix.Spec.Prefix))

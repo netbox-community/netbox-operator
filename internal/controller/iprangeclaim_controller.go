@@ -212,7 +212,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	if !locked {
 		// lock for parent prefix was not available, rescheduling
 		logger.Info(fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix))
-		r.EventStatusRecorder.rec.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
 			o.Spec.ParentPrefix)
 		return nil, ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 	}

@@ -146,7 +146,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
-			r.EventStatusRecorder.rec.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
@@ -230,7 +230,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// check if created ip address contains entire description from spec
 	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description)
 	if !found {
-		r.EventStatusRecorder.rec.Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
+		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
 	}
 
 	debugLogger.Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))

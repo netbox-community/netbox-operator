@@ -120,7 +120,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefix))
-			r.EventStatusRecorder.rec.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
+			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
 				parentPrefix)
 			return ctrl.Result{Requeue: true}, nil
 		}
@@ -245,7 +245,7 @@ func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv
 	// check if created ip range contains entire description from spec
 	_, found := strings.CutPrefix(description, req.NamespacedName.String()+" // "+o.Spec.Description)
 	if !found {
-		r.EventStatusRecorder.rec.Event(o, corev1.EventTypeWarning, "IpRangeDescriptionTruncated", "ip range was created with truncated description")
+		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpRangeDescriptionTruncated", "ip range was created with truncated description")
 	}
 
 	return &models.IpRange{

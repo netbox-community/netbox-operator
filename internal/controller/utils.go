@@ -109,3 +109,7 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 
 	return nil
 }
+
+func (esr *EventStatusRecorder) Recorder() record.EventRecorder {
+	return esr.rec
+}
