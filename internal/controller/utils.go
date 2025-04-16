@@ -89,7 +89,7 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 	logger := log.FromContext(ctx)
 
 	if errExt != nil {
-		condition.Message = condition.Message + ", " + errExt.Error()
+		condition.Message = condition.Message + ": " + errExt.Error()
 		logger.Error(errExt, condition.Message)
 	}
 

@@ -166,7 +166,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 
 		if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-			corev1.EventTypeWarning, err, fmt.Sprintf("%s-%s ", o.Spec.StartAddress, o.Spec.EndAddress)); err != nil {
+			corev1.EventTypeWarning, err, fmt.Sprintf("range: %s-%s", o.Spec.StartAddress, o.Spec.EndAddress)); err != nil {
 			return ctrl.Result{}, err
 		}
 
