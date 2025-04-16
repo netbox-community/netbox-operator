@@ -64,12 +64,12 @@ done
 ```
 
 # The Claim Model
-The NetBox Operator implements a "Claim Model" inspired by Kubernetes PersistentVolumeClaims (PVCs).
+The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
 In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes and IP Addresses) based on claims submitted via custom resources.
 
 ## Purpose
 This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
-The network operators will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent block.
+The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
 
 <p align="center">
   <img src="docs/claim-model.svg" width="400"/>
