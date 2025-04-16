@@ -89,6 +89,14 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
 	}
 
+	// Set ready to false initially
+	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
+		}
+	}
+
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox {
 		err = addFinalizer(ctx, r.Client, o, IpRangeFinalizerName)

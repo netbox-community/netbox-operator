@@ -78,6 +78,14 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
+	// Set ready to false initially
+	if apismeta.FindStatusCondition(prefixClaim.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
+		err := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
+		}
+	}
+
 	/* 1. compute and assign the parent prefix if required */
 	// The current design will use prefixClaim.Status.ParentPrefix for storing the selected parent prefix,
 	// and as the source of truth for future parent prefix references

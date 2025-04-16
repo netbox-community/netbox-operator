@@ -102,6 +102,14 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
+	// Set ready to false initially
+	if apismeta.FindStatusCondition(prefix.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
+		err := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
+		}
+	}
+
 	// register finalizer if not yet registered
 	if !prefix.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
 		debugLogger.Info("adding the finalizer")

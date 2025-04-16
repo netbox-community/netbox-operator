@@ -113,6 +113,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
+	// Set ready to false initially
+	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
+		}
+	}
+
 	// 1. try to lock lease of parent prefix if IpAddress status condition is not true
 	// and IpAddress is owned by an IpAddressClaim
 	or := o.ObjectMeta.OwnerReferences
