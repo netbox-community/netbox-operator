@@ -79,11 +79,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
 				if err != nil {
-					setConditionErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err)
-					if setConditionErr != nil {
-						return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting IPAddress failed: %w", setConditionErr, err)
+					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
+						return ctrl.Result{}, errReport
 					}
-
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
@@ -115,7 +113,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
 		}

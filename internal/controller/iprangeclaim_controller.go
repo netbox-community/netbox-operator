@@ -96,7 +96,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
 		}
@@ -270,8 +270,8 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 	h := generateIpRangeRestorationHash(o)
 	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err); err != nil {
-			return nil, ctrl.Result{}, err
+		if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
+			return nil, ctrl.Result{}, errReport
 		}
 		return nil, ctrl.Result{Requeue: true}, nil
 	}
@@ -289,8 +289,8 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 			},
 		)
 		if err != nil {
-			if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err); err != nil {
-				return nil, ctrl.Result{}, err
+			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
+				return nil, ctrl.Result{}, errReport
 			}
 			return nil, ctrl.Result{Requeue: true}, nil
 		}
@@ -301,6 +301,9 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 		// check if the restored ip range has the size requested by the claim
 		availableIpRanges, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRangeModel.Id)
 		if err != nil {
+			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, err, "failed getting available IP Addresses By Range"); errReport != nil {
+				return nil, ctrl.Result{}, errReport
+			}
 			return nil, ctrl.Result{}, err
 		}
 		if len(availableIpRanges.Payload) != o.Spec.Size {

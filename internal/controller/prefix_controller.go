@@ -79,9 +79,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if controllerutil.ContainsFinalizer(prefix, PrefixFinalizerName) {
 			if !prefix.Spec.PreserveInNetbox {
 				if err := r.NetboxClient.DeletePrefix(prefix.Status.PrefixId); err != nil {
-					setConditionErr := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err)
-					if setConditionErr != nil {
-						return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting Prefix failed: %w", setConditionErr, err)
+					if errReport := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
+						return ctrl.Result{}, errReport
 					}
 
 					return ctrl.Result{Requeue: true}, nil
@@ -104,7 +103,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(prefix.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil)
+		err := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
 		}
@@ -140,8 +139,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if prefixClaim.Status.SelectedParentPrefix == "" {
 			// the parent prefix is not selected
-			if err := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "the parent prefix is not selected")); err != nil {
-				return ctrl.Result{}, err
+			if errReport := r.EventStatusRecorder.Report(ctx, prefix, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "the parent prefix is not selected")); errReport != nil {
+				return ctrl.Result{}, errReport
 			}
 			return ctrl.Result{
 				Requeue: true,

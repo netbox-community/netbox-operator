@@ -132,8 +132,8 @@ type PrefixClaim struct {
 	Status PrefixClaimStatus `json:"status,omitempty"`
 }
 
-func (i *PrefixClaim) Conditions() *[]metav1.Condition {
-	return &i.Status.Conditions
+func (p *PrefixClaim) Conditions() *[]metav1.Condition {
+	return &p.Status.Conditions
 }
 
 // +kubebuilder:object:root=true
