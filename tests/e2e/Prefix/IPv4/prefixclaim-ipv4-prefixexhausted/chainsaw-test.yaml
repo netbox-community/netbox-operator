@@ -94,7 +94,7 @@ spec:
               reason: PrefixCRNotCreated
               source:
                 component: prefix-claim-controller
-              message: Failed to fetch new Prefix from NetBox. parent prefix exhausted, will restart the parent prefix selection process
+              message: "Failed to fetch new Prefix from NetBox: parent prefix exhausted, will restart the parent prefix selection process"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: PrefixClaim

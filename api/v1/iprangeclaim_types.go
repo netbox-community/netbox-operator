@@ -133,6 +133,10 @@ type IpRangeClaim struct {
 	Status IpRangeClaimStatus `json:"status,omitempty"`
 }
 
+func (i *IpRangeClaim) Conditions() *[]metav1.Condition {
+	return &i.Status.Conditions
+}
+
 //+kubebuilder:object:root=true
 
 // IpRangeClaimList contains a list of IpRangeClaim

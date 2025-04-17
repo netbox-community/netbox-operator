@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"strings"
 
+	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -68,4 +71,45 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 	}
 
 	return nil
+}
+
+type EventStatusRecorder struct {
+	client client.Client
+	rec    record.EventRecorder
+}
+
+func NewEventStatusRecorder(client client.Client, rec record.EventRecorder) *EventStatusRecorder {
+	return &EventStatusRecorder{
+		client: client,
+		rec:    rec,
+	}
+}
+
+func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditions, condition metav1.Condition, eventType string, errExt error, additionalMessages ...string) error {
+	logger := log.FromContext(ctx)
+
+	if errExt != nil {
+		condition.Message = condition.Message + ": " + errExt.Error()
+		logger.Error(errExt, condition.Message)
+	}
+
+	condition.Message = strings.Join(append([]string{condition.Message}, additionalMessages...), ", ")
+	condition.ObservedGeneration = o.GetGeneration()
+
+	conditionChanged := apismeta.SetStatusCondition(o.Conditions(), condition)
+	if conditionChanged {
+		esr.rec.Event(o, eventType, condition.Reason, condition.Message)
+		logger.Info("Condition "+condition.Type+" changed to "+string(condition.Status), "Reason", condition.Reason, "Message", condition.Message)
+
+		err := esr.client.Status().Update(ctx, o)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (esr *EventStatusRecorder) Recorder() record.EventRecorder {
+	return esr.rec
 }

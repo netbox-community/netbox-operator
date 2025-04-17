@@ -129,7 +129,7 @@ spec:
               reason: IPAddressCRNotCreated
               source:
                 component: ip-address-claim-controller
-              message: Failed to fetch new IP from NetBox. parent prefix exhausted
+              message: "Failed to fetch new IP from NetBox: parent prefix exhausted"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: IpAddressClaim

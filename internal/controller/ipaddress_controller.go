@@ -33,11 +33,9 @@ import (
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -50,11 +48,11 @@ const IPManagedCustomFieldsAnnotationName = "ipaddress.netbox.dev/managed-custom
 // IpAddressReconciler reconciles a IpAddress object
 type IpAddressReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	NetboxClient      *api.NetboxClient
-	Recorder          record.EventRecorder
-	OperatorNamespace string
-	RestConfig        *rest.Config
+	Scheme              *runtime.Scheme
+	NetboxClient        *api.NetboxClient
+	EventStatusRecorder *EventStatusRecorder
+	OperatorNamespace   string
+	RestConfig          *rest.Config
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipaddresses,verbs=get;list;watch;create;update;patch;delete
@@ -81,11 +79,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
 				if err != nil {
-					setConditionErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err.Error())
-					if setConditionErr != nil {
-						return ctrl.Result{}, fmt.Errorf("error updating status: %w, when deleting IPAddress failed: %w", setConditionErr, err)
+					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
+						return ctrl.Result{}, errReport
 					}
-
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
@@ -112,6 +108,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
 		if err := r.Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
+		}
+	}
+
+	// Set ready to false initially
+	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
+		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
 		}
 	}
 
@@ -148,7 +152,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
-			r.Recorder.Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
@@ -177,8 +181,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
 			err = r.Client.Delete(ctx, o)
 			if err != nil {
-				if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
-					corev1.EventTypeWarning, err.Error()); updateStatusErr != nil {
+				if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
+					corev1.EventTypeWarning, err); updateStatusErr != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
 						"after deletion of ip address cr failed: %w", updateStatusErr, err)
 				}
@@ -188,8 +192,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		}
 
-		if updateStatusErr := r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
-			corev1.EventTypeWarning, err.Error()); updateStatusErr != nil {
+		if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
+			corev1.EventTypeWarning, err, o.Spec.IpAddress); updateStatusErr != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to update ip address status: %w, "+
 				"after reservation of ip in netbox failed: %w", updateStatusErr, err)
 		}
@@ -232,12 +236,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// check if created ip address contains entire description from spec
 	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description)
 	if !found {
-		r.Recorder.Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
+		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
 	}
 
 	debugLogger.Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
 
-	err = r.SetConditionAndCreateEvent(ctx, o, netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, "")
+	err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -252,21 +256,6 @@ func (r *IpAddressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&netboxv1.IpAddress{}).
 		Complete(r)
-}
-
-func (r *IpAddressReconciler) SetConditionAndCreateEvent(ctx context.Context, o *netboxv1.IpAddress, condition metav1.Condition, eventType string, conditionMessageAppend string) error {
-	if len(conditionMessageAppend) > 0 {
-		condition.Message = condition.Message + ". " + conditionMessageAppend
-	}
-	conditionChanged := apismeta.SetStatusCondition(&o.Status.Conditions, condition)
-	if conditionChanged {
-		r.Recorder.Event(o, eventType, condition.Reason, condition.Message)
-	}
-	err := r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec, req ctrl.Request, lastIpAddressMetadata string) (*models.IPAddress, error) {

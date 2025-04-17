@@ -30,7 +30,10 @@ There are several ways to install NetBox Operator on your Cluster:
 
 ## Running both NetBox Operator and NetBox on a local kind cluster
 
-Note: This requires Docker BuildKit.
+> **Note:** This requires Docker BuildKit.
+
+> **Note:** There is currently a bug where if Docker uses containerd for pulling and storing images, kind fails to load the image into the cluster ([GitHub Issue](https://github.com/kubernetes-sigs/kind/issues/3795)).
+To resolve this, temporarily disable this option in the Docker settings: "General > Use containerd for pulling and storing images"
 
 - Create kind cluster with a NetBox deployment: `make create-kind`
 - Deploy the NetBox Operator on the local kind cluster: `make deploy-kind` (In case you're using podman use `CONTAINER_TOOL=podman make deploy-kind`)
