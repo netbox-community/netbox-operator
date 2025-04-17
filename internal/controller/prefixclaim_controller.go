@@ -156,7 +156,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// fetch available prefixes from netbox
 				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixByParentPrefixSelector(&prefixClaim.Spec)
 				if err != nil || len(parentPrefixCandidates) == 0 {
-					if errReport := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = %v, number of candidates = %v", err, len(parentPrefixCandidates))); errReport != nil {
+					if errReport := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = %w, number of candidates = %v", err, len(parentPrefixCandidates))); errReport != nil {
 						return ctrl.Result{}, errReport
 					}
 
