@@ -108,6 +108,10 @@ type IpRange struct {
 	Status IpRangeStatus `json:"status,omitempty"`
 }
 
+func (i *IpRange) Conditions() *[]metav1.Condition {
+	return &i.Status.Conditions
+}
+
 //+kubebuilder:object:root=true
 
 // IpRangeList contains a list of IpRange

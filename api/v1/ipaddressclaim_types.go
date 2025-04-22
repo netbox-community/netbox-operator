@@ -104,6 +104,10 @@ type IpAddressClaim struct {
 	Status IpAddressClaimStatus `json:"status,omitempty"`
 }
 
+func (i *IpAddressClaim) Conditions() *[]metav1.Condition {
+	return &i.Status.Conditions
+}
+
 //+kubebuilder:object:root=true
 
 // IpAddressClaimList contains a list of IpAddressClaim

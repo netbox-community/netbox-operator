@@ -99,6 +99,10 @@ type IpAddress struct {
 	Status IpAddressStatus `json:"status,omitempty"`
 }
 
+func (i *IpAddress) Conditions() *[]metav1.Condition {
+	return &i.Status.Conditions
+}
+
 //+kubebuilder:object:root=true
 
 // IpAddressList contains a list of IpAddress

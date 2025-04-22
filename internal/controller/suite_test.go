@@ -118,9 +118,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IpAddressReconciler{
-		Client:   k8sManager.GetClient(),
-		Scheme:   k8sManager.GetScheme(),
-		Recorder: k8sManager.GetEventRecorderFor("ip-address-claim-controller"),
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-controller")),
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddress,
 			Tenancy: tenancyMock,
@@ -132,9 +132,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IpAddressClaimReconciler{
-		Client:   k8sManager.GetClient(),
-		Scheme:   k8sManager.GetScheme(),
-		Recorder: k8sManager.GetEventRecorderFor("ip-address-claim-controller"),
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-claim-controller")),
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddressClaim,
 			Tenancy: tenancyMock,
