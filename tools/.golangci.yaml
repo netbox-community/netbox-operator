@@ -84,6 +84,7 @@ linters:
           disabled: false
     staticcheck:
       checks:
+        - -ST1003 # Disable the type naming convention check
         - -SA1019
         - -SA2002
         - ST1019
