@@ -83,12 +83,12 @@ linters:
           severity: error
           disabled: false
     staticcheck:
+      # removed: "IP", "HTTPS", "URL" from defaults
+      initialisms: ["ACL", "API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "JSON", "QPS", "RAM", "RPC", "SLA", "SMTP", "SQL", "SSH", "TCP", "TLS", "TTL", "UDP", "UI", "GID", "UID", "UUID", "URI", "UTF8", "VM", "XML", "XMPP", "XSRF", "XSS", "SIP", "RTP", "AMQP", "DB", "TS"]
       checks:
-        - -ST1003 # Disable the type naming convention check
-        - -SA1019
-        - -SA2002
-        - ST1019
         - all
+        - -QF1008
+        - -QF1003
   exclusions:
     generated: lax
     presets:

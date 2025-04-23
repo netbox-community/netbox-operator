@@ -46,8 +46,8 @@ func TestIPRangeClaim(t *testing.T) {
 	ipRangeV4_7 := "10.112.140.7/24"
 	ipRangeV4_8 := "10.112.140.8/24"
 
-	expectedIp_5 := "10.112.140.5/32"
-	expectedIp_7 := "10.112.140.7/32"
+	expectedIpDot5 := "10.112.140.5/32"
+	expectedIpDot7 := "10.112.140.7/32"
 
 	// example of available IPv4 ip adress
 	availableIpAdressesIPv4 := func() []*netboxModels.AvailableIP {
@@ -144,8 +144,8 @@ func TestIPRangeClaim(t *testing.T) {
 		// assert error
 		AssertNil(t, err)
 		// assert nil output
-		assert.Equal(t, expectedIp_5, actual.StartAddress)
-		assert.Equal(t, expectedIp_7, actual.EndAddress)
+		assert.Equal(t, expectedIpDot5, actual.StartAddress)
+		assert.Equal(t, expectedIpDot7, actual.EndAddress)
 	})
 
 	t.Run("Fail first available IP range by claim (IPv6) if not enough consequiteve ips.", func(t *testing.T) {
@@ -225,8 +225,8 @@ func TestIPRangeClaim(t *testing.T) {
 				Previous: nil,
 				Results: []*netboxModels.IPRange{
 					{
-						StartAddress: &expectedIp_5,
-						EndAddress:   &expectedIp_7,
+						StartAddress: &expectedIpDot5,
+						EndAddress:   &expectedIpDot7,
 					},
 				},
 			},
@@ -246,8 +246,8 @@ func TestIPRangeClaim(t *testing.T) {
 		actual, err := client.RestoreExistingIpRangeByHash(input)
 
 		assert.Nil(t, err)
-		assert.Equal(t, expectedIp_5, actual.StartAddress)
-		assert.Equal(t, expectedIp_7, actual.EndAddress)
+		assert.Equal(t, expectedIpDot5, actual.StartAddress)
+		assert.Equal(t, expectedIpDot7, actual.EndAddress)
 	})
 
 	t.Run("Fail reclaim IP Range if multiple results returned", func(t *testing.T) {
@@ -260,12 +260,12 @@ func TestIPRangeClaim(t *testing.T) {
 				Previous: nil,
 				Results: []*netboxModels.IPRange{
 					{
-						StartAddress: &expectedIp_5,
-						EndAddress:   &expectedIp_7,
+						StartAddress: &expectedIpDot5,
+						EndAddress:   &expectedIpDot7,
 					},
 					{
-						StartAddress: &expectedIp_5,
-						EndAddress:   &expectedIp_7,
+						StartAddress: &expectedIpDot5,
+						EndAddress:   &expectedIpDot7,
 					},
 				},
 			},
