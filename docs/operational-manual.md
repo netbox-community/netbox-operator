@@ -19,6 +19,13 @@ Inspect the CRs status:
 kubectl describe <netbox-crd> <netbox-cr> -n <namespace>
 ```
 
+E.g.:
+```bash
+kubectl describe prefixclaim prefixclaim-sample -n <namespace>
+kubectl describe ipaddressclaim ipaddressclaim-sample -n <namespace>
+kubectl describe prefix prefix-sample -n <namespace>
+kubectl describe ipaddress ipaddress-sample -n <namespace> 
+```
 This will show you the status of the operator and any errors it may have encountered.
 
 ### Verify Operator Version
