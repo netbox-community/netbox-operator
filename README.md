@@ -72,7 +72,7 @@ This model ensures a declarative management of IP addressing and subnet allocati
 The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
 
 <p align="center">
-  <img src="docs/claim-model.svg" width="400"/>
+  <img src="docs/netbox-operator-claim-model.drawio.svg"/>
 </p>
 
 # Mixed usage of Prefixes
