@@ -3,14 +3,24 @@ set -e -u -o pipefail
 
 NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
 
-if [[ $# -ne 3 ]]; then
-    echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE>"
+if [[ $# -lt 3 || $# -gt 4 ]]; then
+    echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE> [--vcluster]"
     exit 1
 fi
 
 CLUSTER=$1
 VERSION=$2
 NAMESPACE=$3
+VCLUSTER_MODE=${4:-}
+
+# Choose kubectl and helm commands depending if we run on vCluster
+if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
+    KUBECTL="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- kubectl"
+    HELM="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- helm"
+else
+    KUBECTL="kubectl"
+    HELM="helm"
+fi
 
 # load remote images
 if [[ "${VERSION}" == "3.7.8" ]] ;then
@@ -66,35 +76,57 @@ else
   exit 1
 fi
 
-for img in "${Remote_Images[@]}"; do
-  docker pull "$img"
-  kind load docker-image "$img" --name "${CLUSTER}"
-done
+if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
+  echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
+else
+  echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
+  for img in "${Remote_Images[@]}"; do
+    docker pull "$img"
+    kind load docker-image "$img" --name "${CLUSTER}"
+  done
+fi
 
 # build image for loading local data via NetBox API
-cd ./kind/load-data-job && docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f ./dockerfile . && cd -
+cd ./kind/load-data-job
+docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f ./dockerfile .
+cd -
 
-# load local images
-declare -a Local_Images=( \
-"netbox-load-local-data:1.0" \
-)
-for img in "${Local_Images[@]}"; do
-  kind load docker-image "$img" --name "${CLUSTER}"
-done
+# Load local images into Kind only if not vCluster
+if [[ "$VCLUSTER_MODE" != "--vcluster" ]]; then
+  echo "Loading local images into kind cluster..."
+  declare -a Local_Images=( \
+  "netbox-load-local-data:1.0" \
+  )
+  for img in "${Local_Images[@]}"; do
+    kind load docker-image "$img" --name "${CLUSTER}"
+  done
+else
+  echo "Skipping local image loading into Kind (vCluster mode)."
+fi
 
-# install helm charts
-helm upgrade --install --namespace="${NAMESPACE}" postgres-operator \
-https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz
+# Install Postgres Operator
+${HELM} upgrade --install postgres-operator \
+  --namespace="${NAMESPACE}" \
+  --create-namespace \
+  --set podPriorityClassName.create=false \
+  --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
+  --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
+  https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz
 
-kubectl apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
-kubectl wait --namespace="${NAMESPACE}"  --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
+# Deploy the database
+${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
+${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
 
-kubectl create configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts --from-file="$(dirname "$0")/load-data-job" -o yaml --dry-run=client | kubectl apply -f -
-kubectl apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
-kubectl wait --namespace="${NAMESPACE}"  --timeout=600s --for=condition=complete job/netbox-demo-data-load-job
-kubectl delete configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts
+# Load demo data
+${KUBECTL} create configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts --from-file="$(dirname "$0")/load-data-job" -o yaml --dry-run=client | ${KUBECTL} apply -f -
+${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
+${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-demo-data-load-job
+${KUBECTL} delete configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts
 
-helm upgrade --install --namespace="${NAMESPACE}" netbox \
+# Install NetBox
+${HELM} upgrade --install netbox \
+  --namespace="${NAMESPACE}" \
+  --create-namespace \
   --set postgresql.enabled="false" \
   --set externalDatabase.host="netbox-db.${NAMESPACE}.svc.cluster.local" \
   --set externalDatabase.existingSecretName="netbox.netbox-db.credentials.postgresql.acid.zalan.do" \
@@ -106,12 +138,12 @@ helm upgrade --install --namespace="${NAMESPACE}" netbox \
   --set resources.limits.memory="2Gi" \
   ${NETBOX_HELM_CHART}
 
-kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
+${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
-# load local data
-kubectl create job netbox-load-local-data --image=netbox-load-local-data:1.0
-kubectl wait --namespace="${NAMESPACE}"  --timeout=600s --for=condition=complete job/netbox-load-local-data
-docker rmi netbox-load-local-data:1.0
+# Load local data
+${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
+${KUBECTL} create job netbox-load-local-data --namespace="${NAMESPACE}" --image=netbox-load-local-data:1.0
+${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
 # clean up
 rm $(dirname "$0")/load-data-job/load-data.sh
