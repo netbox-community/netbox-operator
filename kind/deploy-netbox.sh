@@ -78,6 +78,7 @@ fi
 
 if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
   echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
+  sleep 15
 else
   echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
   for img in "${Remote_Images[@]}"; do
@@ -87,7 +88,7 @@ else
 fi
 
 # build image for loading local data via NetBox API
-cd ./kind/load-data-job
+cd "$(dirname "$0")/load-data-job"
 docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f ./dockerfile .
 cd -
 
@@ -118,10 +119,26 @@ ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
 
 # Load demo data
-${KUBECTL} create configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts --from-file="$(dirname "$0")/load-data-job" -o yaml --dry-run=client | ${KUBECTL} apply -f -
-${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
-${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-demo-data-load-job
-${KUBECTL} delete configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts
+if [[ -d "$(dirname "$0")/load-data-job" ]]; then
+  echo "load-data-job directory found, creating ConfigMap."
+
+  echo "Generating ConfigMap YAML:"
+  ${KUBECTL} create configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts --from-file="/tmp/netbox-operator/kind/load-data-job" -o yaml --dry-run=client | ${KUBECTL} apply -f -
+
+  echo "Applying ConfigMap to Kubernetes:"
+  ${KUBECTL} apply -f /tmp/netbox-configmap.yaml
+
+  echo "Deploying load-data-job.yaml:"
+  ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
+
+  echo "Waiting for load-data-job to complete:"
+  ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-demo-data-load-job
+
+  echo "Cleaning up ConfigMap:"
+  ${KUBECTL} delete configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts
+else
+  echo " Skipping load-data-job because directory does not exist."
+fi
 
 # Install NetBox
 ${HELM} upgrade --install netbox \
