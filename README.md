@@ -4,6 +4,14 @@
 
 NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
+## The Claim Model
+The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
+In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes and IP Addresses) based on claims submitted via custom resources.
+
+### Purpose
+This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
+The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
+
 ![Figure 1: NetBox Operator High-Level Architecture](docs/netbox-operator-high-level-architecture.drawio.svg)
 
 # Getting Started
@@ -62,18 +70,6 @@ for i in {001..100}; do
   name="ipc-${i}" yq e '.metadata.name=strenv(name)' config/samples/netbox_v1_ipaddressclaim.yaml | kubectl apply -f -
 done
 ```
-
-# The Claim Model
-The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
-In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes and IP Addresses) based on claims submitted via custom resources.
-
-## Purpose
-This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
-The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
-
-<p align="center">
-  <img src="docs/netbox-operator-high-level-architecture.drawio.svg"/>
-</p>
 
 # Mixed usage of Prefixes
 
