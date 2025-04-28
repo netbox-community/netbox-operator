@@ -4,6 +4,14 @@
 
 NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
+## The Claim Model
+The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
+In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes and IP Addresses) based on claims submitted via custom resources.
+
+### Purpose
+This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
+The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
+
 ![Figure 1: NetBox Operator High-Level Architecture](docs/netbox-operator-high-level-architecture.drawio.svg)
 
 # Getting Started
@@ -30,7 +38,10 @@ There are several ways to install NetBox Operator on your Cluster:
 
 ## Running both NetBox Operator and NetBox on a local kind cluster
 
-Note: This requires Docker BuildKit.
+> **Note:** This requires Docker BuildKit.
+
+> **Note:** There is currently a bug where if Docker uses containerd for pulling and storing images, kind fails to load the image into the cluster ([GitHub Issue](https://github.com/kubernetes-sigs/kind/issues/3795)).
+To resolve this, temporarily disable this option in the Docker settings: "General > Use containerd for pulling and storing images"
 
 - Create kind cluster with a NetBox deployment: `make create-kind`
 - Deploy the NetBox Operator on the local kind cluster: `make deploy-kind` (In case you're using podman use `CONTAINER_TOOL=podman make deploy-kind`)

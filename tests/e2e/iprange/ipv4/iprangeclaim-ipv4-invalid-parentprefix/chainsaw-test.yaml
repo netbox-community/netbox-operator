@@ -30,7 +30,7 @@ spec:
               reason: IPRangeCRNotCreated
               source:
                 component: ip-range-claim-controller
-              message: Failed to fetch new IP Range from NetBox. Check the logs for more information.
+              message: "Failed to fetch new IP Range from NetBox: failed to fetch parent prefix: not found"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: IpRangeClaim

@@ -45,7 +45,7 @@ spec:
               reason: ParentPrefixNotSelected
               source:
                 component: prefix-claim-controller
-              message: "The parent prefix was not able to be selected. no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = failed to fetch tenant 'niltenant': not found, number of candidates = 0"
+              message: "The parent prefix was not able to be selected: no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = failed to fetch tenant 'niltenant': not found, number of candidates = 0"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: PrefixClaim
