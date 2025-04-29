@@ -118,27 +118,28 @@ ${HELM} upgrade --install postgres-operator \
 ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
 
-# Load demo data
-if [[ -d "$(dirname "$0")/load-data-job" ]]; then
-  echo "load-data-job directory found, creating ConfigMap."
+echo "loading demo-data into NetBox inside the vcluster"
 
-  echo "Generating ConfigMap YAML:"
-  ${KUBECTL} create configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts --from-file="/tmp/netbox-operator/kind/load-data-job" -o yaml --dry-run=client | ${KUBECTL} apply -f -
+# 1) Generate the ConfigMap locally, pipe into vcluster’s kubectl,
+#    targetting the $NAMESPACE
+kubectl create configmap netbox-demo-data-load-job-scripts \
+  --from-file="$(dirname "$0")/load-data-job" \
+  --dry-run=client -o yaml \
+| vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -n "${NAMESPACE}" -f -
 
-  echo "Applying ConfigMap to Kubernetes:"
-  ${KUBECTL} apply -f /tmp/netbox-configmap.yaml
+# 2) Apply the Job YAML into the same namespace
+vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -n "${NAMESPACE}" \
+   -f "$(dirname "$0")/load-data-job.yaml"
 
-  echo "Deploying load-data-job.yaml:"
-  ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/load-data-job.yaml"
+# 3) Wait for it in THAT namespace
+vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl wait \
+    -n "${NAMESPACE}" \
+    --for=condition=complete \
+    --timeout=600s job/netbox-demo-data-load-job
 
-  echo "Waiting for load-data-job to complete:"
-  ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-demo-data-load-job
-
-  echo "Cleaning up ConfigMap:"
-  ${KUBECTL} delete configmap --namespace="${NAMESPACE}" netbox-demo-data-load-job-scripts
-else
-  echo " Skipping load-data-job because directory does not exist."
-fi
+# 4) Clean up the helper ConfigMap
+vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl delete configmap \
+    netbox-demo-data-load-job-scripts -n "${NAMESPACE}"
 
 # Install NetBox
 ${HELM} upgrade --install netbox \
