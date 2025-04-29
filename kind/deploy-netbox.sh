@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e -u -o pipefail
 
+# Deploy NetBox (with its PostgreSQL operator and demo data) into either:
+#  • a local kind cluster (preloading images), or
+#  • a virtual cluster via vcluster (skipping image loads).
+
 NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
 
 if [[ $# -lt 3 || $# -gt 4 ]]; then
