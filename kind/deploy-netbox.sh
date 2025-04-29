@@ -82,7 +82,6 @@ fi
 
 if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
   echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
-  sleep 15
 else
   echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
   for img in "${Remote_Images[@]}"; do
