@@ -121,7 +121,6 @@ ${HELM} upgrade --install postgres-operator \
 # Deploy the database
 ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
-
 echo "loading demo-data into NetBox…"
 
 if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
@@ -130,28 +129,38 @@ if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
   kubectl create configmap netbox-demo-data-load-job-scripts \
     --from-file="$(dirname "$0")/load-data-job" \
     --dry-run=client -o yaml \
-  | vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -f -
+  | vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -n "${NAMESPACE}" -f -
 
-  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -f "$(dirname "$0")/load-data-job.yaml"
+  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -n "${NAMESPACE}" \
+    -f "$(dirname "$0")/load-data-job.yaml"
 
   vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl wait \
-    --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
+    -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
 
-  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl delete configmap netbox-demo-data-load-job-scripts
+  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl delete \
+    -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
 else
-  # — Kind  —
-  echo "  → on the Kind cluster"
+  # — Kind —
+  echo "  → on the Kind cluster (${NAMESPACE})"
   kubectl create configmap netbox-demo-data-load-job-scripts \
     --from-file="$(dirname "$0")/load-data-job" \
+    --namespace="${NAMESPACE}" \
     --dry-run=client -o yaml \
   | kubectl apply -f -
 
-  kubectl apply -f "$(dirname "$0")/load-data-job.yaml"
+  kubectl apply \
+    --namespace="${NAMESPACE}" \
+    -f "$(dirname "$0")/load-data-job.yaml"
 
-  kubectl wait --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
+  kubectl wait \
+    --namespace="${NAMESPACE}" \
+    --for=condition=complete \
+    --timeout=600s job/netbox-demo-data-load-job
 
-  kubectl delete configmap netbox-demo-data-load-job-scripts
+  kubectl delete \
+    --namespace="${NAMESPACE}" \
+    configmap/netbox-demo-data-load-job-scripts
 fi
 
 # Install NetBox
