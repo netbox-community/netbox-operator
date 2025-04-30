@@ -15,10 +15,15 @@ fi
 CLUSTER=$1
 VERSION=$2
 NAMESPACE=$3
-VCLUSTER_MODE=${4:-}
+
+# Treat the optional fourth argument "--vcluster" as a boolean flag
+IS_VCLUSTER=false
+if [[ "${4:-}" == "--vcluster" ]]; then
+    IS_VCLUSTER=true
+fi
 
 # Choose kubectl and helm commands depending if we run on vCluster
-if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
+if $IS_VCLUSTER; then
     KUBECTL="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- kubectl"
     HELM="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- helm"
 else
@@ -80,7 +85,7 @@ else
   exit 1
 fi
 
-if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
+if $IS_VCLUSTER; then
   echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
   sleep 15
 else
@@ -97,7 +102,7 @@ docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f
 cd -
 
 # Load local images into Kind only if not vCluster
-if [[ "$VCLUSTER_MODE" != "--vcluster" ]]; then
+if ! $IS_VCLUSTER; then
   echo "Loading local images into kind cluster..."
   declare -a Local_Images=( \
   "netbox-load-local-data:1.0" \
@@ -121,9 +126,10 @@ ${HELM} upgrade --install postgres-operator \
 # Deploy the database
 ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
+
 echo "loading demo-data into NetBox…"
 
-if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
+if $IS_VCLUSTER; then
   # — vCluster —
   echo "  → inside the vcluster"
   kubectl create configmap netbox-demo-data-load-job-scripts \
