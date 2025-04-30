@@ -128,46 +128,37 @@ ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
 
 echo "loading demo-data into NetBox…"
-
+# We use plain `kubectl create … --dry-run=client -o yaml` here to generate
+# the ConfigMap manifest locally (no cluster connection needed), then pipe
+# that YAML into `${KUBECTL} apply` so it’s applied against the selected
+# target (Kind or vCluster) via our `${KUBECTL}` wrapper.
 if $IS_VCLUSTER; then
   # — vCluster —
   echo "  → inside the vcluster"
   kubectl create configmap netbox-demo-data-load-job-scripts \
     --from-file="$(dirname "$0")/load-data-job" \
     --dry-run=client -o yaml \
-  | vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -n "${NAMESPACE}" -f -
-
-  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl apply -n "${NAMESPACE}" \
-    -f "$(dirname "$0")/load-data-job.yaml"
-
-  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl wait \
-    -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
-
-  vcluster connect "${CLUSTER}" -n "${NAMESPACE}" -- kubectl delete \
-    -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
+  | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 else
   # — Kind —
   echo "  → on the Kind cluster (${NAMESPACE})"
-  kubectl create configmap netbox-demo-data-load-job-scripts \
+  ${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
     --from-file="$(dirname "$0")/load-data-job" \
     --namespace="${NAMESPACE}" \
     --dry-run=client -o yaml \
-  | kubectl apply -f -
+  | ${KUBECTL} apply -f -
+fi
 
-  kubectl apply \
-    --namespace="${NAMESPACE}" \
+${KUBECTL} apply -n "${NAMESPACE}" \
     -f "$(dirname "$0")/load-data-job.yaml"
 
-  kubectl wait \
-    --namespace="${NAMESPACE}" \
-    --for=condition=complete \
-    --timeout=600s job/netbox-demo-data-load-job
+${KUBECTL} wait \
+    -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
 
-  kubectl delete \
-    --namespace="${NAMESPACE}" \
-    configmap/netbox-demo-data-load-job-scripts
-fi
+${KUBECTL} delete \
+    -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
+
 
 # Install NetBox
 ${HELM} upgrade --install netbox \
