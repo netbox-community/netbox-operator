@@ -2,8 +2,8 @@
 set -e -u -o pipefail
 
 # Deploy NetBox (with its PostgreSQL operator and demo data) into either:
-#  • a local kind cluster (preloading images), or
-#  • a virtual cluster via vcluster (skipping image loads).
+#  • a local kind cluster (preloading images)
+#  • a virtual cluster using vcluster: https://github.com/loft-sh/vcluster ( used for testing pipeline, loading of images not needed )
 
 NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
 
@@ -82,6 +82,7 @@ fi
 
 if [[ "$VCLUSTER_MODE" == "--vcluster" ]]; then
   echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
+  sleep 15
 else
   echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
   for img in "${Remote_Images[@]}"; do
