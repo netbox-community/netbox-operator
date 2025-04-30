@@ -19,10 +19,11 @@ package api
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/go-openapi/runtime"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -125,16 +126,25 @@ func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(prefixClaimSpec 
 		fieldEntries["family"] = family
 	}
 
-	var conditions func(co *runtime.ClientOperation)
-	parentPrefixSelectorEntries := make([]CustomFieldEntry, 0, len(prefixClaimSpec.ParentPrefixSelector))
+	parentPrefixSelectorCustomFields := make([]CustomFieldEntry, 0, len(prefixClaimSpec.ParentPrefixSelector))
 	for k, v := range prefixClaimSpec.ParentPrefixSelector {
-		parentPrefixSelectorEntries = append(parentPrefixSelectorEntries, CustomFieldEntry{
-			key:   k,
-			value: v,
-		})
+		switch k {
+		case "tenant", "site", "family":
+			// already handled
+		default:
+			parentPrefixSelectorCustomFields = append(parentPrefixSelectorCustomFields, CustomFieldEntry{
+				key:   k,
+				value: v,
+			})
+		}
 	}
 
-	conditions = newQueryFilterOperation(fieldEntries, parentPrefixSelectorEntries)
+	err := r.customFieldsExistsOrErr(parentPrefixSelectorCustomFields)
+	if err != nil {
+		return nil, err
+	}
+
+	conditions := newQueryFilterOperation(fieldEntries, parentPrefixSelectorCustomFields)
 
 	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, conditions)
 	if err != nil {
@@ -156,6 +166,46 @@ func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(prefixClaimSpec 
 	}
 
 	return prefixes, nil
+}
+
+func (r *NetboxClient) customFieldsExistsOrErr(customfieldFilterEntries []CustomFieldEntry) error {
+	if len(customfieldFilterEntries) == 0 {
+		// as the parent prefix selector does not filter for custom fields
+		// the check can be skipped
+		return nil
+	}
+
+	responseGetCustomFieldsList, err := r.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
+	if err != nil {
+		return err
+	}
+
+	existingCustomFields := responseGetCustomFieldsList.Payload.Results
+	if existingCustomFields == nil || len(existingCustomFields) == 0 {
+		return fmt.Errorf("netbox custom fields list is nil or empty")
+	}
+
+	customFieldNames := make([]string, len(existingCustomFields))
+	for i, field := range existingCustomFields {
+		if field.Name == nil {
+			return fmt.Errorf("netbox custom field name is nil")
+		}
+		customFieldNames[i] = *field.Name
+	}
+
+	missingCustomFields := make([]string, 0)
+	for _, entry := range customfieldFilterEntries {
+		//request to netbox to check if the custom field existse
+		if !slices.Contains(customFieldNames, entry.key) {
+			missingCustomFields = append(missingCustomFields, entry.key)
+		}
+	}
+
+	if len(missingCustomFields) > 0 {
+		return fmt.Errorf("invalid parentPrefixSelector, netbox custom fields %v do not exist", missingCustomFields)
+	}
+
+	return nil
 }
 
 func (r *NetboxClient) isParentPrefixCandidate(prefixClaimSpec *netboxv1.PrefixClaimSpec, prefix string) bool {
