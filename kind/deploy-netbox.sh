@@ -5,7 +5,8 @@ set -e -u -o pipefail
 #  • a local kind cluster (preloading images)
 #  • a virtual cluster using vcluster: https://github.com/loft-sh/vcluster ( used for testing pipeline, loading of images not needed )
 
-NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
+# Allow override via environment variable, otherwise fallback to default
+NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz}"
 
 if [[ $# -lt 3 || $# -gt 4 ]]; then
     echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE> [--vcluster]"
@@ -42,7 +43,8 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
-  NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
+  # Allow override via environment variable, otherwise fallback to default
+  NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz}"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
@@ -59,7 +61,8 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
-  NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
+  # Allow override via environment variable, otherwise fallback to default
+  NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz}"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
@@ -98,7 +101,12 @@ fi
 
 # build image for loading local data via NetBox API
 cd "$(dirname "$0")/load-data-job"
-docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f ./dockerfile .
+docker build -t netbox-load-local-data:1.0 \
+  --load --no-cache --progress=plain \
+  --build-arg PYTHON_BASE_IMAGE="${PYTHON_BASE_IMAGE:-python:3.12}" \
+  --build-arg ARTIFACTORY_PYPI_URL="${ARTIFACTORY_PYPI_URL:-}" \
+  --build-arg ARTIFACTORY_TRUSTED_HOST="${ARTIFACTORY_TRUSTED_HOST:-}" \
+  -f ./dockerfile .
 cd -
 
 # Load local images into Kind only if not vCluster
@@ -115,13 +123,15 @@ else
 fi
 
 # Install Postgres Operator
+# Allow override via environment variable, otherwise fallback to default
+POSTGRESS_OPERATOR_HELM_CHART="${POSTGRESS_OPERATOR_HELM_CHART:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz}"
 ${HELM} upgrade --install postgres-operator \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set podPriorityClassName.create=false \
   --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
   --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
-  https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz
+   "${POSTGRESS_OPERATOR_HELM_CHART}"
 
 # Deploy the database
 ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
@@ -150,8 +160,11 @@ else
   | ${KUBECTL} apply -f -
 fi
 
-${KUBECTL} apply -n "${NAMESPACE}" \
-    -f "$(dirname "$0")/load-data-job.yaml"
+JOB_DIR="$(dirname "$0")/job"
+
+cd "$JOB_DIR"
+kustomize edit set image ghcr.io/zalando/spilo-16="${SPILO_IMAGE:-ghcr.io/zalando/spilo-16:3.2-p3}"
+kustomize build . | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 ${KUBECTL} wait \
     -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job

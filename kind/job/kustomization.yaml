@@ -1,0 +1,9 @@
+resources:
+- load-data-job.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: ghcr.io/zalando/spilo-16
+  newName: mobile-docker-virtual.artifactory.swisscom.com/zalando/spilo-16
+  newTag: 3.2-p3
