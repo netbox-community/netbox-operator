@@ -164,6 +164,30 @@ JOB_DIR="$(dirname "$0")/job"
 
 cd "$JOB_DIR"
 kustomize edit set image ghcr.io/zalando/spilo-16="${SPILO_IMAGE:-ghcr.io/zalando/spilo-16:3.2-p3}"
+
+# Create a patch file to inject NETBOX_SQL_DUMP_URL (from env or default)
+SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql}"
+
+# Create patch
+cat > sql-env-patch.yaml <<EOF
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: netbox-demo-data-load-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: netbox-demo-data-load
+          env:
+            - name: NETBOX_SQL_DUMP_URL
+              value: "${SQL_DUMP_URL}"
+EOF
+
+# Add the patch
+kustomize edit add patch --path sql-env-patch.yaml
+
+# Apply the customized job
 kustomize build . | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 ${KUBECTL} wait \

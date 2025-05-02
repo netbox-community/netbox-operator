@@ -7,3 +7,5 @@ images:
 - name: ghcr.io/zalando/spilo-16
   newName: mobile-docker-virtual.artifactory.swisscom.com/zalando/spilo-16
   newTag: 3.2-p3
+patches:
+- path: sql-env-patch.yaml
