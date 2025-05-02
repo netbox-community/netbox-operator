@@ -174,7 +174,7 @@ var ConditionPrefixAssignedFalse = metav1.Condition{
 	Type:    "PrefixAssigned",
 	Status:  "False",
 	Reason:  "PrefixCRNotCreated",
-	Message: "Failed to fetch new Prefix from NetBox",
+	Message: "Failed to assign prefix, prefix CR creation skipped",
 }
 
 var ConditionParentPrefixSelectedTrue = metav1.Condition{

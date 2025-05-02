@@ -154,10 +154,11 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// The existing algorithm for prefix allocation within a ParentPrefix remains unchanged
 
 				// fetch available prefixes from netbox
-				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixByParentPrefixSelector(&prefixClaim.Spec)
+				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(&prefixClaim.Spec)
 				if err != nil || len(parentPrefixCandidates) == 0 {
-					if errReport := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = %w, number of candidates = %v", err, len(parentPrefixCandidates))); errReport != nil {
-						return ctrl.Result{}, errReport
+					r.EventStatusRecorder.Recorder().Event(prefixClaim, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, err.Error())
+					if err := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); err != nil {
+						return ctrl.Result{}, err
 					}
 
 					// we requeue as this might be a temporary prefix exhausation

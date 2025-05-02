@@ -94,7 +94,7 @@ func validatePrefixLengthOrError(prefixClaim *models.PrefixClaim, prefixFamily i
 	return nil
 }
 
-func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(prefixClaimSpec *netboxv1.PrefixClaimSpec) ([]*models.Prefix, error) {
+func (r *NetboxClient) GetAvailablePrefixesByParentPrefixSelector(prefixClaimSpec *netboxv1.PrefixClaimSpec) ([]*models.Prefix, error) {
 	fieldEntries := make(map[string]string)
 
 	if tenant, ok := prefixClaimSpec.ParentPrefixSelector["tenant"]; ok {
@@ -130,7 +130,7 @@ func (r *NetboxClient) GetAvailablePrefixByParentPrefixSelector(prefixClaimSpec 
 	for k, v := range prefixClaimSpec.ParentPrefixSelector {
 		switch k {
 		case "tenant", "site", "family":
-			// already handled
+			// skip built in fields
 		default:
 			parentPrefixSelectorCustomFields = append(parentPrefixSelectorCustomFields, CustomFieldEntry{
 				key:   k,
@@ -181,7 +181,7 @@ func (r *NetboxClient) customFieldsExistsOrErr(customfieldFilterEntries []Custom
 	}
 
 	existingCustomFields := responseGetCustomFieldsList.Payload.Results
-	if existingCustomFields == nil || len(existingCustomFields) == 0 {
+	if len(existingCustomFields) == 0 {
 		return fmt.Errorf("netbox custom fields list is nil or empty")
 	}
 
