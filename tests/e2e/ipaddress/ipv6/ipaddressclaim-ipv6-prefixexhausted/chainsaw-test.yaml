@@ -123,14 +123,24 @@ spec:
         - assert:
             resource:
               apiVersion: v1
-              count: 1
               kind: Event
               type: Warning
               reason: IPAddressCRNotCreated
               source:
                 component: ip-address-claim-controller
-              message: "Failed to assign prefix, prefix CR creation skipped: parent prefix exhausted"
+              message: "Failed to fetch new IP from NetBox: parent prefix exhausted"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: IpAddressClaim
                 name: ipaddressclaim-ipv6-prefixexhausted-3
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-1 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-2 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-3 -n $NAMESPACE

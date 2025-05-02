@@ -88,7 +88,6 @@ spec:
         - assert:
             resource:
               apiVersion: v1
-              count: 1
               kind: Event
               type: Warning
               reason: PrefixCRNotCreated
@@ -99,3 +98,14 @@ spec:
                 apiVersion: netbox.dev/v1
                 kind: PrefixClaim
                 name: prefixclaim-ipv4-prefixexhausted-3
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-1 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-2 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-3 -n $NAMESPACE

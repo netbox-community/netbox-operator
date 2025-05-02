@@ -155,3 +155,13 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-restore-1 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-restore-2 -n $NAMESPACE

@@ -86,3 +86,12 @@ spec:
                 prefix: 2::/124
                 preserveInNetbox: true
                 tenant: MY_TENANT_2
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv6-apply-update -n $NAMESPACE

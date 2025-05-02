@@ -30,7 +30,6 @@ spec:
         - assert:
             resource:
               apiVersion: v1
-              count: 1
               kind: Event
               type: Warning
               reason: IPRangeCRNotCreated

@@ -156,7 +156,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// fetch available prefixes from netbox
 				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(&prefixClaim.Spec)
 				if err != nil || len(parentPrefixCandidates) == 0 {
-					r.EventStatusRecorder.Recorder().Event(prefixClaim, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, err.Error())
+					r.EventStatusRecorder.Recorder().Event(prefixClaim, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+err.Error())
 					if err := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); err != nil {
 						return ctrl.Result{}, err
 					}

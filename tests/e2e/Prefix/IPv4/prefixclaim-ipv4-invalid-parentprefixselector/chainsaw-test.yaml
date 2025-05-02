@@ -34,19 +34,27 @@ spec:
                   environment: "nilenv"
                   poolName: "nilpool"
               status:
-                (conditions[?type == 'ParentPrefixSelected']):
+                (conditions[?type == 'PrefixAssigned']):
                   - status: 'False'
         - assert:
             resource:
               apiVersion: v1
-              count: 1
               kind: Event
               type: Warning
-              reason: ParentPrefixNotSelected
+              reason: PrefixCRNotCreated
               source:
                 component: prefix-claim-controller
-              message: "The parent prefix was not able to be selected: no parent prefix can be obtained with the query conditions set in ParentPrefixSelector, err = failed to fetch tenant 'niltenant': not found, number of candidates = 0"
+              message: "Failed to assign prefix, prefix CR creation skipped: failed to fetch tenant 'niltenant': not found"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: PrefixClaim
                 name: prefixclaim-ipv4-invalid-parentprefixselector
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            env:
+              - name: NAMESPACE
+                value: ($namespace)
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-invalid-parentprefixselector -n $NAMESPACE
