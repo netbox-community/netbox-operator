@@ -91,7 +91,6 @@ fi
 
 if $IS_VCLUSTER; then
   echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
-  sleep 15
 else
   echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
   for img in "${Remote_Images[@]}"; do
@@ -110,7 +109,6 @@ docker build -t netbox-load-local-data:1.0 \
   -f ./dockerfile .
 cd -
 
-# Load local images into Kind only if not vCluster
 if ! $IS_VCLUSTER; then
   echo "Loading local images into kind cluster..."
   declare -a Local_Images=( \
@@ -143,23 +141,10 @@ echo "loading demo-data into NetBox…"
 # the ConfigMap manifest locally (no cluster connection needed), then pipe
 # that YAML into `${KUBECTL} apply` so it’s applied against the selected
 # target (Kind or vCluster) via our `${KUBECTL}` wrapper.
-if $IS_VCLUSTER; then
-  # — vCluster —
-  echo "  → inside the vcluster"
-  kubectl create configmap netbox-demo-data-load-job-scripts \
-    --from-file="$(dirname "$0")/load-data-job" \
-    --dry-run=client -o yaml \
-  | ${KUBECTL} apply -n "${NAMESPACE}" -f -
-
-else
-  # — Kind —
-  echo "  → on the Kind cluster (${NAMESPACE})"
-  ${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
-    --from-file="$(dirname "$0")/load-data-job" \
-    --namespace="${NAMESPACE}" \
-    --dry-run=client -o yaml \
-  | ${KUBECTL} apply -f -
-fi
+kubectl create configmap netbox-demo-data-load-job-scripts \
+  --from-file="$(dirname "$0")/load-data-job" \
+  --dry-run=client -o yaml \
+| ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 # Set the image of the kustomization.yaml to the one specified (from env or default)
 JOB_DIR="$(dirname "$0")/job"
