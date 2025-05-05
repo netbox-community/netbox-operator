@@ -15,6 +15,7 @@ fi
 
 CLUSTER=$1
 VERSION=$2
+# The specified namespace will be used for both the NetBox deployment and the vCluster creation
 NAMESPACE=$3
 
 # Treat the optional fourth argument "--vcluster" as a boolean flag
