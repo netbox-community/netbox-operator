@@ -5,6 +5,8 @@ set -e -o pipefail
 #  • a local kind cluster (preloading images)
 #  • a virtual cluster using vcluster: https://github.com/loft-sh/vcluster ( used for testing pipeline, loading of images not needed )
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Allow override via environment variable, otherwise fallback to default
 NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz}"
 
@@ -48,10 +50,10 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz}"
 
   # patch load-data.sh
-  sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
+  sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
 
   # patch dockerfile (See README at https://github.com/netbox-community/pynetbox for the supported version matrix)
-  sed 's/RUN pip install -Iv pynetbox==7.4.1/RUN pip install -Iv pynetbox==7.3.4/g' $(dirname "$0")/load-data-job/dockerfile.orig > $(dirname "$0")/load-data-job/dockerfile
+  sed 's/RUN pip install -Iv pynetbox==7.4.1/RUN pip install -Iv pynetbox==7.3.4/g' $SCRIPT_DIR/load-data-job/dockerfile.orig > $SCRIPT_DIR/load-data-job/dockerfile
 elif [[ "${VERSION}" == "4.0.11" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
@@ -66,9 +68,9 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz}"
 
   # patch load-data.sh
-  sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
+  sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
 
-  cp $(dirname "$0")/load-data-job/dockerfile.orig $(dirname "$0")/load-data-job/dockerfile
+  cp $SCRIPT_DIR/load-data-job/dockerfile.orig $SCRIPT_DIR/load-data-job/dockerfile
 elif [[ "${VERSION}" == "4.1.8" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
@@ -81,9 +83,9 @@ elif [[ "${VERSION}" == "4.1.8" ]] ;then
   )
 
   # create load-data.sh
-  cp $(dirname "$0")/load-data-job/load-data.orig.sh $(dirname "$0")/load-data-job/load-data.sh
+  cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh
 
-  cp $(dirname "$0")/load-data-job/dockerfile.orig $(dirname "$0")/load-data-job/dockerfile
+  cp $SCRIPT_DIR/load-data-job/dockerfile.orig $SCRIPT_DIR/load-data-job/dockerfile
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -100,7 +102,7 @@ else
 fi
 
 # build image for loading local data via NetBox API
-cd "$(dirname "$0")/load-data-job"
+cd "$SCRIPT_DIR/load-data-job"
 # Append image registry prefix only if defined
 PYTHON_IMAGE_NAME="python:3.12"
 if [ -n "$IMAGE_REGISTRY" ]; then
@@ -150,7 +152,7 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
   $REGISTRY_ARG
 
 # Deploy the database
-${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
+${KUBECTL} apply --namespace="${NAMESPACE}" -f "$SCRIPT_DIR/netbox-db.yaml"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
 
 echo "loading demo-data into NetBox…"
@@ -159,7 +161,7 @@ echo "loading demo-data into NetBox…"
 # that YAML into `${KUBECTL} apply` so it’s applied against the selected
 # target (Kind or vCluster) via our `${KUBECTL}` wrapper.
 kubectl create configmap netbox-demo-data-load-job-scripts \
-  --from-file="$(dirname "$0")/load-data-job" \
+  --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
 | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
@@ -167,7 +169,7 @@ kubectl create configmap netbox-demo-data-load-job-scripts \
 SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
 SPILO_IMAGE="${SPILO_IMAGE_REGISTRY}/zalando/spilo-16:3.2-p3"
 
-JOB_DIR="$(dirname "$0")/job"
+JOB_DIR="$SCRIPT_DIR/job"
 cd "$JOB_DIR"
 kustomize edit set image ghcr.io/zalando/spilo-16="$SPILO_IMAGE"
 
@@ -235,5 +237,5 @@ ${KUBECTL} create job netbox-load-local-data --namespace="${NAMESPACE}" --image=
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
 # clean up
-rm $(dirname "$0")/load-data-job/load-data.sh
-rm $(dirname "$0")/load-data-job/dockerfile
+rm $SCRIPT_DIR/load-data-job/load-data.sh
+rm $SCRIPT_DIR/load-data-job/dockerfile
