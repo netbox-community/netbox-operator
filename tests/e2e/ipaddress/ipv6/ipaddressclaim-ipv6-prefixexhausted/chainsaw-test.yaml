@@ -134,7 +134,7 @@ spec:
                 kind: IpAddressClaim
                 name: ipaddressclaim-ipv6-prefixexhausted-3
     - name: Cleanup events
-      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
         - script:
             content: |
