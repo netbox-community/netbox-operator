@@ -225,7 +225,6 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.requests.memory="512Mi" \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
-  --set image.registry="$IMAGE_REGISTRY" \
   $REGISTRY_ARG
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
