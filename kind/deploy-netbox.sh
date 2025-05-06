@@ -123,14 +123,14 @@ fi
 
 # Install Postgres Operator
 # Allow override via environment variable, otherwise fallback to default
-POSTGRESS_OPERATOR_HELM_CHART="${POSTGRESS_OPERATOR_HELM_CHART:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz}"
-${HELM} upgrade --install postgres-operator \
+POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_CHART:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz}"
+${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set podPriorityClassName.create=false \
   --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
   --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
-   "${POSTGRESS_OPERATOR_HELM_CHART}"
+  --set image.registry="$IMAGE_REGISTRY"
 
 # Deploy the database
 ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
@@ -185,7 +185,7 @@ ${KUBECTL} delete \
 
 
 # Install NetBox
-${HELM} upgrade --install netbox \
+${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set postgresql.enabled="false" \
@@ -197,7 +197,7 @@ ${HELM} upgrade --install netbox \
   --set resources.requests.memory="512Mi" \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
-  ${NETBOX_HELM_CHART}
+  --set image.registry="$IMAGE_REGISTRY"
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
