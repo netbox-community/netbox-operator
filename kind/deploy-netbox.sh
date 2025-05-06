@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e -u -o pipefail
+set -e -o pipefail
 
 # Deploy NetBox (with its PostgreSQL operator and demo data) into either:
 #  • a local kind cluster (preloading images)
@@ -129,6 +129,15 @@ else
   echo "Skipping local image loading into Kind (vCluster mode)."
 fi
 
+# Assign IMAGE_REGISTRY from env if set, else empty
+POSTGRES_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
+
+# Build optional set flag if registry is not defined
+REGISTRY_ARG=""
+if [ -n "$POSTGRES_IMAGE_REGISTRY" ]; then
+  REGISTRY_ARG="--set image.registry=$POSTGRES_IMAGE_REGISTRY"
+fi
+
 # Install Postgres Operator
 # Allow override via environment variable, otherwise fallback to default
 POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_CHART:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz}"
@@ -138,7 +147,7 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
   --set podPriorityClassName.create=false \
   --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
   --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
-  --set image.registry="$IMAGE_REGISTRY"
+  $REGISTRY_ARG
 
 # Deploy the database
 ${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
@@ -194,6 +203,14 @@ ${KUBECTL} wait \
 ${KUBECTL} delete \
     -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
+# Assign IMAGE_REGISTRY from env if set, else empty
+NETBOX_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
+
+# Build optional set flag if registry is not defined
+REGISTRY_ARG=""
+if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
+  REGISTRY_ARG="--set image.registry=$NETBOX_IMAGE_REGISTRY"
+fi
 
 # Install NetBox
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
@@ -208,7 +225,8 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.requests.memory="512Mi" \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
-  --set image.registry="$IMAGE_REGISTRY"
+  --set image.registry="$IMAGE_REGISTRY" \
+  $REGISTRY_ARG
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
