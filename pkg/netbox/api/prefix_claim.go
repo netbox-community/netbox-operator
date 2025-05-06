@@ -195,7 +195,6 @@ func (r *NetboxClient) customFieldsExistsOrErr(customfieldFilterEntries []Custom
 
 	missingCustomFields := make([]string, 0)
 	for _, entry := range customfieldFilterEntries {
-		//request to netbox to check if the custom field existse
 		if !slices.Contains(customFieldNames, entry.key) {
 			missingCustomFields = append(missingCustomFields, entry.key)
 		}
@@ -203,8 +202,8 @@ func (r *NetboxClient) customFieldsExistsOrErr(customfieldFilterEntries []Custom
 
 	if len(missingCustomFields) > 0 {
 		return fmt.Errorf(
-		    "invalid parentPrefixSelector, netbox custom fields %s do not exist",
-		    strings.Join(missingCustomFields, ", "),
+			"invalid parentPrefixSelector, netbox custom fields %s do not exist",
+			strings.Join(missingCustomFields, ", "),
 		)
 	}
 
