@@ -202,7 +202,10 @@ func (r *NetboxClient) customFieldsExistsOrErr(customfieldFilterEntries []Custom
 	}
 
 	if len(missingCustomFields) > 0 {
-		return fmt.Errorf("invalid parentPrefixSelector, netbox custom fields %v do not exist", missingCustomFields)
+		return fmt.Errorf(
+		    "invalid parentPrefixSelector, netbox custom fields %s do not exist",
+		    strings.Join(missingCustomFields, ", "),
+		)
 	}
 
 	return nil
