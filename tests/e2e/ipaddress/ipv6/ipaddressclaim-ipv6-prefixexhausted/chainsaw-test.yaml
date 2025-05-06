@@ -137,9 +137,6 @@ spec:
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
       cleanup:
         - script:
-            env:
-              - name: NAMESPACE
-                value: ($namespace)
             content: |
                 kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-1 -n $NAMESPACE
                 kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-2 -n $NAMESPACE
