@@ -101,9 +101,17 @@ fi
 
 # build image for loading local data via NetBox API
 cd "$(dirname "$0")/load-data-job"
+# Append image registry prefix only if defined
+PYTHON_IMAGE_NAME="python:3.12"
+if [ -n "$IMAGE_REGISTRY" ]; then
+  PYTHON_BASE_IMAGE="${IMAGE_REGISTRY}/${PYTHON_IMAGE_NAME}"
+else
+  PYTHON_BASE_IMAGE="$PYTHON_IMAGE_NAME"
+fi
+
 docker build -t netbox-load-local-data:1.0 \
   --load --no-cache --progress=plain \
-  --build-arg PYTHON_BASE_IMAGE="${PYTHON_BASE_IMAGE:-python:3.12}" \
+  --build-arg PYTHON_BASE_IMAGE="$PYTHON_BASE_IMAGE" \
   --build-arg ARTIFACTORY_PYPI_URL="${ARTIFACTORY_PYPI_URL:-}" \
   --build-arg ARTIFACTORY_TRUSTED_HOST="${ARTIFACTORY_TRUSTED_HOST:-}" \
   -f ./dockerfile .
@@ -147,9 +155,12 @@ kubectl create configmap netbox-demo-data-load-job-scripts \
 | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 # Set the image of the kustomization.yaml to the one specified (from env or default)
+SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
+SPILO_IMAGE="${SPILO_IMAGE_REGISTRY}/zalando/spilo-16:3.2-p3"
+
 JOB_DIR="$(dirname "$0")/job"
 cd "$JOB_DIR"
-kustomize edit set image ghcr.io/zalando/spilo-16="${SPILO_IMAGE:-ghcr.io/zalando/spilo-16:3.2-p3}"
+kustomize edit set image ghcr.io/zalando/spilo-16="$SPILO_IMAGE"
 
 # Create a patch file to inject NETBOX_SQL_DUMP_URL (from env or default)
 NETBOX_SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql}"
