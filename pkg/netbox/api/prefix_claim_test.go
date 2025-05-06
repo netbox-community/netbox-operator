@@ -1257,5 +1257,5 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 	actual, err := netboxClient.GetAvailablePrefixesByParentPrefixSelector(&pxcSpec)
 
 	assert.Nil(t, actual)
-	AssertError(t, err, "invalid parentPrefixSelector, netbox custom fields [non-existing] do not exist")
+	AssertError(t, err, "invalid parentPrefixSelector, netbox custom fields non-existing do not exist")
 }

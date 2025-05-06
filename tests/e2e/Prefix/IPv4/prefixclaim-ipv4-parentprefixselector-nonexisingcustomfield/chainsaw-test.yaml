@@ -53,7 +53,7 @@ spec:
               reason: PrefixCRNotCreated
               source:
                 component: prefix-claim-controller
-              message: "Failed to assign prefix, prefix CR creation skipped: invalid parentPrefixSelector, netbox custom fields [nonexisingfield] do not exist"
+              message: "Failed to assign prefix, prefix CR creation skipped: invalid parentPrefixSelector, netbox custom fields nonexisingfield do not exist"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: PrefixClaim
