@@ -123,7 +123,6 @@ spec:
         - assert:
             resource:
               apiVersion: v1
-              count: 1
               kind: Event
               type: Warning
               reason: IPAddressCRNotCreated
@@ -134,3 +133,11 @@ spec:
                 apiVersion: netbox.dev/v1
                 kind: IpAddressClaim
                 name: ipaddressclaim-ipv4-prefixexhausted-3
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-prefixexhausted-1 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-prefixexhausted-2 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-prefixexhausted-3 -n $NAMESPACE

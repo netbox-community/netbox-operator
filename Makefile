@@ -239,24 +239,24 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
 
 # e2e tests
-E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m # --skip-delete (add this argument for local debugging)
+E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
 .PHONY: create-kind-3.7.8
 create-kind-3.7.8:
 	./kind/local-env.sh --version 3.7.8
 .PHONY: test-e2e-3.7.8
-test-e2e-3.7.8: create-kind-3.7.8 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW) 
+test-e2e-3.7.8: create-kind-3.7.8 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)
 
 .PHONY: create-kind-4.0.11
 create-kind-4.0.11:
 	./kind/local-env.sh --version 4.0.11
 .PHONY: test-e2e-4.0.11
-test-e2e-4.0.11: create-kind-4.0.11 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW) 
+test-e2e-4.0.11: create-kind-4.0.11 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)
 
 .PHONY: create-kind-4.1.8
 create-kind-4.1.8:
 	./kind/local-env.sh --version 4.1.8
 .PHONY: test-e2e-4.1.8
-test-e2e-4.1.8: create-kind-4.1.8 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW) 
+test-e2e-4.1.8: create-kind-4.1.8 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)

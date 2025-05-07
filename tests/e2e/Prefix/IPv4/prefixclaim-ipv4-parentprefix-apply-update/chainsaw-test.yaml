@@ -79,3 +79,9 @@ spec:
                 prefix: 2.0.2.0/28
                 site: MY_SITE
                 tenant: MY_TENANT
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefix-apply-update -n $NAMESPACE
