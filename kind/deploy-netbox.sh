@@ -8,7 +8,7 @@ set -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Allow override via environment variable, otherwise fallback to default
-NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz}"
+NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
 if [[ $# -lt 3 || $# -gt 4 ]]; then
     echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE> [--vcluster]"
@@ -47,7 +47,7 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz}"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
@@ -65,7 +65,7 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_CHART:-https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz}"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
@@ -142,7 +142,7 @@ fi
 
 # Install Postgres Operator
 # Allow override via environment variable, otherwise fallback to default
-POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_CHART:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz}"
+POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
 ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
   --namespace="${NAMESPACE}" \
   --create-namespace \
@@ -211,7 +211,7 @@ NETBOX_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
 # Build optional set flag if registry is not defined
 REGISTRY_ARG=""
 if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
-  REGISTRY_ARG="--set image.registry=$NETBOX_IMAGE_REGISTRY"
+  REGISTRY_ARG="--set global.imageRegistry=$NETBOX_IMAGE_REGISTRY --set global.security.allowInsecureImages=true"
 fi
 
 # Install NetBox
