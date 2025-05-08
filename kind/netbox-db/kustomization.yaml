@@ -1,0 +1,8 @@
+resources:
+  - netbox-db.yaml
+
+patches:
+  - path: netbox-db-patch.yaml
+    target:
+      kind: postgresql
+      name: netbox-db

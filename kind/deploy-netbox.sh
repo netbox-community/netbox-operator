@@ -152,8 +152,10 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
   $REGISTRY_ARG
 
 # Deploy the database
-${KUBECTL} apply --namespace="${NAMESPACE}" -f "$SCRIPT_DIR/netbox-db.yaml"
-${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
+export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
+echo "spilo image is $SPILO_IMAGE"
+envsubst < "$SCRIPT_DIR/netbox-db/netbox-db-patch.tmpl.yaml" > "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
+${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
 
 echo "loading demo-data into NetBox…"
 # We use plain `kubectl create … --dry-run=client -o yaml` here to generate
