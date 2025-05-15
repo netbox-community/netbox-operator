@@ -5,7 +5,7 @@ from dataclasses import dataclass
 print("Starting to load data onto NetBox through API")
 try:
     nb = pynetbox.api(
-        'http://netbox',
+        'http://netbox.test',
         token='0123456789abcdef0123456789abcdef01234567'
     )
 except pynetbox.RequestError as e:

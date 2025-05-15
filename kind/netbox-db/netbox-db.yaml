@@ -1,0 +1,21 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: netbox-db
+spec:
+  teamId: "netbox"
+  volume:
+    size: 100Mi
+  numberOfInstances: 1
+  enableMasterLoadBalancer: true
+  users:
+    # database owner
+    netbox:
+      - superuser
+      - createdb
+
+  #databases: name->owner
+  databases:
+    netbox: netbox
+  postgresql:
+    version: "16"
