@@ -53,7 +53,6 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
 
   # patch dockerfile (See README at https://github.com/netbox-community/pynetbox for the supported version matrix)
-  sed 's/RUN pip install -Iv pynetbox==7.4.1/RUN pip install -Iv pynetbox==7.3.4/g' $SCRIPT_DIR/load-data-job/dockerfile.orig > $SCRIPT_DIR/load-data-job/dockerfile
 elif [[ "${VERSION}" == "4.0.11" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
@@ -70,7 +69,6 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
 
-  cp $SCRIPT_DIR/load-data-job/dockerfile.orig $SCRIPT_DIR/load-data-job/dockerfile
 elif [[ "${VERSION}" == "4.1.8" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
@@ -85,7 +83,6 @@ elif [[ "${VERSION}" == "4.1.8" ]] ;then
   # create load-data.sh
   cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh
 
-  cp $SCRIPT_DIR/load-data-job/dockerfile.orig $SCRIPT_DIR/load-data-job/dockerfile
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -103,33 +100,6 @@ fi
 
 # build image for loading local data via NetBox API
 cd "$SCRIPT_DIR/load-data-job"
-# Append image registry prefix only if defined
-PYTHON_IMAGE_NAME="python:3.12"
-if [ -n "$IMAGE_REGISTRY" ]; then
-  PYTHON_BASE_IMAGE="${IMAGE_REGISTRY}/${PYTHON_IMAGE_NAME}"
-else
-  PYTHON_BASE_IMAGE="$PYTHON_IMAGE_NAME"
-fi
-
-docker build -t netbox-load-local-data:1.0 \
-  --load --no-cache --progress=plain \
-  --build-arg PYTHON_BASE_IMAGE="$PYTHON_BASE_IMAGE" \
-  --build-arg ARTIFACTORY_PYPI_URL="${ARTIFACTORY_PYPI_URL:-}" \
-  --build-arg ARTIFACTORY_TRUSTED_HOST="${ARTIFACTORY_TRUSTED_HOST:-}" \
-  -f ./dockerfile .
-cd -
-
-if ! $IS_VCLUSTER; then
-  echo "Loading local images into kind cluster..."
-  declare -a Local_Images=( \
-  "netbox-load-local-data:1.0" \
-  )
-  for img in "${Local_Images[@]}"; do
-    kind load docker-image "$img" --name "${CLUSTER}"
-  done
-else
-  echo "Skipping local image loading into Kind (vCluster mode)."
-fi
 
 # Assign IMAGE_REGISTRY from env if set, else empty
 POSTGRES_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
@@ -233,11 +203,30 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
-# Load local data
+echo "Loading local data into NetBox via ConfigMap-based Job..."
+
+# Create ConfigMap for the python script
+TMP_CONFIGMAP_YAML="$(mktemp)"
+kubectl create configmap netbox-loader-script \
+  --namespace="${NAMESPACE}" \
+  --from-file=main.py="$SCRIPT_DIR/load-local-data-job/main.py" \
+  --dry-run=client -o yaml > "$TMP_CONFIGMAP_YAML"
+
+vcluster connect "${NAMESPACE}" -n "${NAMESPACE}" -- kubectl apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
+rm "$TMP_CONFIGMAP_YAML"
+
+# Delete previous job if it exists
 ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
-${KUBECTL} create job netbox-load-local-data --namespace="${NAMESPACE}" --image=netbox-load-local-data:1.0
+
+# Apply pre-written job YAML from file
+${KUBECTL} apply -n "${NAMESPACE}" -f "$SCRIPT_DIR/load-local-data-job/netbox-load-local-data-job.yaml"
+
+# Wait for job to complete
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
+
+# Load local data
+${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
+${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
 
 # clean up
 rm $SCRIPT_DIR/load-data-job/load-data.sh
-rm $SCRIPT_DIR/load-data-job/dockerfile
