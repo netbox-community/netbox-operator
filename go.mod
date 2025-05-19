@@ -22,7 +22,7 @@ require (
 	github.com/swisscom/leaselocker v0.1.0
 	go.uber.org/mock v0.5.1
 	k8s.io/api v0.33.0
-	k8s.io/apimachinery v0.33.0
+	k8s.io/apimachinery v0.33.1
 	k8s.io/client-go v0.33.0
 	sigs.k8s.io/controller-runtime v0.20.4
 )
