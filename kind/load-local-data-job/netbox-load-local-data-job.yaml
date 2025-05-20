@@ -14,10 +14,10 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              if [ -n "$ARTIFACTORY_PYPI_URL" ]; then
-                echo "Using Artifactory pip index: $ARTIFACTORY_PYPI_URL";
+              if [ -n "$PYPI_REPOSITORY_URL" ]; then
+                echo "Using Artifactory pip index: $PYPI_REPOSITORY_URL";
                 pip install pynetbox \
-                  --index-url="$ARTIFACTORY_PYPI_URL" \
+                  --index-url="$PYPI_REPOSITORY_URL" \
                   --trusted-host="$ARTIFACTORY_TRUSTED_HOST";
               else
                 echo "Using public PyPI";
@@ -25,7 +25,7 @@ spec:
               fi &&
               python main.py
           env:
-            - name: ARTIFACTORY_PYPI_URL
+            - name: PYPI_REPOSITORY_URL
               value: "https://artifactory.swisscom.com/artifactory/api/pypi/pypi-remote/simple"
             - name: ARTIFACTORY_TRUSTED_HOST
               value: "artifactory.swisscom.com"
