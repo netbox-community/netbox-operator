@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: netbox-load-local-data
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loader
+          image: python:3.12-slim
+          workingDir: /app
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -n "$ARTIFACTORY_PYPI_URL" ]; then
+                echo "Using Artifactory pip index: $ARTIFACTORY_PYPI_URL";
+                pip install pynetbox \
+                  --index-url="$ARTIFACTORY_PYPI_URL" \
+                  --trusted-host="$ARTIFACTORY_TRUSTED_HOST";
+              else
+                echo "Using public PyPI";
+                pip install pynetbox;
+              fi &&
+              python main.py
+          env:
+            - name: ARTIFACTORY_PYPI_URL
+              value: "https://artifactory.swisscom.com/artifactory/api/pypi/pypi-remote/simple"
+            - name: ARTIFACTORY_TRUSTED_HOST
+              value: "artifactory.swisscom.com"
+          volumeMounts:
+            - name: script-volume
+              mountPath: /app
+      volumes:
+        - name: script-volume
+          configMap:
+            name: netbox-loader-script
