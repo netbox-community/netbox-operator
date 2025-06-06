@@ -228,7 +228,7 @@ yq -o=json "$TMP_JOB_YAML" | jq \
   --arg netboxApi "$NETBOX_API_URL" \
   --arg pypiUrl "$PYPI_REPOSITORY_URL" \
   --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" \
-  --arg imageRegistry "${IMAGE_REGISTRY:-ghcr.io}" '
+  --arg imageRegistry "${IMAGE_REGISTRY:-docker.io}" '
   .spec.template.spec.containers[0].env //= [] |
   .spec.template.spec.containers[0].image = $imageRegistry+"/python:3.12-slim" |
   .spec.template.spec.containers[0].env +=
