@@ -28,11 +28,7 @@ fi
 
 # Choose kubectl and helm commands depending if we run on vCluster
 if $IS_VCLUSTER; then
-    KUBECTL="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- kubectl"
-    HELM="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- helm"
-else
-    KUBECTL="kubectl"
-    HELM="helm"
+    vcluster connect ${CLUSTER} -n ${NAMESPACE}
 fi
 
 # load remote images
@@ -113,7 +109,7 @@ fi
 # Install Postgres Operator
 # Allow override via environment variable, otherwise fallback to default
 POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
-${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
+helm upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set podPriorityClassName.create=false \
@@ -125,17 +121,13 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
 export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
 echo "spilo image is $SPILO_IMAGE"
 envsubst < "$SCRIPT_DIR/netbox-db/netbox-db-patch.tmpl.yaml" > "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
-${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
+kubectl apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
 
 echo "loading demo-data into NetBox…"
-# We use plain `kubectl create … --dry-run=client -o yaml` here to generate
-# the ConfigMap manifest locally (no cluster connection needed), then pipe
-# that YAML into `${KUBECTL} apply` so it’s applied against the selected
-# target (Kind or vCluster) via our `${KUBECTL}` wrapper.
 kubectl create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
-| ${KUBECTL} apply -n "${NAMESPACE}" -f -
+| kubectl apply -n "${NAMESPACE}" -f -
 
 # Set the image of the kustomization.yaml to the one specified (from env or default)
 SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
@@ -168,13 +160,13 @@ EOF
 kustomize edit add patch --path sql-env-patch.yaml
 
 # Apply the customized job
-kustomize build . | ${KUBECTL} apply -n "${NAMESPACE}" -f -
+kustomize build . | kubectl apply -n "${NAMESPACE}" -f -
 cd ..
 
-${KUBECTL} wait \
+kubectl wait \
     -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
 
-${KUBECTL} delete \
+kubectl delete \
     -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
 # Assign IMAGE_REGISTRY from env if set, else empty
@@ -187,7 +179,7 @@ if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
 fi
 
 # Install NetBox
-${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
+helm upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set postgresql.enabled="false" \
@@ -201,32 +193,61 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   $REGISTRY_ARG
 
-${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
+kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
 
-echo "Loading local data into NetBox via ConfigMap-based Job..."
-
-# Create ConfigMap for the python script
+# Create ConfigMap for the Python script
 TMP_CONFIGMAP_YAML="$(mktemp)"
 kubectl create configmap netbox-loader-script \
   --namespace="${NAMESPACE}" \
   --from-file=main.py="$SCRIPT_DIR/load-local-data-job/main.py" \
   --dry-run=client -o yaml > "$TMP_CONFIGMAP_YAML"
 
-vcluster connect "${NAMESPACE}" -n "${NAMESPACE}" -- kubectl apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
+kubectl apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
 rm "$TMP_CONFIGMAP_YAML"
 
-# Delete previous job if it exists
-${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
+# Prepare Job YAML with optional environment variable injection
+JOB_YAML="$SCRIPT_DIR/load-local-data-job/netbox-load-local-data-job.yaml"
+TMP_JOB_YAML="$(mktemp)"
+cp "$JOB_YAML" "$TMP_JOB_YAML"
 
-# Apply pre-written job YAML from file
-${KUBECTL} apply -n "${NAMESPACE}" -f "$SCRIPT_DIR/load-local-data-job/netbox-load-local-data-job.yaml"
+# Define internal NetBox service endpoint (used in Kind)
+NETBOX_API_URL="http://netbox.${NAMESPACE}.svc.cluster.local"
+
+PATCHED_TMP_JOB_YAML="$(mktemp)"
+
+# Convert YAML to JSON and inject variables if containers exist
+yq -o=json "$TMP_JOB_YAML" | jq \
+  --arg netboxApi "$NETBOX_API_URL" \
+  --arg pypiUrl "$PYPI_REPOSITORY_URL" \
+  --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" '
+  .spec.template.spec.containers[0].env //= [] |
+  .spec.template.spec.containers[0].env +=
+    [{"name": "NETBOX_API", "value": $netboxApi}]
+    + (
+        if $pypiUrl != "" and $artifactoryHost != "" then
+          [
+            {"name": "PYPI_REPOSITORY_URL", "value": $pypiUrl},
+            {"name": "ARTIFACTORY_TRUSTED_HOST", "value": $artifactoryHost}
+          ]
+        else [] end
+      )
+' | yq -P > "$PATCHED_TMP_JOB_YAML"
+
+mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
+
+# Delete previous job if it exists
+kubectl delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
+
+# Apply patched job
+kubectl apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
+rm "$TMP_JOB_YAML"
 
 # Wait for job to complete
-${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
+kubectl wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
 # Load local data
-${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
-${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
+kubectl delete job netbox-load-local-data --namespace="${NAMESPACE}"
+kubectl delete configmap netbox-loader-script --namespace="${NAMESPACE}"
 
 # clean up
 rm $SCRIPT_DIR/load-data-job/load-data.sh

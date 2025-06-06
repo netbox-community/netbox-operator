@@ -24,11 +24,6 @@ spec:
                 pip install pynetbox;
               fi &&
               python main.py
-          env:
-            - name: PYPI_REPOSITORY_URL
-              value: "https://artifactory.swisscom.com/artifactory/api/pypi/pypi-remote/simple"
-            - name: ARTIFACTORY_TRUSTED_HOST
-              value: "artifactory.swisscom.com"
           volumeMounts:
             - name: script-volume
               mountPath: /app
