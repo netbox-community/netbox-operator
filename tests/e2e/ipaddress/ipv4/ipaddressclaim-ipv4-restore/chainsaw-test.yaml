@@ -169,7 +169,7 @@ spec:
       - assert:
           resource:
             apiVersion: netbox.dev/v1
-            kind: IpAddressClaim
+            kind: IpAddress
             metadata:
               name: ipaddressclaim-ipv4-restore-1
             status:
