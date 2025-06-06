@@ -113,7 +113,6 @@ fi
 # Install Postgres Operator
 # Allow override via environment variable, otherwise fallback to default
 POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
-echo $POSTGRES_OPERATOR_HELM_CHART
 ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
     --namespace="${NAMESPACE}" \
     --create-namespace \
@@ -121,8 +120,6 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
     --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
     --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
     $REGISTRY_ARG
-
-echo "reached 1"
 
 # Deploy the database
 export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
