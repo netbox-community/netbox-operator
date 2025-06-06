@@ -1,11 +1,14 @@
 #!/bin/bash
-set -e -u -o pipefail
+set -e -o pipefail
 
 # Deploy NetBox (with its PostgreSQL operator and demo data) into either:
 #  • a local kind cluster (preloading images)
 #  • a virtual cluster using vcluster: https://github.com/loft-sh/vcluster ( used for testing pipeline, loading of images not needed )
 
-NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz" # default value
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Allow override via environment variable, otherwise fallback to default
+NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
 if [[ $# -lt 3 || $# -gt 4 ]]; then
     echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE> [--vcluster]"
@@ -43,13 +46,13 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
-  NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
+  # Allow override via environment variable, otherwise fallback to default
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
   # patch load-data.sh
-  sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
+  sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
 
   # patch dockerfile (See README at https://github.com/netbox-community/pynetbox for the supported version matrix)
-  sed 's/RUN pip install -Iv pynetbox==7.4.1/RUN pip install -Iv pynetbox==7.3.4/g' $(dirname "$0")/load-data-job/dockerfile.orig > $(dirname "$0")/load-data-job/dockerfile
 elif [[ "${VERSION}" == "4.0.11" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
@@ -60,12 +63,12 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
-  NETBOX_HELM_CHART="https://github.com/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
+  # Allow override via environment variable, otherwise fallback to default
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
   # patch load-data.sh
-  sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $(dirname "$0")/load-data-job/load-data.orig.sh > $(dirname "$0")/load-data-job/load-data.sh && chmod +x $(dirname "$0")/load-data-job/load-data.sh
+  sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
 
-  cp $(dirname "$0")/load-data-job/dockerfile.orig $(dirname "$0")/load-data-job/dockerfile
 elif [[ "${VERSION}" == "4.1.8" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
@@ -78,9 +81,8 @@ elif [[ "${VERSION}" == "4.1.8" ]] ;then
   )
 
   # create load-data.sh
-  cp $(dirname "$0")/load-data-job/load-data.orig.sh $(dirname "$0")/load-data-job/load-data.sh
+  cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh
 
-  cp $(dirname "$0")/load-data-job/dockerfile.orig $(dirname "$0")/load-data-job/dockerfile
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -97,47 +99,77 @@ else
 fi
 
 # build image for loading local data via NetBox API
-cd "$(dirname "$0")/load-data-job"
-docker build -t netbox-load-local-data:1.0 --load --no-cache --progress=plain -f ./dockerfile .
-cd -
+cd "$SCRIPT_DIR/load-data-job"
 
-if ! $IS_VCLUSTER; then
-  echo "Loading local images into kind cluster..."
-  declare -a Local_Images=( \
-  "netbox-load-local-data:1.0" \
-  )
-  for img in "${Local_Images[@]}"; do
-    kind load docker-image "$img" --name "${CLUSTER}"
-  done
-else
-  echo "Skipping local image loading into Kind (vCluster mode)."
+# Assign IMAGE_REGISTRY from env if set, else empty
+POSTGRES_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
+
+# Build optional set flag if registry is not defined
+REGISTRY_ARG=""
+if [ -n "$POSTGRES_IMAGE_REGISTRY" ]; then
+  REGISTRY_ARG="--set image.registry=$POSTGRES_IMAGE_REGISTRY"
 fi
 
 # Install Postgres Operator
-${HELM} upgrade --install postgres-operator \
-  --namespace="${NAMESPACE}" \
-  --create-namespace \
-  --set podPriorityClassName.create=false \
-  --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
-  --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
-  https://opensource.zalando.com/postgres-operator/charts/postgres-operator/postgres-operator-1.12.2.tgz
+# Allow override via environment variable, otherwise fallback to default
+POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
+${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
+    --namespace="${NAMESPACE}" \
+    --create-namespace \
+    --set podPriorityClassName.create=false \
+    --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
+    --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
+    $REGISTRY_ARG
 
 # Deploy the database
-${KUBECTL} apply --namespace="${NAMESPACE}" -f "$(dirname "$0")/netbox-db.yaml"
-${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=jsonpath='{.status.PostgresClusterStatus}'=Running postgresql/netbox-db
+export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
+echo "spilo image is $SPILO_IMAGE"
+envsubst < "$SCRIPT_DIR/netbox-db/netbox-db-patch.tmpl.yaml" > "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
+${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
+rm "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
 
 echo "loading demo-data into NetBox…"
-# We use plain `kubectl create … --dry-run=client -o yaml` here to generate
-# the ConfigMap manifest locally (no cluster connection needed), then pipe
-# that YAML into `${KUBECTL} apply` so it’s applied against the selected
-# target (Kind or vCluster) via our `${KUBECTL}` wrapper.
 kubectl create configmap netbox-demo-data-load-job-scripts \
-  --from-file="$(dirname "$0")/load-data-job" \
+  --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
 | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
-${KUBECTL} apply -n "${NAMESPACE}" \
-    -f "$(dirname "$0")/load-data-job.yaml"
+# Set the image of the kustomization.yaml to the one specified (from env or default)
+SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
+SPILO_IMAGE="${SPILO_IMAGE_REGISTRY}/zalando/spilo-16:3.2-p3"
+
+JOB_DIR="$SCRIPT_DIR/job"
+cd "$JOB_DIR"
+kustomize edit set image ghcr.io/zalando/spilo-16="$SPILO_IMAGE"
+
+# Create a patch file to inject NETBOX_SQL_DUMP_URL (from env or default)
+NETBOX_SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql}"
+
+# Create patch
+cat > sql-env-patch.yaml <<EOF
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: netbox-demo-data-load-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: netbox-demo-data-load
+          env:
+            - name: NETBOX_SQL_DUMP_URL
+              value: "${NETBOX_SQL_DUMP_URL}"
+EOF
+
+# Add the patch
+kustomize edit add patch --path sql-env-patch.yaml
+
+# Apply the customized job
+kustomize build . | ${KUBECTL} apply -n "${NAMESPACE}" -f -
+# reset the kustomization to default value
+rm sql-env-patch.yaml
+kustomize edit set image ghcr.io/zalando/spilo-16="ghcr.io/zalando/spilo-16"
+cd ..
 
 ${KUBECTL} wait \
     -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
@@ -145,9 +177,17 @@ ${KUBECTL} wait \
 ${KUBECTL} delete \
     -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
+# Assign IMAGE_REGISTRY from env if set, else empty
+NETBOX_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
+
+# Build optional set flag if registry is not defined
+REGISTRY_ARG=""
+if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
+  REGISTRY_ARG="--set global.imageRegistry=$NETBOX_IMAGE_REGISTRY --set global.security.allowInsecureImages=true"
+fi
 
 # Install NetBox
-${HELM} upgrade --install netbox \
+${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set postgresql.enabled="false" \
@@ -159,15 +199,65 @@ ${HELM} upgrade --install netbox \
   --set resources.requests.memory="512Mi" \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
-  ${NETBOX_HELM_CHART}
+  $REGISTRY_ARG
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
-# Load local data
+# Create ConfigMap for the Python script
+TMP_CONFIGMAP_YAML="$(mktemp)"
+kubectl create configmap netbox-loader-script \
+  --namespace="${NAMESPACE}" \
+  --from-file=main.py="$SCRIPT_DIR/load-local-data-job/main.py" \
+  --dry-run=client -o yaml > "$TMP_CONFIGMAP_YAML"
+
+${KUBECTL} apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
+rm "$TMP_CONFIGMAP_YAML"
+
+# Prepare Job YAML with optional environment variable injection
+JOB_YAML="$SCRIPT_DIR/load-local-data-job/netbox-load-local-data-job.yaml"
+TMP_JOB_YAML="$(mktemp)"
+cp "$JOB_YAML" "$TMP_JOB_YAML"
+
+# Define internal NetBox service endpoint (used in Kind)
+NETBOX_API_URL="http://netbox.${NAMESPACE}.svc.cluster.local"
+
+PATCHED_TMP_JOB_YAML="$(mktemp)"
+
+# Convert YAML to JSON and inject variables if containers exist
+yq -o=json "$TMP_JOB_YAML" | jq \
+  --arg netboxApi "$NETBOX_API_URL" \
+  --arg pypiUrl "$PYPI_REPOSITORY_URL" \
+  --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" \
+  --arg imageRegistry "${IMAGE_REGISTRY:-docker.io}" '
+  .spec.template.spec.containers[0].env //= [] |
+  .spec.template.spec.containers[0].image = $imageRegistry+"/python:3.12-slim" |
+  .spec.template.spec.containers[0].env +=
+    [{"name": "NETBOX_API", "value": $netboxApi}]
+    + (
+        if $pypiUrl != "" and $artifactoryHost != "" then
+          [
+            {"name": "PYPI_REPOSITORY_URL", "value": $pypiUrl},
+            {"name": "ARTIFACTORY_TRUSTED_HOST", "value": $artifactoryHost}
+          ]
+        else [] end
+      )
+' | yq -P > "$PATCHED_TMP_JOB_YAML"
+
+mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
+
+# Delete previous job if it exists
 ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
-${KUBECTL} create job netbox-load-local-data --namespace="${NAMESPACE}" --image=netbox-load-local-data:1.0
+
+# Apply patched job
+${KUBECTL} apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
+rm "$TMP_JOB_YAML"
+
+# Wait for job to complete
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
+# Load local data
+${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
+${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
+
 # clean up
-rm $(dirname "$0")/load-data-job/load-data.sh
-rm $(dirname "$0")/load-data-job/dockerfile
+rm $SCRIPT_DIR/load-data-job/load-data.sh
