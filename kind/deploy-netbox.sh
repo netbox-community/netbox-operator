@@ -28,7 +28,11 @@ fi
 
 # Choose kubectl and helm commands depending if we run on vCluster
 if $IS_VCLUSTER; then
-    vcluster connect ${CLUSTER} -n ${NAMESPACE}
+    KUBECTL="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- kubectl"
+    HELM="vcluster connect ${CLUSTER} -n ${NAMESPACE} -- helm"
+else
+    KUBECTL="kubectl"
+    HELM="helm"
 fi
 
 # load remote images
@@ -109,25 +113,29 @@ fi
 # Install Postgres Operator
 # Allow override via environment variable, otherwise fallback to default
 POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
-helm upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
-  --namespace="${NAMESPACE}" \
-  --create-namespace \
-  --set podPriorityClassName.create=false \
-  --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
-  --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
-  $REGISTRY_ARG
+echo $POSTGRES_OPERATOR_HELM_CHART
+${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
+    --namespace="${NAMESPACE}" \
+    --create-namespace \
+    --set podPriorityClassName.create=false \
+    --set podServiceAccount.name="postgres-pod-${NAMESPACE}" \
+    --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
+    $REGISTRY_ARG
+
+echo "reached 1"
 
 # Deploy the database
 export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
 echo "spilo image is $SPILO_IMAGE"
 envsubst < "$SCRIPT_DIR/netbox-db/netbox-db-patch.tmpl.yaml" > "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
-kubectl apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
+${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
+rm "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
 
 echo "loading demo-data into NetBox…"
 kubectl create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
-| kubectl apply -n "${NAMESPACE}" -f -
+| ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 # Set the image of the kustomization.yaml to the one specified (from env or default)
 SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
@@ -160,13 +168,16 @@ EOF
 kustomize edit add patch --path sql-env-patch.yaml
 
 # Apply the customized job
-kustomize build . | kubectl apply -n "${NAMESPACE}" -f -
+kustomize build . | ${KUBECTL} apply -n "${NAMESPACE}" -f -
+# reset the kustomization to default value
+rm sql-env-patch.yaml
+kustomize edit set image ghcr.io/zalando/spilo-16="ghcr.io/zalando/spilo-16"
 cd ..
 
-kubectl wait \
+${KUBECTL} wait \
     -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
 
-kubectl delete \
+${KUBECTL} delete \
     -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
 # Assign IMAGE_REGISTRY from env if set, else empty
@@ -179,7 +190,7 @@ if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
 fi
 
 # Install NetBox
-helm upgrade --install netbox ${NETBOX_HELM_CHART} \
+${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
   --set postgresql.enabled="false" \
@@ -193,7 +204,7 @@ helm upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   $REGISTRY_ARG
 
-kubectl rollout status --namespace="${NAMESPACE}" deployment netbox
+${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
 # Create ConfigMap for the Python script
 TMP_CONFIGMAP_YAML="$(mktemp)"
@@ -202,7 +213,7 @@ kubectl create configmap netbox-loader-script \
   --from-file=main.py="$SCRIPT_DIR/load-local-data-job/main.py" \
   --dry-run=client -o yaml > "$TMP_CONFIGMAP_YAML"
 
-kubectl apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
+${KUBECTL} apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
 rm "$TMP_CONFIGMAP_YAML"
 
 # Prepare Job YAML with optional environment variable injection
@@ -219,8 +230,10 @@ PATCHED_TMP_JOB_YAML="$(mktemp)"
 yq -o=json "$TMP_JOB_YAML" | jq \
   --arg netboxApi "$NETBOX_API_URL" \
   --arg pypiUrl "$PYPI_REPOSITORY_URL" \
-  --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" '
+  --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" \
+  --arg imageRegistry "${IMAGE_REGISTRY:-ghcr.io}" '
   .spec.template.spec.containers[0].env //= [] |
+  .spec.template.spec.containers[0].image = $imageRegistry+"/python:3.12-slim" |
   .spec.template.spec.containers[0].env +=
     [{"name": "NETBOX_API", "value": $netboxApi}]
     + (
@@ -236,18 +249,18 @@ yq -o=json "$TMP_JOB_YAML" | jq \
 mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
 
 # Delete previous job if it exists
-kubectl delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
+${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
 
 # Apply patched job
-kubectl apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
+${KUBECTL} apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
 rm "$TMP_JOB_YAML"
 
 # Wait for job to complete
-kubectl wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
+${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
 # Load local data
-kubectl delete job netbox-load-local-data --namespace="${NAMESPACE}"
-kubectl delete configmap netbox-loader-script --namespace="${NAMESPACE}"
+${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
+${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
 
 # clean up
 rm $SCRIPT_DIR/load-data-job/load-data.sh
