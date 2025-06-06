@@ -1,0 +1,66 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-parentprefixselector-nonexisingcustomfield
+  annotations:
+    description: Tests if creation fails for parentPrefixSelector with non exising custom field
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check CR spec
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-nonexisingcustomfield
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefixSelector: # The keys and values are case-sensitive
+                  tenant: "MY_TENANT"
+                  site: "MY_SITE"
+                  family: "IPv4"
+                  environment: "Production"
+                  poolName: "Pool 1"
+                  nonexisingfield: "value"
+                prefixLength: /31
+                preserveInNetbox: false
+                site: MY_SITE_2
+                tenant: MY_TENANT_2
+    - name: Check CR status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-nonexisingcustomfield
+              status:
+                (conditions[?type == 'PrefixAssigned']):
+                  - status: 'False'
+                    reason: 'PrefixCRNotCreated'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: PrefixCRNotCreated
+              source:
+                component: prefix-claim-controller
+              message: "Failed to assign prefix, prefix CR creation skipped: invalid parentPrefixSelector, netbox custom fields nonexisingfield do not exist"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: PrefixClaim
+                name: prefixclaim-ipv4-parentprefixselector-nonexisingcustomfield
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-nonexisingcustomfield -n $NAMESPACE

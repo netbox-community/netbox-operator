@@ -50,3 +50,9 @@ spec:
                 tenant: MY_TENANT_2
                 customFields:
                   netboxOperatorRestorationHash: 46116345cc81820fdb412dc83e7147d4b1dc1afa
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-apply -n $NAMESPACE

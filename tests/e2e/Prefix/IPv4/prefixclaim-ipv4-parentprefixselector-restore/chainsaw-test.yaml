@@ -102,7 +102,7 @@ spec:
     - name: Apply CR 1 for the second time again
       try:
         - apply:
-            file: netbox_v1_prefixclaim_1.yaml      
+            file: netbox_v1_prefixclaim_1.yaml
     - name: Check CR 1 spec and status and make sure it is restored
       try:
         - assert:
@@ -143,3 +143,10 @@ spec:
                 tenant: MY_TENANT_2
                 customFields:
                   netboxOperatorRestorationHash: 8a5e15cd391ec02a7a2b2e316bc163f4fe46ef0b
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-restore-1 -n $NAMESPACE
+                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-restore-2 -n $NAMESPACE
