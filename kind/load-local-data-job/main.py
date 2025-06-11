@@ -1,17 +1,23 @@
+import os
 import pynetbox
 from pprint import pprint
 from dataclasses import dataclass
 
 print("Starting to load data onto NetBox through API")
+
+NETBOX_API = os.getenv("NETBOX_API", "http://netbox")
+
 try:
     nb = pynetbox.api(
-        'http://netbox',
+        NETBOX_API,
         token='0123456789abcdef0123456789abcdef01234567'
     )
 except pynetbox.RequestError as e:
     pprint(e.error)
-   
-print("Connected to NetBoxAPI")
+    raise SystemExit(f"Failed to connect to NetBox at {NETBOX_API}")
+
+print(f"Connected to NetBoxAPI at {NETBOX_API}")
+
 
 # insert Tenants
 @dataclass

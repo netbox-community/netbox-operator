@@ -1,4 +1,0 @@
-FROM python:3.12
-ADD main.py .
-RUN pip install -Iv pynetbox==7.4.1
-CMD ["python", "./main.py"] 
