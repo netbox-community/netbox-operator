@@ -3,7 +3,9 @@
 # How to run the test locally?
 
 - [Install](https://kyverno.github.io/chainsaw/latest/quick-start/install/) `chainsaw`: `go install github.com/kyverno/chainsaw@latest`
-- Execute `make test-e2e`
+- Execute `make test-e2e` or `chainsaw test --namespace e2e` with specific flags (see Makefile)
+- Use `--test-dir` flag if you want to execute a specific test.
+- Use `--skip-delete` flag in case you want to skip the deletion of the Kubernetes resources (e.g. for debugging). Note that this results in leftovers and you might need to clean up things.
 
 # How to add a new test locally?
 

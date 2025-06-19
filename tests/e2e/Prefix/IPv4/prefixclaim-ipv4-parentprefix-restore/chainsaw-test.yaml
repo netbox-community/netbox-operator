@@ -130,6 +130,45 @@ spec:
                 tenant: MY_TENANT
                 customFields:
                   netboxOperatorRestorationHash: 00b8772de73cdac083b0732d5bb85ab4f0caa16c
+    - name: Set preserveInNetbox to false
+      description: Set preserveInNetbox to false to clean up the NetBox test instance
+      try:
+      - patch:
+          resource:
+            apiVersion: netbox.dev/v1
+            kind: PrefixClaim
+            metadata:
+              name: prefixclaim-ipv4-parentprefix-restore-1
+            spec:
+              preserveInNetbox: false
+      - patch:
+          resource:
+            apiVersion: netbox.dev/v1
+            kind: PrefixClaim
+            metadata:
+              name: prefixclaim-ipv4-parentprefix-restore-2
+            spec:
+              preserveInNetbox: false
+      - assert:
+          resource:
+            apiVersion: netbox.dev/v1
+            kind: Prefix
+            metadata:
+              name: prefixclaim-ipv4-parentprefix-restore-1
+            status:
+              (conditions[?type == 'Ready']):
+              - observedGeneration: 2
+                status: 'True'
+      - assert:
+          resource:
+            apiVersion: netbox.dev/v1
+            kind: Prefix
+            metadata:
+              name: prefixclaim-ipv4-parentprefix-restore-2
+            status:
+              (conditions[?type == 'Ready']):
+              - observedGeneration: 2
+                status: 'True'
     - name: Cleanup events
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
