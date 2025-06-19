@@ -201,6 +201,37 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   $REGISTRY_ARG
 
+if $IS_VCLUSTER; then
+  echo "Creating nginx-unit ConfigMap and patching deployment"
+
+  ${KUBECTL} apply -f "$SCRIPT_DIR/nginx-unit-config.yaml" -n "$NAMESPACE"
+
+  ${KUBECTL} patch deployment netbox -n "$NAMESPACE" --type=json -p='[
+    {
+      "op": "add",
+      "path": "/spec/template/spec/volumes/-",
+      "value": {
+        "name": "unit-config",
+        "configMap": {
+          "name": "nginx-unit-config"
+        }
+      }
+    },
+    {
+      "op": "add",
+      "path": "/spec/template/spec/containers/0/volumeMounts/-",
+      "value": {
+        "mountPath": "/etc/unit/nginx-unit.json",
+        "subPath": "nginx-unit.json",
+        "name": "unit-config"
+      }
+    }
+  ]'
+
+  echo "Restarting NetBox pod to apply config"
+  ${KUBECTL} delete pod -n "$NAMESPACE" -l app.kubernetes.io/name=netbox --wait
+fi
+
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
 # Create ConfigMap for the Python script
