@@ -1,5 +1,7 @@
 # Modified from https://github.com/prometheus-operator/prometheus-operator/blob/main/.github/workflows/e2e-feature-gated.yaml
 name: e2e-tests
+permissions:
+  contents: read
 on:
   push:
     branches:
@@ -42,8 +44,8 @@ jobs:
     - name: Run e2e tests
       run: |
         make test-e2e-4.0.11
-  e2e-tests-4-1-8:
-    name: Against netbox version 4.1.8
+  e2e-tests-4-1-11:
+    name: Against netbox version 4.1.11
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -55,4 +57,4 @@ jobs:
         cat ".github/env" >> "$GITHUB_ENV"
     - name: Run e2e tests
       run: |
-        make test-e2e-4.1.8
+        make test-e2e-4.1.11
