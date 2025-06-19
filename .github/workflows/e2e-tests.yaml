@@ -1,5 +1,7 @@
 # Modified from https://github.com/prometheus-operator/prometheus-operator/blob/main/.github/workflows/e2e-feature-gated.yaml
 name: e2e-tests
+permissions:
+  contents: read
 on:
   push:
     branches:
