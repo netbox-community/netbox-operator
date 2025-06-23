@@ -20,6 +20,9 @@ VERSION=$2
 # The specified namespace will be used for both the NetBox deployment and the vCluster creation
 NAMESPACE=$3
 
+# Force IPv4-only config for environments lacking IPv6
+FORCE_NETBOX_NGINX_IPV4="${FORCE_NETBOX_NGINX_IPV4:-false}"
+
 # Treat the optional fourth argument "--vcluster" as a boolean flag
 IS_VCLUSTER=false
 if [[ "${4:-}" == "--vcluster" ]]; then
@@ -200,6 +203,35 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
   $REGISTRY_ARG
+
+if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
+  echo "Creating nginx-unit ConfigMap and patching deployment"
+
+  ${KUBECTL} apply -f "$SCRIPT_DIR/nginx-unit-config.yaml" -n "$NAMESPACE"
+
+  ${KUBECTL} patch deployment netbox -n "$NAMESPACE" --type=json -p='[
+    {
+      "op": "add",
+      "path": "/spec/template/spec/volumes/-",
+      "value": {
+        "name": "unit-config",
+        "configMap": {
+          "name": "nginx-unit-config"
+        }
+      }
+    },
+    {
+      "op": "add",
+      "path": "/spec/template/spec/containers/0/volumeMounts/-",
+      "value": {
+        "mountPath": "/etc/unit/nginx-unit.json",
+        "subPath": "nginx-unit.json",
+        "name": "unit-config"
+      }
+    }
+  ]'
+
+fi
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
