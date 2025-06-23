@@ -1,15 +1,20 @@
----
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Zurich"
 
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Zurich"
     allow:
       - dependency-type: all
 
@@ -17,3 +22,6 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Zurich"
