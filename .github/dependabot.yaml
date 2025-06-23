@@ -5,7 +5,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "08:00"
+      time: "04:00"
       timezone: "Europe/Zurich"
 
   - package-ecosystem: gomod
@@ -13,7 +13,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "08:00"
+      time: "04:00"
       timezone: "Europe/Zurich"
     allow:
       - dependency-type: all
@@ -23,5 +23,5 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "08:00"
+      time: "04:00"
       timezone: "Europe/Zurich"
