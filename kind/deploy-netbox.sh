@@ -27,7 +27,6 @@ FORCE_NETBOX_NGINX_IPV4="${FORCE_NETBOX_NGINX_IPV4:-false}"
 IS_VCLUSTER=false
 if [[ "${4:-}" == "--vcluster" ]]; then
     IS_VCLUSTER=true
-    FORCE_NETBOX_NGINX_IPV4=true
 fi
 
 # Choose kubectl and helm commands depending if we run on vCluster
