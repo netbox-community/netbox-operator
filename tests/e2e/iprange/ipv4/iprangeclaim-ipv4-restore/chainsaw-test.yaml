@@ -172,6 +172,27 @@ spec:
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
+    - name: Set preserveInNetbox to false
+      description: Set preserveInNetbox to false to clean up the NetBox test instance
+      try:
+      - patch:
+          resource:
+            apiVersion: netbox.dev/v1
+            kind: IpRangeClaim
+            metadata:
+              name: iprangeclaim-ipv4-restore-1
+            spec:
+              preserveInNetbox: false
+      - assert:
+          resource:
+            apiVersion: netbox.dev/v1
+            kind: IpRange
+            metadata:
+              name: iprangeclaim-ipv4-restore-1
+            status:
+              (conditions[?type == 'Ready']):
+              - observedGeneration: 2
+                status: 'True'
     - name: Cleanup events and leases
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
       cleanup:
