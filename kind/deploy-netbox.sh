@@ -20,10 +20,14 @@ VERSION=$2
 # The specified namespace will be used for both the NetBox deployment and the vCluster creation
 NAMESPACE=$3
 
+# Force IPv4-only config for environments lacking IPv6
+FORCE_NETBOX_NGINX_IPV4="${FORCE_NETBOX_NGINX_IPV4:-false}"
+
 # Treat the optional fourth argument "--vcluster" as a boolean flag
 IS_VCLUSTER=false
 if [[ "${4:-}" == "--vcluster" ]]; then
     IS_VCLUSTER=true
+    FORCE_NETBOX_NGINX_IPV4=true
 fi
 
 # Choose kubectl and helm commands depending if we run on vCluster
@@ -201,7 +205,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   $REGISTRY_ARG
 
-if $IS_VCLUSTER; then
+if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   echo "Creating nginx-unit ConfigMap and patching deployment"
 
   ${KUBECTL} apply -f "$SCRIPT_DIR/nginx-unit-config.yaml" -n "$NAMESPACE"
@@ -228,8 +232,6 @@ if $IS_VCLUSTER; then
     }
   ]'
 
-  echo "Restarting NetBox pod to apply config"
-  ${KUBECTL} delete pod -n "$NAMESPACE" -l app.kubernetes.io/name=netbox --wait
 fi
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
