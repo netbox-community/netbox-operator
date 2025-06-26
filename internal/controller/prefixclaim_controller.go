@@ -155,12 +155,19 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 				// fetch available prefixes from netbox
 				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(&prefixClaim.Spec)
-				if err != nil || len(parentPrefixCandidates) == 0 {
+				if err != nil {
 					r.EventStatusRecorder.Recorder().Event(prefixClaim, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+err.Error())
 					if err := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); err != nil {
 						return ctrl.Result{}, err
 					}
-
+					return ctrl.Result{Requeue: true}, nil
+				}
+				if len(parentPrefixCandidates) == 0 {
+					message := "no parent prefix found matching the parenPrefixSelector"
+					r.EventStatusRecorder.Recorder().Event(prefixClaim, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+message)
+					if err := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, errors.New(message)); err != nil {
+						return ctrl.Result{}, err
+					}
 					// we requeue as this might be a temporary prefix exhausation
 					return ctrl.Result{Requeue: true}, nil
 				}
