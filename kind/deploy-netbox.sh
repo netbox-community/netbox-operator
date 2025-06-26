@@ -231,6 +231,32 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
     }
   ]'
 
+ # Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors
+  DEPLOYMENT_NAME="netbox"
+  # Get all ReplicaSets in JSON
+  RS_JSON=$(eval "$KUBECTL get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json" | sed '/^{/,$!d')
+
+  # Extract the latest one
+  LATEST_RS=$(echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" '
+    .items
+    | map(select(.metadata.ownerReferences[]?.kind == "Deployment" and .metadata.ownerReferences[]?.name == $DEPLOYMENT))
+    | sort_by(.metadata.creationTimestamp)
+    | last
+    | .metadata.name
+  ')
+
+  echo "Current (latest) ReplicaSet is: $LATEST_RS"
+
+  # Delete older ones
+  echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" --arg LATEST "$LATEST_RS" '
+    .items
+    | map(select(
+        .metadata.ownerReferences[]?.kind == "Deployment"
+        and .metadata.ownerReferences[]?.name == $DEPLOYMENT
+        and .metadata.name != $LATEST
+      ))
+    | .[].metadata.name
+  ' | xargs -r -I{} ${KUBECTL} delete rs {} -n "$NAMESPACE"
 fi
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
