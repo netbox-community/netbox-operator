@@ -286,10 +286,10 @@ NETBOX_API_URL="http://netbox.${NAMESPACE}.svc.cluster.local"
 PATCHED_TMP_JOB_YAML="$(mktemp)"
 
 # Convert YAML to JSON and inject variables if containers exist
-yq -o=json "$TMP_JOB_YAML" | jq \
+yq r -j "$TMP_JOB_YAML" | jq \
   --arg netboxApi "$NETBOX_API_URL" \
-  --arg pypiUrl "$PYPI_REPOSITORY_URL" \
-  --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" \
+  --arg pypiUrl "${PYPI_REPOSITORY_URL:-}" \
+  --arg artifactoryHost "${ARTIFACTORY_TRUSTED_HOST:-}" \
   --arg imageRegistry "${IMAGE_REGISTRY:-docker.io}" '
   .spec.template.spec.containers[0].env //= [] |
   .spec.template.spec.containers[0].image = $imageRegistry+"/python:3.12-slim" |
@@ -303,7 +303,7 @@ yq -o=json "$TMP_JOB_YAML" | jq \
           ]
         else [] end
       )
-' | yq -P > "$PATCHED_TMP_JOB_YAML"
+' | yq r - > "$PATCHED_TMP_JOB_YAML"
 
 mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
 
