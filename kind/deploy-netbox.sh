@@ -257,6 +257,10 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
       ))
     | .[].metadata.name
   ' | xargs -r -I{} ${KUBECTL} delete rs {} -n "$NAMESPACE"
+
+  echo "Forcing restart of netbox pod to reattach volume cleanly..."
+  ${KUBECTL} get pods -n "$NAMESPACE" -l app.kubernetes.io/component=netbox \
+    -o name | xargs -r ${KUBECTL} delete -n "$NAMESPACE" --grace-period=0 --force
 fi
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
