@@ -5,7 +5,7 @@ metadata:
 spec:
   teamId: "netbox"
   volume:
-    size: 100Mi
+    size: 5Gi
   numberOfInstances: 1
   enableMasterLoadBalancer: true
   users:
