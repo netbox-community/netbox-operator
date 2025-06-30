@@ -231,6 +231,36 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
     }
   ]'
 
+  # Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors
+  DEPLOYMENT_NAME="netbox"
+  # Get all ReplicaSets in JSON
+  RS_JSON=$(eval "$KUBECTL get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json" | sed '/^{/,$!d')
+
+  # Extract the latest one
+  LATEST_RS=$(echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" '
+    .items
+    | map(select(.metadata.ownerReferences[]?.kind == "Deployment" and .metadata.ownerReferences[]?.name == $DEPLOYMENT))
+    | sort_by(.metadata.creationTimestamp)
+    | last
+    | .metadata.name
+  ')
+
+  echo "Current (latest) ReplicaSet is: $LATEST_RS"
+
+  # Delete older ones
+  echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" --arg LATEST "$LATEST_RS" '
+    .items
+    | map(select(
+        .metadata.ownerReferences[]?.kind == "Deployment"
+        and .metadata.ownerReferences[]?.name == $DEPLOYMENT
+        and .metadata.name != $LATEST
+      ))
+    | .[].metadata.name
+  ' | xargs -r -I{} ${KUBECTL} delete rs {} -n "$NAMESPACE"
+
+  echo "Forcing restart of netbox pod to reattach volume cleanly..."
+  ${KUBECTL} delete pods -n "$NAMESPACE" -l app.kubernetes.io/component=netbox \
+      --grace-period=0 --force
 fi
 
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
@@ -256,10 +286,10 @@ NETBOX_API_URL="http://netbox.${NAMESPACE}.svc.cluster.local"
 PATCHED_TMP_JOB_YAML="$(mktemp)"
 
 # Convert YAML to JSON and inject variables if containers exist
-yq -o=json "$TMP_JOB_YAML" | jq \
+yq eval -o=json "$TMP_JOB_YAML" | jq \
   --arg netboxApi "$NETBOX_API_URL" \
-  --arg pypiUrl "$PYPI_REPOSITORY_URL" \
-  --arg artifactoryHost "$ARTIFACTORY_TRUSTED_HOST" \
+  --arg pypiUrl "${PYPI_REPOSITORY_URL:-}" \
+  --arg artifactoryHost "${ARTIFACTORY_TRUSTED_HOST:-}" \
   --arg imageRegistry "${IMAGE_REGISTRY:-docker.io}" '
   .spec.template.spec.containers[0].env //= [] |
   .spec.template.spec.containers[0].image = $imageRegistry+"/python:3.12-slim" |
@@ -273,7 +303,7 @@ yq -o=json "$TMP_JOB_YAML" | jq \
           ]
         else [] end
       )
-' | yq -P > "$PATCHED_TMP_JOB_YAML"
+' | yq eval -P - > "$PATCHED_TMP_JOB_YAML"
 
 mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
 
