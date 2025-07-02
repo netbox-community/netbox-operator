@@ -114,3 +114,24 @@ func SetIpAddressMask(ip string, ipFamily int64) (string, error) {
 		return "", errors.New("unknown IP family")
 	}
 }
+
+// FormatDescription formats a description string using the configured format template.
+// It supports substitution of the following placeholders:
+// * ${name}: the name of the object (e.g., "test-namespace/test-resource-name")
+// * ${description}: the description provided by the user in spec.description
+// * ${warning}: the static warning comment provided by the operator
+//
+// The default format is "${name} ${description} ${warning}".
+func FormatDescription(template, name, description string) string {
+
+	// Replace placeholders
+	result := strings.ReplaceAll(template, "${name}", name)
+	result = strings.ReplaceAll(result, "${description}", description)
+	result = strings.ReplaceAll(result, "${warning}", warningComment)
+
+	// Truncate to the max length that Netbox allows
+	if utf8.RuneCountInString(result) > maxAllowedDescriptionLength {
+		result = result[:maxAllowedDescriptionLength]
+	}
+	return result
+}

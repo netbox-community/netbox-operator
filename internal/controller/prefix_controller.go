@@ -248,6 +248,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// check if the created prefix contains the entire description from spec
+	// TODO: implement a different way to check if the description was truncated
 	if _, found := strings.CutPrefix(netboxPrefixModel.Description, req.NamespacedName.String()+" // "+prefix.Spec.Description); !found {
 		r.EventStatusRecorder.Recorder().Event(prefix, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
@@ -291,12 +292,13 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 		}
 	}
 
+	template := config.GetOperatorConfig().DescriptionFormat
 	return &models.Prefix{
 		Prefix: spec.Prefix,
 		Metadata: &models.NetboxMetadata{
 			Comments:    spec.Comments,
 			Custom:      netboxCustomFields,
-			Description: req.NamespacedName.String() + " // " + spec.Description,
+			Description: api.FormatDescription(template, req.NamespacedName.String(), spec.Description),
 			Site:        spec.Site,
 			Tenant:      spec.Tenant,
 		},
