@@ -424,7 +424,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		}
 
 		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
-		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returened
+		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
 	})
@@ -477,7 +477,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		}
 
 		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
-		// skip assertion on retured values as the payload of IpamPrefixesUpdate() is returened
+		// skip assertion on retured values as the payload of IpamPrefixesUpdate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
 	})
@@ -519,7 +519,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		}
 
 		_, err := netboxClient.ReserveOrUpdatePrefix(&prefixModel)
-		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returened
+		// skip assertion on retured values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
 	})
