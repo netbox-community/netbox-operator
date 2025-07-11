@@ -7,7 +7,7 @@ spec:
   prefixLength: "/30"
   parentPrefixSelector:
     environment: prod
-    familiy: IPv4
+    family: IPv4
 ---
 apiVersion: netbox.dev/v1
 kind: PrefixClaim

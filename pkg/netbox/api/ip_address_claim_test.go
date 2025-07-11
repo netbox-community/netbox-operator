@@ -359,7 +359,7 @@ func TestIPAddressClaim_GetNoAvailableIPAddressWithTenancyChecks(t *testing.T) {
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
 	parentPrefix := "10.112.140.0/24"
-	t.Run("No IP address asigned with an error when getting the tenant list", func(t *testing.T) {
+	t.Run("No IP address assigned with an error when getting the tenant list", func(t *testing.T) {
 
 		tenantName := "Tenant1"
 
@@ -388,7 +388,7 @@ func TestIPAddressClaim_GetNoAvailableIPAddressWithTenancyChecks(t *testing.T) {
 		assert.Equal(t, actual, (*models.IPAddress)(nil))
 	})
 
-	t.Run("No IP address asigned with non-existing tenant", func(t *testing.T) {
+	t.Run("No IP address assigned with non-existing tenant", func(t *testing.T) {
 
 		// non existing tenant
 		nonExistingTenant := "non-existing-tenant"

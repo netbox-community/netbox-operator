@@ -33,7 +33,7 @@ import (
 
 var (
 	// TODO(henrybear327): centralize errors
-	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criterias")
+	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criteria")
 )
 
 func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix, error) {
@@ -313,7 +313,7 @@ func (r *NetboxClient) GetAvailablePrefixesByParentPrefix(parentPrefixId int64) 
 }
 
 func getSmallestMatchingPrefix(prefixList *ipam.IpamPrefixesAvailablePrefixesListOK, prefixClaimLengthString string) (string, bool, error) {
-	// input valiation
+	// input validation
 	if len(prefixClaimLengthString) == 0 {
 		return "", false, errors.New("invalid prefixClaimLengthString: empty string")
 	}

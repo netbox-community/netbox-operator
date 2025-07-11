@@ -2,7 +2,7 @@
 
 This folder shows some examples how the NetBox Operator can be used.
 
-Each example folder contains a README.md which explains how you can set up your local enviroment to step through the examples.
+Each example folder contains a README.md which explains how you can set up your local environment to step through the examples.
 
 Prerequisites:
 - go version v1.24.0+
