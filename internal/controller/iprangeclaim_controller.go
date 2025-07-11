@@ -147,6 +147,11 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// update spec of IpRange object
 		logger.V(4).Info("update iprange resource")
 		ipRange.Spec = generateIpRangeSpec(o, ipRange.Spec.StartAddress, ipRange.Spec.EndAddress, logger)
+		err = controllerutil.SetControllerReference(o, ipRange, r.Scheme)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
 		err = r.Client.Update(ctx, ipRange)
 		if err != nil {
 			return ctrl.Result{}, err
