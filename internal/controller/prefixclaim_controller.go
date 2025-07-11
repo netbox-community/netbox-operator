@@ -163,7 +163,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					return ctrl.Result{Requeue: true}, nil
 				}
 				if len(parentPrefixCandidates) == 0 {
-					message := "no parent prefix found matching the parenPrefixSelector"
+					message := "no parent prefix found matching the parentPrefixSelector"
 					r.EventStatusRecorder.Recorder().Event(prefixClaim, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+message)
 					if err := r.EventStatusRecorder.Report(ctx, prefixClaim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, errors.New(message)); err != nil {
 						return ctrl.Result{}, err

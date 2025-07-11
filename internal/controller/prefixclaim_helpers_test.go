@@ -26,7 +26,7 @@ func testPrefixClaimHash(t *testing.T, prefixClaim *netboxv1.PrefixClaim, expect
 	generatedHash := generatePrefixRestorationHash(prefixClaim)
 
 	if generatedHash != expectedHash {
-		t.Errorf("hash mistatch: expected %#v, got %#v from %#v", expectedHash, generatedHash, prefixClaim)
+		t.Errorf("hash mismatch: expected %#v, got %#v from %#v", expectedHash, generatedHash, prefixClaim)
 	}
 }
 

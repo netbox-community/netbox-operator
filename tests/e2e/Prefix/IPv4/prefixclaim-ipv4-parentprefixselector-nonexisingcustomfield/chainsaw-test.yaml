@@ -4,7 +4,7 @@ kind: Test
 metadata:
   name: prefixclaim-ipv4-parentprefixselector-nonexisingcustomfield
   annotations:
-    description: Tests if creation fails for parentPrefixSelector with non exising custom field
+    description: Tests if creation fails for parentPrefixSelector with non existing custom field
 spec:
   steps:
     - name: Apply CR

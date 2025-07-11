@@ -55,7 +55,7 @@ func mockIpAddressListWithIpAddressFilterEmptyResult(ipamMock *mock_interfaces.M
 				catchUnexpectedParams <- err
 				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty result) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseEmptyIPAddressList()}, nil
 		}).MinTimes(1)
 }
@@ -71,7 +71,7 @@ func mockIpAddressListWithHashFilterEmptyResult(ipamMock *mock_interfaces.MockIp
 				catchUnexpectedParams <- err
 				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty result) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseEmptyIPAddressList()}, nil
 		}).MinTimes(1)
 }
@@ -87,7 +87,7 @@ func mockIpAddressListWithHashFilter(ipamMock *mock_interfaces.MockIpamInterface
 				catchUnexpectedParams <- err
 				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty result) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressList()}, nil
 		}).MinTimes(1)
 }
@@ -103,7 +103,7 @@ func mockIpAddressListWithHashFilterMismatch(ipamMock *mock_interfaces.MockIpamI
 				catchUnexpectedParams <- err
 				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty reslut) was called with expected input,\n")
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (empty result) was called with expected input,\n")
 			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressListWithHash(customFieldsWithHashMismatch)}, nil
 		}).MinTimes(1)
 }

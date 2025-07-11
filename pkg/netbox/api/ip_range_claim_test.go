@@ -49,7 +49,7 @@ func TestIPRangeClaim(t *testing.T) {
 	expectedIpDot5 := "10.112.140.5/32"
 	expectedIpDot7 := "10.112.140.7/32"
 
-	// example of available IPv4 ip adress
+	// example of available IPv4 ip address
 	availableIpAdressesIPv4 := func() []*netboxModels.AvailableIP {
 		return []*netboxModels.AvailableIP{
 			{

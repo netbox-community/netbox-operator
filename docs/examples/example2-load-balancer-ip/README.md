@@ -50,7 +50,7 @@ kubectl get pxc,ipaddresspool -A
 ```bash
 cat sample-deployment.yaml
 ```
-5. Apply the manifests to createa deployment with a service that gets a ip assigned from the metalLB pool created in the prevoius step
+5. Apply the manifests to create deployment with a service that gets a ip assigned from the metalLB pool created in the previous step
 ```bash
 kubectl apply -f sample-deployment.yaml
 ```

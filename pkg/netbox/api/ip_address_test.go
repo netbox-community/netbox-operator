@@ -214,7 +214,7 @@ func TestIPAddress(t *testing.T) {
 
 	t.Run("Reserve Static IP Address.", func(t *testing.T) {
 
-		// ip address mock inout
+		// ip address mock input
 		input := ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(writeableAddress())
 		// ip address mock output
 		output := &ipam.IpamIPAddressesCreateCreated{
