@@ -186,6 +186,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 
 		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress, logger)
+		err = controllerutil.SetControllerReference(o, ipAddress, r.Scheme)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		_, err = ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
 			// only add the mutable fields here
 			ipAddress.Spec.CustomFields = updatedIpAddressSpec.CustomFields
