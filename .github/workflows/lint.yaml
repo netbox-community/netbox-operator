@@ -58,3 +58,11 @@ jobs:
           echo "Please run make generate manifests and commit the changes."
           exit 1
           fi
+  codespell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run codespell
+        uses: codespell-project/actions-codespell@v2
+        with:
+          skip: '*.svg'
+          path: /
