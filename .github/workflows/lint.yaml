@@ -66,4 +66,3 @@ jobs:
         uses: codespell-project/actions-codespell@v2
         with:
           skip: '*.svg'
-          path: /
