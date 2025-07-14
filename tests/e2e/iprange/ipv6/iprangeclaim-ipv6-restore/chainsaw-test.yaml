@@ -30,7 +30,7 @@ spec:
                   - status: 'True'
                 endAddress: 3:2:2::1e/128
                 endAddressDotDecimal: 3:2:2::1e
-                ipAddressName: iprangeclaim-ipv6-restore-1
+                ipRangeName: iprangeclaim-ipv6-restore-1
                 ipRange: 3:2:2::1/128-3:2:2::1e/128
                 ipRangeDotDecimal: 3:2:2::1-3:2:2::1e
                 startAddress: 3:2:2::1/128
@@ -90,7 +90,7 @@ spec:
                   - status: 'True'
                 endAddress: 3:2:2::3c/128
                 endAddressDotDecimal: 3:2:2::3c
-                ipAddressName: iprangeclaim-ipv6-restore-2
+                ipRangeName: iprangeclaim-ipv6-restore-2
                 ipRange: 3:2:2::1f/128-3:2:2::3c/128
                 ipRangeDotDecimal: 3:2:2::1f-3:2:2::3c
                 startAddress: 3:2:2::1f/128
@@ -142,7 +142,7 @@ spec:
                   - status: 'True'
                 endAddress: 3:2:2::1e/128
                 endAddressDotDecimal: 3:2:2::1e
-                ipAddressName: iprangeclaim-ipv6-restore-1
+                ipRangeName: iprangeclaim-ipv6-restore-1
                 ipRange: 3:2:2::1/128-3:2:2::1e/128
                 ipRangeDotDecimal: 3:2:2::1-3:2:2::1e
                 startAddress: 3:2:2::1/128
