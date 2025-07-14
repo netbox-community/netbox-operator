@@ -1,0 +1,11 @@
+---
+apiVersion: netbox.dev/v1
+kind: IpAddressClaim
+metadata:
+  name: ipaddressclaim-ipv4-update-ownerreference-1
+spec:
+  comments: your comments
+  description: some description
+  parentPrefix: 3.1.3.0/24
+  preserveInNetbox: false
+  tenant: MY_TENANT
