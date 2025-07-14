@@ -75,4 +75,3 @@ spec:
         - script:
             content: |
                 kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-update-ownerreference-1 -n $NAMESPACE
-                kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv4-update-ownerreference-2 -n $NAMESPACE

@@ -2,16 +2,7 @@
 apiVersion: netbox.dev/v1
 kind: IpRange
 metadata:
-  annotations:
-    iprange.netbox.dev/managed-custom-fields: '{"netboxOperatorRestorationHash":"03cae1a8b295c77a1780a585b44562ed9a780807"}'
   name: iprangeclaim-ipv4-update-ownerreference-1
-  # ownerReferences:
-  #   - apiVersion: netbox.dev/v1
-  #     blockOwnerDeletion: true
-  #     controller: true
-  #     kind: IpRangeClaim
-  #     name: iprangeclaim-ipv4-update-ownerreference-1
-  #     uid: ad6815c2-fe29-4f37-9ecb-acfd1e7ab617
 spec:
   comments: your comments
   customFields:
