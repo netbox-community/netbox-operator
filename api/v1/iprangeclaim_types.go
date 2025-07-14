@@ -105,7 +105,7 @@ type IpRangeClaimStatus struct {
 	EndAddressDotDecimal string `json:"endAddressDotDecimal,omitempty"`
 
 	// The name of the IpRange CR created by the IpRangeClaim Controller
-	IpRangeName string `json:"ipAddressName,omitempty"`
+	IpRangeName string `json:"ipRangeName,omitempty"`
 
 	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
