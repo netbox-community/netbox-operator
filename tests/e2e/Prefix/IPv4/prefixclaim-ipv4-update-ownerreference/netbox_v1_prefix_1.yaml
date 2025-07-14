@@ -5,7 +5,7 @@ metadata:
 spec:
   comments: your comments
   customFields:
-    netboxOperatorRestorationHash: 220971234e851b248c2be6ac047f1d62a1ee9a38
+    netboxOperatorRestorationHash: 8ed6d9825bc218cf0b6f7ab39272637d95d318a4
   description: some description
   prefix: 3.0.5.0/28
   tenant: MY_TENANT
