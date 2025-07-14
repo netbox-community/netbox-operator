@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: IpRangeClaim
+metadata:
+  name: iprangeclaim-ipv4-update-ownerreference-1
+spec:
+  comments: your comments
+  description: some description
+  parentPrefix: 3.2.4.0/24
+  preserveInNetbox: false
+  tenant: MY_TENANT
+  size: 30
