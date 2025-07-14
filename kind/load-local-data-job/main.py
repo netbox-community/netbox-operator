@@ -350,7 +350,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.0.5.0/24",
-        description="",
+        description="chainsaw test prefixclaim-ipv4-update-ownerreference",
         site=None,
         tenant={
             "name": "MY_TENANT",

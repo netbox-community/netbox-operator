@@ -1,0 +1,79 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-update-ownerreference
+  annotations:
+    description: Tests if controller updates ownerReference if non-Claim resource existed before (e.g. from a velero backup)
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_prefix_1.yaml
+    - name: Check non-claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: "True"
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_1.yaml
+    - name: Check claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-update-ownerreference-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.0.5.0/24
+                prefixLength: /28
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: "True"
+                parentPrefix: 3.0.5.0/24
+                prefix: 3.0.5.0/28
+                prefixName: prefixclaim-ipv4-update-ownerreference-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                finalizers:
+                  - prefix.netbox.dev/finalizer
+                name: prefixclaim-ipv4-update-ownerreference-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: PrefixClaim
+                    name: prefixclaim-ipv4-update-ownerreference-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 8ed6d9825bc218cf0b6f7ab39272637d95d318a4
+                description: some description
+                prefix: 3.0.5.0/28
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: "True"
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-update-ownerreference-1 -n $NAMESPACE

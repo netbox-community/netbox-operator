@@ -1,0 +1,14 @@
+---
+apiVersion: netbox.dev/v1
+kind: Prefix
+metadata:
+  annotations:
+    prefix.netbox.dev/managed-custom-fields: '{"netboxOperatorRestorationHash":"220971234e851b248c2be6ac047f1d62a1ee9a38"}'
+  name: prefixclaim-ipv4-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: 220971234e851b248c2be6ac047f1d62a1ee9a38
+  description: some description
+  prefix: 3.0.5.0/28
+  tenant: MY_TENANT
