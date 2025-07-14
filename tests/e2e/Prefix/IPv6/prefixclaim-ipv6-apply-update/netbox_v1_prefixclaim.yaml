@@ -15,6 +15,5 @@ spec:
     # if the entry for tenant or site is missing, it will *not* inherit from the tenant and site from the Spec
     tenant: "MY_TENANT" # Use the `name` value instead of the `slug` value
     family: "IPv6" # Can only be either IPv4 or IPv6"
-    
     environment: "production"
     poolName: "pool 4"

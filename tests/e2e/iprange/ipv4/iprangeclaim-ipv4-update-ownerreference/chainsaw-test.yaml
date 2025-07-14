@@ -1,4 +1,3 @@
----
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -80,4 +79,4 @@ spec:
       cleanup:
         - script:
             content: |
-                kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-update-ownerreference-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-update-ownerreference-1 -n $NAMESPACE
