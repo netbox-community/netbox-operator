@@ -350,7 +350,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.0.5.0/24",
-        description="",
+        description="chainsaw test prefixclaim-ipv4-update-ownerreference",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -525,7 +525,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.1.3.0/24",
-        description="",
+        description="chainsaw test ipaddressclaim-ipv4-update-ownerreference",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -766,7 +766,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3.2.4.0/24",
-        description="",
+        description="chainsaw test iprangeclaim-ipv4-update-ownerreference",
         site=None,
         tenant={
             "name": "MY_TENANT",

@@ -1,0 +1,11 @@
+apiVersion: netbox.dev/v1
+kind: IpAddress
+metadata:
+  name: ipaddressclaim-ipv4-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: e93f42d53e5114c6ef44ba878893856411596bbf
+  description: some description
+  ipAddress: 3.1.3.1/32
+  tenant: MY_TENANT

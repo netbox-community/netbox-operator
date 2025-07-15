@@ -192,6 +192,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			ipAddress.Spec.Comments = updatedIpAddressSpec.Comments
 			ipAddress.Spec.Description = updatedIpAddressSpec.Description
 			ipAddress.Spec.PreserveInNetbox = updatedIpAddressSpec.PreserveInNetbox
+			err = controllerutil.SetControllerReference(o, ipAddress, r.Scheme)
+			if err != nil {
+				return err
+			}
 			return nil
 		})
 		if err != nil {

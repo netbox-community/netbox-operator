@@ -1,4 +1,3 @@
----
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -103,6 +102,6 @@ spec:
       cleanup:
         - script:
             content: |
-                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-1 -n $NAMESPACE
-                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-2 -n $NAMESPACE
-                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-3 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-2 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-prefixexhausted-3 -n $NAMESPACE

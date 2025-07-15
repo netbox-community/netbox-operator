@@ -1,0 +1,12 @@
+apiVersion: netbox.dev/v1
+kind: IpRange
+metadata:
+  name: iprangeclaim-ipv4-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: 03cae1a8b295c77a1780a585b44562ed9a780807
+  description: some description
+  endAddress: 3.2.4.30/32
+  startAddress: 3.2.4.1/32
+  tenant: MY_TENANT

@@ -89,27 +89,27 @@ spec:
     - name: Set preserveInNetbox to false
       description: Set preserveInNetbox to false to clean up the NetBox test instance
       try:
-      - patch:
-          resource:
-            apiVersion: netbox.dev/v1
-            kind: PrefixClaim
-            metadata:
-              name: prefixclaim-ipv6-apply-update
-            spec:
-              preserveInNetbox: false
-      - assert:
-          resource:
-            apiVersion: netbox.dev/v1
-            kind: Prefix
-            metadata:
-              name: prefixclaim-ipv6-apply-update
-            status:
-              (conditions[?type == 'Ready']):
-              - observedGeneration: 3
-                status: 'True'
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv6-apply-update
+              spec:
+                preserveInNetbox: false
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv6-apply-update
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 3
+                    status: 'True'
     - name: Cleanup events
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
         - script:
             content: |
-                kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv6-apply-update -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv6-apply-update -n $NAMESPACE

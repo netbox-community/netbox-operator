@@ -1,0 +1,82 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv4-update-ownerreference
+  annotations:
+    description: Tests if controller updates ownerReference if non-Claim resource existed before (e.g. from a velero backup)
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_iprange_1.yaml
+    - name: Check non-claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv4-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim_1.yaml
+    - name: Check claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv4-update-ownerreference-1
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 3.2.4.0/24
+                size: 30
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 3.2.4.30/32
+                endAddressDotDecimal: 3.2.4.30
+                ipRangeName: iprangeclaim-ipv4-update-ownerreference-1
+                ipRange: 3.2.4.1/32-3.2.4.30/32
+                ipRangeDotDecimal: 3.2.4.1-3.2.4.30
+                startAddress: 3.2.4.1/32
+                startAddressDotDecimal: 3.2.4.1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv4-update-ownerreference-1
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv4-update-ownerreference-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 03cae1a8b295c77a1780a585b44562ed9a780807
+                description: some description
+                endAddress: 3.2.4.30/32
+                startAddress: 3.2.4.1/32
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |
+              kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-update-ownerreference-1 -n $NAMESPACE
