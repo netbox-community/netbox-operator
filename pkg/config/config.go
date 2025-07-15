@@ -38,6 +38,7 @@ type OperatorConfig struct {
 	HttpsEnable                    bool   `mapstructure:"HTTPS_ENABLE"`
 	DebugEnable                    bool   `mapstructure:"DEBUG_ENABLE"`
 	NetboxRestorationHashFieldName string `mapstructure:"NETBOX_RESTORATION_HASH_FIELD_NAME"`
+	DescriptionFormat              string `mapstructure:"DESCRIPTION_FORMAT"`
 }
 
 func (c *OperatorConfig) setDefaults() {
@@ -47,6 +48,7 @@ func (c *OperatorConfig) setDefaults() {
 	c.viper.SetDefault("HTTPS_ENABLE", true)
 	c.viper.SetDefault("DEBUG_ENABLE", false)
 	c.viper.SetDefault("NETBOX_RESTORATION_HASH_FIELD_NAME", "netboxOperatorRestorationHash")
+	c.viper.SetDefault("DESCRIPTION_FORMAT", "${name} ${description} ${warning}")
 }
 
 func (c *OperatorConfig) LoadCaCert() (cert []byte, err error) {

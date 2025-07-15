@@ -41,14 +41,13 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 		Prefix:       &prefix.Prefix,
 		Comments:     prefix.Metadata.Comments + warningComment,
 		CustomFields: prefix.Metadata.Custom,
-		Description:  prefix.Metadata.Description + warningComment,
+		Description:  prefix.Metadata.Description,
 		Status:       "active",
 	}
 
 	if prefix.Metadata != nil {
 		desiredPrefix.CustomFields = prefix.Metadata.Custom
 		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
-		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
 	}
 
 	if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
