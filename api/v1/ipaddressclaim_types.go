@@ -89,7 +89,7 @@ type IpAddressClaimStatus struct {
 //+kubebuilder:printcolumn:name="IpAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPAssigned")].status`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=ipc
+//+kubebuilder:resource:shortName=ipc
 
 // IpAddressClaim allows to claim a NetBox IP Address from an existing Prefix.
 // The IpAddressClaim Controller will try to assign an available IP Address

@@ -24,6 +24,7 @@ import (
 	"maps"
 	"strconv"
 	"strings"
+	"time"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -73,16 +75,17 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// if being deleted
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !o.Spec.PreserveInNetbox {
-			err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
-			if err != nil {
-				err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
-					corev1.EventTypeWarning, err)
+		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
+			if !o.Spec.PreserveInNetbox {
+				err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
 				if err != nil {
-					return ctrl.Result{}, err
+					err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
+						corev1.EventTypeWarning, err)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+					return ctrl.Result{Requeue: true}, nil
 				}
-
-				return ctrl.Result{Requeue: true}, nil
 			}
 		}
 
@@ -127,10 +130,11 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		// create lock
 		locked := ll.TryLock(lockCtx)
 		if !locked {
-			logger.Info(fmt.Sprintf("failed to lock parent prefix %s", parentPrefix))
-			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
-				parentPrefix)
-			return ctrl.Result{Requeue: true}, nil
+			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", parentPrefix)
+			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+			return ctrl.Result{
+				RequeueAfter: 2 * time.Second,
+			}, nil
 		}
 		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", parentPrefix))
 	}

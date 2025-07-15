@@ -86,14 +86,14 @@ type PrefixStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Prefix",type=string,JSONPath=`.spec.prefix`
-// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
-// +kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
-// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=px
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Prefix",type=string,JSONPath=`.spec.prefix`
+//+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+//+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
+//+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+//+kubebuilder:resource:shortName=px
 
 // Prefix allows to create a NetBox Prefix. More info about NetBox Prefixes: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/prefix.md
 type Prefix struct {
@@ -108,7 +108,7 @@ func (p *Prefix) Conditions() *[]metav1.Condition {
 	return &p.Status.Conditions
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // PrefixList contains a list of Prefix
 type PrefixList struct {

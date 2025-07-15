@@ -110,13 +110,13 @@ type PrefixClaimStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Prefix",type=string,JSONPath=`.status.prefix`
-// +kubebuilder:printcolumn:name="PrefixAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="PrefixAssigned")].status`
-// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=pxc
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Prefix",type=string,JSONPath=`.status.prefix`
+//+kubebuilder:printcolumn:name="PrefixAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="PrefixAssigned")].status`
+//+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+//+kubebuilder:resource:shortName=pxc
 
 // PrefixClaim allows to claim a NetBox Prefix from an existing Prefix
 // (parentPrefix) or a dynamically selected Prefix (parentPrefixSelector).
@@ -136,7 +136,7 @@ func (p *PrefixClaim) Conditions() *[]metav1.Condition {
 	return &p.Status.Conditions
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // PrefixClaimList contains a list of PrefixClaim
 type PrefixClaimList struct {
