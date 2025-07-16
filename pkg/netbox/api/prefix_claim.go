@@ -36,7 +36,7 @@ var (
 	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criteria")
 )
 
-func (r *NetboxClient) RestoreExistingPrefixByHash(hash string, mask_length int) (*models.Prefix, error) {
+func (r *NetboxClient) RestoreExistingPrefixByHash(hash string, maskLength int) (*models.Prefix, error) {
 	customPrefixSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
 		{
 			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
@@ -57,7 +57,7 @@ func (r *NetboxClient) RestoreExistingPrefixByHash(hash string, mask_length int)
 	prefixesWithExactPrefixLength := make([]*models.Prefix, 0)
 	for _, prefix := range list.Payload.Results {
 		our, _ := strconv.Atoi(strings.Split(*prefix.Prefix, "/")[1])
-		if our == mask_length {
+		if our == maskLength {
 			prefixesWithExactPrefixLength = append(prefixesWithExactPrefixLength, &models.Prefix{
 				Prefix: *prefix.Prefix,
 			})

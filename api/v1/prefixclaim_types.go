@@ -139,8 +139,8 @@ func (p *PrefixClaim) Conditions() *[]metav1.Condition {
 	return &p.Status.Conditions
 }
 
-func (r *PrefixClaim) GetPrefixLengthAsInt() int {
-	length, _ := strconv.Atoi(strings.ReplaceAll(r.Spec.PrefixLength, "/", ""))
+func (p *PrefixClaim) GetPrefixLengthAsInt() int {
+	length, _ := strconv.Atoi(strings.ReplaceAll(p.Spec.PrefixLength, "/", ""))
 	return length
 }
 
