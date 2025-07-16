@@ -1,0 +1,16 @@
+apiVersion: netbox.dev/v1
+kind: Prefix
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefixclaim-ipv4-parentprefix-restore-3-prefix-with-wrong-length
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: 1309280893365bfd94710d148379a6f501a46afe
+  description: some description
+  preserveInNetbox: false
+  site: MY_SITE
+  tenant: MY_TENANT
+  prefix: "2.0.3.224/27"  # this is the prefix that we expect to mismatch during restore

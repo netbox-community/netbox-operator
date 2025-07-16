@@ -10,6 +10,27 @@ spec:
       try:
         - apply:
             file: netbox_v1_prefixclaim_1.yaml
+    - name: Apply Prerequisite Prefix for testing mismatched length
+      try:
+        - apply:
+            file: netbox_v1_prefix_3-wrong-length.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-parentprefix-restore-3-prefix-with-wrong-length
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 1309280893365bfd94710d148379a6f501a46afe
+                description: some description
+                prefix: 2.0.3.224/27
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
     - name: Check CR 1 spec and status
       try:
         - assert:
@@ -129,6 +150,33 @@ spec:
                 tenant: MY_TENANT
                 customFields:
                   netboxOperatorRestorationHash: 00b8772de73cdac083b0732d5bb85ab4f0caa16c
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_3.yaml
+    - name: Check CR 3 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                labels:
+                  app.kubernetes.io/name: netbox-operator
+                  app.kubernetes.io/managed-by: kustomize
+                name: prefixclaim-ipv4-parentprefix-restore-3
+              spec:
+                tenant: "MY_TENANT"
+                site: "MY_SITE"
+                description: "some description"
+                comments: "your comments"
+                preserveInNetbox: false
+                parentPrefix: "2.0.3.0/24"
+                prefixLength: "/28"
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 2
+                    status: 'False'
     - name: Set preserveInNetbox to false
       description: Set preserveInNetbox to false to clean up the NetBox test instance
       try:
