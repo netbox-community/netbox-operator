@@ -17,9 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"strconv"
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -137,11 +134,6 @@ type PrefixClaim struct {
 
 func (p *PrefixClaim) Conditions() *[]metav1.Condition {
 	return &p.Status.Conditions
-}
-
-func (p *PrefixClaim) GetPrefixLengthAsInt() int {
-	length, _ := strconv.Atoi(strings.ReplaceAll(p.Spec.PrefixLength, "/", ""))
-	return length
 }
 
 //+kubebuilder:object:root=true

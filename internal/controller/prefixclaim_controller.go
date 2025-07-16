@@ -104,7 +104,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			// since the parent prefix is not part of the restoration hash computation
 			// we can quickly check to see if the prefix with the restoration hash is matched in NetBox
 			h := generatePrefixRestorationHash(o)
-			canBeRestored, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.GetPrefixLengthAsInt())
+			canBeRestored, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.Spec.PrefixLength)
 			if err != nil {
 				if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("failed to look up prefix by hash: %w", err)); errReport != nil {
 					return ctrl.Result{}, errReport
@@ -239,7 +239,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		// 5. try to reclaim Prefix using restorationHash
 		h := generatePrefixRestorationHash(o)
-		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.GetPrefixLengthAsInt())
+		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.Spec.PrefixLength)
 		if err != nil {
 			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
 				return ctrl.Result{}, errReport
