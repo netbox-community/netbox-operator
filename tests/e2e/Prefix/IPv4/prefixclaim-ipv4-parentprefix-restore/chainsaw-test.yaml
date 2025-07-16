@@ -174,9 +174,12 @@ spec:
                 parentPrefix: "2.0.3.0/24"
                 prefixLength: "/28"
               status:
-                (conditions[?type == 'Ready']):
-                  - observedGeneration: 2
+                (conditions[?type == 'PrefixAssigned']):
+                  - reason: PrefixCRNotCreated
+                    message: 'Failed to assign prefix, prefix CR creation skipped: incorrect number of restoration results, number of results: 0'
                     status: 'False'
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
     - name: Set preserveInNetbox to false
       description: Set preserveInNetbox to false to clean up the NetBox test instance
       try:
