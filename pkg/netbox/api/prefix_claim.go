@@ -64,12 +64,14 @@ func (r *NetboxClient) RestoreExistingPrefixByHash(hash string, requestedPrefixL
 	}
 
 	// We should not have more than 1 result...
-	if len(prefixesWithExactPrefixLength) != 1 {
-		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(prefixesWithExactPrefixLength))
+	if len(prefixesWithExactPrefixLength) > 1 {
+		return nil, fmt.Errorf("too many restoration results found in NetBox for hash %s and prefix length %s, number of results: %v", hash, requestedPrefixLength, len(prefixesWithExactPrefixLength))
+	} else if len(prefixesWithExactPrefixLength) == 0 {
+		return nil, fmt.Errorf("no prefix found in NetBox with restoration hash %s and prefix length %s", hash, requestedPrefixLength)
 	}
 	res := prefixesWithExactPrefixLength[0]
 	if res.Prefix == "" {
-		return nil, errors.New("prefix in netbox is nil")
+		return nil, errors.New("prefix in netbox is empty")
 	}
 
 	return &models.Prefix{
