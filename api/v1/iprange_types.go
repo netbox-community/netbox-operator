@@ -97,7 +97,7 @@ type IpRangeStatus struct {
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=ipr
+//+kubebuilder:resource:shortName=ipr
 
 // IpRange allows to create a NetBox IP Range. More info about NetBox IP Ranges: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/iprange.md
 type IpRange struct {

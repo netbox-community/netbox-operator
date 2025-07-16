@@ -273,7 +273,6 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 	}
 
 	// if a custom field was removed from the spec, add it with an empty value
-
 	for key := range lastAppliedCustomFields {
 		_, ok := netboxCustomFields[key]
 		if !ok {

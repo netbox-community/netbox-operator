@@ -118,7 +118,7 @@ type IpRangeClaimStatus struct {
 //+kubebuilder:printcolumn:name="IpRangeAssigned",type=string,JSONPath=`.status.conditions[?(@.type=="IPRangeAssigned")].status`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +kubebuilder:resource:shortName=iprc
+//+kubebuilder:resource:shortName=iprc
 
 // IpRangeClaim allows to claim a NetBox IP Range from an existing Prefix.
 // The IpRangeClaim Controller will try to assign an available IP Range
