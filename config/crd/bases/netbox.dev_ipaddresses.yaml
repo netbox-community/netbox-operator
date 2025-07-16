@@ -12,7 +12,7 @@ spec:
     listKind: IpAddressList
     plural: ipaddresses
     shortNames:
-    - ip
+    - ipa
     singular: ipaddress
   scope: Namespaced
   versions:

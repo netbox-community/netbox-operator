@@ -88,7 +88,7 @@ type IpAddressStatus struct {
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-//+kubebuilder:resource:shortName=ip
+//+kubebuilder:resource:shortName=ipa
 
 // IpAddress allows to create a NetBox IP Address. More info about NetBox IP Addresses: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/ipaddress.md
 type IpAddress struct {
