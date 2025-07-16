@@ -10,27 +10,6 @@ spec:
       try:
         - apply:
             file: netbox_v1_prefixclaim_1.yaml
-    - name: Apply Prerequisite Prefix for testing mismatched length
-      try:
-        - apply:
-            file: netbox_v1_prefix_3-wrong-length.yaml
-        - assert:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: Prefix
-              metadata:
-                name: prefixclaim-ipv4-parentprefix-restore-3-prefix-with-wrong-length
-              spec:
-                comments: your comments
-                customFields:
-                  netboxOperatorRestorationHash: 1309280893365bfd94710d148379a6f501a46afe
-                description: some description
-                prefix: 2.0.3.224/27
-                site: MY_SITE
-                tenant: MY_TENANT
-              status:
-                (conditions[?type == 'Ready']):
-                  - status: 'True'
     - name: Check CR 1 spec and status
       try:
         - assert:
@@ -150,11 +129,32 @@ spec:
                 tenant: MY_TENANT
                 customFields:
                   netboxOperatorRestorationHash: 00b8772de73cdac083b0732d5bb85ab4f0caa16c
+    - name: Apply Prerequisite Prefix for CR 3
+      try:
+        - apply:
+            file: netbox_v1_prefix_3-wrong-length.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-parentprefix-restore-3-prefix-with-wrong-length
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 1309280893365bfd94710d148379a6f501a46afe
+                description: some description
+                prefix: 2.0.3.224/27
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
     - name: Apply CR 3
       try:
         - apply:
             file: netbox_v1_prefixclaim_3.yaml
-    - name: Check CR 3 spec and status
+    - name: Check CR 3 spec and status, verify mismatched length doesn't assign wrong prefix
       try:
         - assert:
             resource:
