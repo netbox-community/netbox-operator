@@ -36,7 +36,7 @@ var (
 	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criteria")
 )
 
-func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix, error) {
+func (r *NetboxClient) RestoreExistingPrefixByHash(hash string, mask_length int) (*models.Prefix, error) {
 	customPrefixSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
 		{
 			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
@@ -53,17 +53,28 @@ func (r *NetboxClient) RestoreExistingPrefixByHash(hash string) (*models.Prefix,
 		return nil, nil
 	}
 
-	// We should not have more than 1 result...
-	if len(list.Payload.Results) != 1 {
-		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(list.Payload.Results))
+	// Filter for exact prefix length
+	prefixesWithExactPrefixLength := make([]*models.Prefix, 0)
+	for _, prefix := range list.Payload.Results {
+		our, _ := strconv.Atoi(strings.Split(*prefix.Prefix, "/")[1])
+		if our == mask_length {
+			prefixesWithExactPrefixLength = append(prefixesWithExactPrefixLength, &models.Prefix{
+				Prefix: *prefix.Prefix,
+			})
+		}
 	}
-	res := list.Payload.Results[0]
-	if res.Prefix == nil {
+
+	// We should not have more than 1 result...
+	if len(prefixesWithExactPrefixLength) != 1 {
+		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(prefixesWithExactPrefixLength))
+	}
+	res := prefixesWithExactPrefixLength[0]
+	if res.Prefix == "" {
 		return nil, errors.New("prefix in netbox is nil")
 	}
 
 	return &models.Prefix{
-		Prefix: *res.Prefix,
+		Prefix: res.Prefix,
 	}, nil
 }
 
