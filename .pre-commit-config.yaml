@@ -19,7 +19,7 @@ repos:
     hooks:
       - id: yamlfmt
         language: system
-        exclude: ^config/crd|^config/rbacß
+        exclude: ^config/crd|^config/rbac
   - repo: "https://github.com/adrienverge/yamllint"
     rev: v1.35.1
     hooks:
