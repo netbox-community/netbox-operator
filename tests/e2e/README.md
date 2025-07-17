@@ -14,7 +14,7 @@
     - Backup: `kubectl exec pod/netbox-db-0 -- bash -c "pg_dump --clean -U postgres netbox" > database.sql`
 - The simplest test case is `tests/e2e/prefix/ipv4/prefixclaim-ipv4-apply-update`
     - We always need a `chainsaw-test.yaml`
-- Perform a clean run by resetting the database first, then execute the test   
+- Perform a clean run by resetting the database first, then execute the test
     - Reset database `cat database.sql | kubectl exec -i pod/netbox-db-0 -- psql -U postgres -d netbox`
         - Make sure that in the `e2e` namespace, no leftover CRs are there
     - Execute the entire e2e test `make test-e2e`
