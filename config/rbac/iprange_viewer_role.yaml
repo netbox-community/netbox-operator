@@ -1,4 +1,3 @@
----
 # permissions for end users to view ipranges.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -12,17 +11,17 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: iprange-viewer-role
 rules:
-  - apiGroups:
-      - netbox.dev
-    resources:
-      - ipranges
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - netbox.dev
-    resources:
-      - ipranges/status
-    verbs:
-      - get
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipranges
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - ipranges/status
+  verbs:
+  - get

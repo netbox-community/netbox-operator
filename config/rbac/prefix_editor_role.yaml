@@ -1,4 +1,3 @@
----
 # permissions for end users to edit prefixes.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -8,21 +7,21 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefix-editor-role
 rules:
-  - apiGroups:
-      - netbox.dev
-    resources:
-      - prefixes
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - netbox.dev
-    resources:
-      - prefixes/status
-    verbs:
-      - get
+- apiGroups:
+  - netbox.dev
+  resources:
+  - prefixes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - prefixes/status
+  verbs:
+  - get

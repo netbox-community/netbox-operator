@@ -1,4 +1,3 @@
----
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -118,7 +117,7 @@ spec:
                 preserveInNetbox: false
                 tenant: MY_TENANT
               status:
-                (conditions[?type == 'IPAssigned']):  # TODO(jstudler): Change this to Ready, will need change in SetConditionAndCreateEvent to also update Ready condition
+                (conditions[?type == 'IPAssigned']): # TODO(jstudler): Change this to Ready, will need change in SetConditionAndCreateEvent to also update Ready condition
                   - status: 'False'
         - assert:
             resource:
@@ -137,7 +136,7 @@ spec:
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
         - script:
-            content: |-
+            content: |
               kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-1 -n $NAMESPACE
               kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-2 -n $NAMESPACE
               kubectl delete events --field-selector involvedObject.name=ipaddressclaim-ipv6-prefixexhausted-3 -n $NAMESPACE

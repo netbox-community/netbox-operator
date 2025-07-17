@@ -52,7 +52,7 @@ for tenant in tenants:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-
+       
 print("Tenants loaded")
 
 # insert Sites
@@ -93,7 +93,7 @@ for site in sites:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-
+       
 print("Sites loaded")
 
 # create custom fields and associate custom fields with IP/IPRange/Prefix
@@ -186,7 +186,7 @@ for custom_field in custom_fields:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-
+       
 print("Custom fields loaded")
 
 # for debugging
@@ -264,8 +264,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "Production",
-            "poolName": "Pool 1",
+            "environment": "Production", 
+            "poolName": "Pool 1", 
             "cfDataTypeBool": True,
             "cfDataTypeInteger": 1,
         },
@@ -287,8 +287,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "Production",
-            "poolName": "Pool 1",
+            "environment": "Production", 
+            "poolName": "Pool 1", 
             "cfDataTypeBool": True,
             "cfDataTypeInteger": 1,
         },
@@ -303,8 +303,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "Development",
-            "poolName": "Pool 1",
+            "environment": "Development", 
+            "poolName": "Pool 1", 
             "cfDataTypeBool": False,
             "cfDataTypeInteger": 2,
         },
@@ -319,8 +319,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "Production",
-            "poolName": "Pool 2",
+            "environment": "Production", 
+            "poolName": "Pool 2", 
             "cfDataTypeBool": True,
             "cfDataTypeInteger": 3,
         },
@@ -342,8 +342,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "Production",
-            "poolName": "Pool 2",
+            "environment": "Production", 
+            "poolName": "Pool 2", 
             "cfDataTypeBool": True,
             "cfDataTypeInteger": 3,
         },
@@ -358,8 +358,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "Development",
-            "poolName": "Pool 2",
+            "environment": "Development", 
+            "poolName": "Pool 2", 
             "cfDataTypeBool": False,
             "cfDataTypeInteger": 4,
         },
@@ -374,8 +374,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "production",
-            "poolName": "pool 3",
+            "environment": "production", 
+            "poolName": "pool 3", 
             "cfDataTypeBool": True,
             "cfDataTypeInteger": 5,
         },
@@ -397,8 +397,8 @@ prefixes = [
         },
         status="active",
         custom_fields={
-            "environment": "production",
-            "poolName": "pool 3",
+            "environment": "production", 
+            "poolName": "pool 3", 
             "cfDataTypeBool": True,
             "cfDataTypeInteger": 5,
         },
@@ -941,5 +941,5 @@ for prefix in prefixes:
         )
     except pynetbox.RequestError as e:
         pprint(e.error)
-
+       
 print("Prefixes loaded")
