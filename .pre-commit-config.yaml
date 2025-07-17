@@ -24,7 +24,7 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
-        exclude: ^config/crd
+        exclude: ^config/crd|^config/rbac
   - repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:
