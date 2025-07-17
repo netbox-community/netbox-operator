@@ -25,7 +25,7 @@ spec:
   comments: "your comments"
   preserveInNetbox: true
   prefixLength: "/31"
-  parentPrefixSelector: 
+  parentPrefixSelector:
     tenant: "MY_TENANT"
     site: "DM-Buffalo"
     family: "IPv4"

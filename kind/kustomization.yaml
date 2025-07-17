@@ -1,3 +1,4 @@
+---
 resources:
   - ../config/default
   - secret.yaml

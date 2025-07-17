@@ -1,3 +1,4 @@
+---
 # spilo-image-patch.yaml
 # This is used to allow the patch of the spec.postgresql.image based on the env variable IMAGE_REGISTRY
 apiVersion: "acid.zalan.do/v1"

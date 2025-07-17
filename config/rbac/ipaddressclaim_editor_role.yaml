@@ -1,3 +1,4 @@
+---
 # permissions for end users to edit ipaddressclaims.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -11,21 +12,21 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: ipaddressclaim-editor-role
 rules:
-- apiGroups:
-  - netbox.dev
-  resources:
-  - ipaddressclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netbox.dev
-  resources:
-  - ipaddressclaims/status
-  verbs:
-  - get
+  - apiGroups:
+      - netbox.dev
+    resources:
+      - ipaddressclaims
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - netbox.dev
+    resources:
+      - ipaddressclaims/status
+    verbs:
+      - get

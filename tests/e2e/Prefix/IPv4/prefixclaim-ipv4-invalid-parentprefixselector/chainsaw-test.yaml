@@ -1,3 +1,4 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -19,16 +20,16 @@ spec:
               metadata:
                 name: prefixclaim-ipv4-invalid-parentprefixselector
               spec:
-                tenant: "MY_TENANT_2" # Use the `name` value instead of the `slug` value
-                site: "MY_SITE_2" # Use the `name` value instead of the `slug` value
+                tenant: "MY_TENANT_2"  # Use the `name` value instead of the `slug` value
+                site: "MY_SITE_2"  # Use the `name` value instead of the `slug` value
                 description: "some description"
                 comments: "your comments"
                 preserveInNetbox: true
                 prefixLength: "/31"
-                parentPrefixSelector: # The keys and values are case-sensitive
-                  tenant: "niltenant" # Use the `name` value instead of the `slug` value
-                  site: "nilsite" # Use the `name` value instead of the `slug` value
-                  family: "IPv4" # Can only be either IPv4 or IPv6"
+                parentPrefixSelector:  # The keys and values are case-sensitive
+                  tenant: "niltenant"  # Use the `name` value instead of the `slug` value
+                  site: "nilsite"  # Use the `name` value instead of the `slug` value
+                  family: "IPv4"  # Can only be either IPv4 or IPv6"
                   # custom fields of your interest
                   environment: "nilenv"
                   poolName: "nilpool"
@@ -52,5 +53,5 @@ spec:
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
         - script:
-            content: |
+            content: |-
               kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-invalid-parentprefixselector -n $NAMESPACE

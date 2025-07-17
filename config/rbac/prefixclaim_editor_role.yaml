@@ -1,3 +1,4 @@
+---
 # permissions for end users to edit prefixclaims.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -7,21 +8,21 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-editor-role
 rules:
-- apiGroups:
-  - netbox.dev
-  resources:
-  - prefixclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - netbox.dev
-  resources:
-  - prefixclaims/status
-  verbs:
-  - get
+  - apiGroups:
+      - netbox.dev
+    resources:
+      - prefixclaims
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - netbox.dev
+    resources:
+      - prefixclaims/status
+    verbs:
+      - get

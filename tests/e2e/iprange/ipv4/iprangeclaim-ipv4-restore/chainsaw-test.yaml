@@ -1,3 +1,4 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -50,7 +51,7 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: 86776d57746f3262ef6f450b58c375e835bd914c # note that this will require the tests to run in the e2e namespace!
+                  netboxOperatorRestorationHash: 86776d57746f3262ef6f450b58c375e835bd914c  # note that this will require the tests to run in the e2e namespace!
                 description: some description
                 startAddress: 3.2.2.1/32
                 endAddress: 3.2.2.30/32
@@ -162,7 +163,7 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: 86776d57746f3262ef6f450b58c375e835bd914c # note that this will require the tests to run in the e2e namespace!
+                  netboxOperatorRestorationHash: 86776d57746f3262ef6f450b58c375e835bd914c  # note that this will require the tests to run in the e2e namespace!
                 description: some description
                 startAddress: 3.2.2.1/32
                 endAddress: 3.2.2.30/32
@@ -196,7 +197,7 @@ spec:
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
       cleanup:
         - script:
-            content: |
+            content: |-
               LEASES=$(kubectl -n netbox-operator-system get lease -oname | grep -v netbox) # to be enhanced in usage of leaselocker
               if [ -n "$LEASES" ]; then
                 echo "$LEASES" | xargs -n1 kubectl -n netbox-operator-system delete
