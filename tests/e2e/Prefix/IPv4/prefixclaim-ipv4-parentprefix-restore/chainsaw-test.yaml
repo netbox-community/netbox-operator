@@ -1,3 +1,4 @@
+---
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
@@ -223,6 +224,6 @@ spec:
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
         - script:
-            content: |
+            content: |-
               kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefix-restore-1 -n $NAMESPACE
               kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefix-restore-2 -n $NAMESPACE

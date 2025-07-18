@@ -1,6 +1,6 @@
 ---
 name: Build docker image
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - main
@@ -33,7 +33,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5.7.0
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}        
+          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
             # (for commits on the main branch only) generate a tag named `latest`
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}

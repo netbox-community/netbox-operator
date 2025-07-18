@@ -1,0 +1,42 @@
+---
+# Don't edit this file without consulting the team!
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+  - '.yamllint'
+ignore: |
+  config/crd/*
+  config/rbac/*
+  config/manager/*
+  config/default/*
+  config/prometheus/*
+  config/network-policy/*
+rules:
+  # anchors: enable
+  braces: enable
+  brackets: enable
+  colons: enable
+  commas: enable
+  comments:
+    level: warning
+  comments-indentation:
+    level: warning
+  document-end: disable
+  document-start: enable
+  empty-lines: disable
+  empty-values: disable
+  float-values: disable
+  hyphens: enable
+  indentation:
+    indent-sequences: whatever
+    spaces: 2
+  key-duplicates: enable
+  key-ordering: disable
+  line-length: disable
+  new-line-at-end-of-file: enable
+  new-lines: enable
+  octal-values: disable
+  quoted-strings: disable
+  trailing-spaces: enable
+  truthy:
+    level: warning

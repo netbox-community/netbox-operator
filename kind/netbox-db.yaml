@@ -1,3 +1,4 @@
+---
 apiVersion: "acid.zalan.do/v1"
 kind: postgresql
 metadata:
@@ -14,7 +15,7 @@ spec:
       - superuser
       - createdb
 
-  #databases: name->owner
+  # databases: name->owner
   databases:
     netbox: netbox
   postgresql:

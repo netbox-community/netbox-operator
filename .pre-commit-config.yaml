@@ -1,0 +1,33 @@
+# todo: run in CI. similar to https://scm.swisscom.com/5gdmc/misc/ci-templates/-/blob/main/stage_lint/jobs/pre-commit.yaml?ref_type=heads
+
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: remove-crlf
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.17.0
+    hooks:
+      - id: yamlfmt
+        language: system
+        exclude: ^config/crd|^config/rbac|^config/manager|^config/default|^config/prometheus|^config/network-policy
+  - repo: "https://github.com/adrienverge/yamllint"
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        exclude: ^config/crd|^config/rbac|^config/manager|^config/default|^config/prometheus|^config/network-policy
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.1.0
+    hooks:
+      - id: codespell
+        files: ^.*\.(py|c|h|md|rst|yml)$
+        args: [--ignore-words-list, "swisscom,thor,cpbroker", "--skip", "*.svg", "--write-changes"]
