@@ -15,7 +15,7 @@ spec:
       - superuser
       - createdb
 
-  #databases: name->owner
+  # databases: name->owner
   databases:
     netbox: netbox
   postgresql:

@@ -9,4 +9,4 @@ resources:
   - netbox_v1_prefixclaim_parentprefixselector.yaml
   - netbox_v1_iprangeclaim.yaml
   - netbox_v1_iprange.yaml
-  #+kubebuilder:scaffold:manifestskustomizesamples
+  # +kubebuilder:scaffold:manifestskustomizesamples
