@@ -1,10 +1,9 @@
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-unit-config
 data:
-  nginx-unit.json: |-
+  nginx-unit.json: |
     {
       "listeners": {
         "0.0.0.0:8080": { "pass": "routes/main" },

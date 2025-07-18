@@ -1,4 +1,3 @@
----
 # Modified from https://github.com/prometheus-operator/prometheus-operator/blob/main/.github/workflows/e2e-feature-gated.yaml
 name: e2e-tests
 permissions:
@@ -21,41 +20,41 @@ jobs:
     name: Against netbox version 3.7.8
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5  # v5.5.0
-        with:
-          go-version: 1.24.4
-      - name: Import environment variables from file
-        run: |
-          cat ".github/env" >> "$GITHUB_ENV"
-      - name: Run e2e tests
-        run: |
-          make test-e2e-3.7.8
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: 1.24.4
+    - name: Import environment variables from file
+      run: |
+        cat ".github/env" >> "$GITHUB_ENV"
+    - name: Run e2e tests
+      run: |
+        make test-e2e-3.7.8
   e2e-tests-4-0-11:
     name: Against netbox version 4.0.11
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5  # v5.5.0
-        with:
-          go-version: 1.24.4
-      - name: Import environment variables from file
-        run: |
-          cat ".github/env" >> "$GITHUB_ENV"
-      - name: Run e2e tests
-        run: |
-          make test-e2e-4.0.11
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: 1.24.4
+    - name: Import environment variables from file
+      run: |
+        cat ".github/env" >> "$GITHUB_ENV"
+    - name: Run e2e tests
+      run: |
+        make test-e2e-4.0.11
   e2e-tests-4-1-11:
     name: Against netbox version 4.1.11
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5  # v5.5.0
-        with:
-          go-version: 1.24.4
-      - name: Import environment variables from file
-        run: |
-          cat ".github/env" >> "$GITHUB_ENV"
-      - name: Run e2e tests
-        run: |-
-          make test-e2e-4.1.11
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: 1.24.4
+    - name: Import environment variables from file
+      run: |
+        cat ".github/env" >> "$GITHUB_ENV"
+    - name: Run e2e tests
+      run: |
+        make test-e2e-4.1.11
