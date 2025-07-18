@@ -18,9 +18,6 @@ spec:
               apiVersion: netbox.dev/v1
               kind: IpRangeClaim
               metadata:
-                labels:
-                  app.kubernetes.io/name: netbox-operator
-                  app.kubernetes.io/managed-by: kustomize
                 name: iprangeclaim-ipv4-invalid-tenant
               spec:
                 tenant: "nonexistingtenant"

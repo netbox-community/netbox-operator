@@ -2,10 +2,7 @@
 apiVersion: netbox.dev/v1
 kind: PrefixClaim
 metadata:
-  labels:
-    app.kubernetes.io/name: netbox-operator
-    app.kubernetes.io/managed-by: kustomize
-  name: prefixclaim-ipv4-invalid-parentprefixselector
+  name: prefixclaim-ipv4-parentprefixselector-apply
 spec:
   tenant: "MY_TENANT_2"  # Use the `name` value instead of the `slug` value
   site: "MY_SITE_2"  # Use the `name` value instead of the `slug` value
@@ -14,9 +11,9 @@ spec:
   preserveInNetbox: true
   prefixLength: "/31"
   parentPrefixSelector:  # The keys and values are case-sensitive
-    tenant: "niltenant"  # Use the `name` value instead of the `slug` value
-    site: "nilsite"  # Use the `name` value instead of the `slug` value
+    tenant: "MY_TENANT"  # Use the `name` value instead of the `slug` value
+    site: "MY_SITE"  # Use the `name` value instead of the `slug` value
     family: "IPv4"  # Can only be either IPv4 or IPv6"
     # custom fields of your interest
-    environment: "nilenv"
-    poolName: "nilpool"
+    environment: "Production"
+    poolName: "Pool 1"

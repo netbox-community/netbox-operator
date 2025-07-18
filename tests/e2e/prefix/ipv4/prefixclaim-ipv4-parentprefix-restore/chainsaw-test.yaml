@@ -162,9 +162,6 @@ spec:
               apiVersion: netbox.dev/v1
               kind: PrefixClaim
               metadata:
-                labels:
-                  app.kubernetes.io/name: netbox-operator
-                  app.kubernetes.io/managed-by: kustomize
                 name: prefixclaim-ipv4-parentprefix-restore-3
               spec:
                 tenant: "MY_TENANT"
