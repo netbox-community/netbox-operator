@@ -19,12 +19,12 @@ repos:
     hooks:
       - id: yamlfmt
         language: system
-        exclude: ^config/crd|^config/rbac
+        exclude: ^config/crd|^config/rbac|^config/manager|^config/default|^config/prometheus|^config/network-policy
   - repo: "https://github.com/adrienverge/yamllint"
     rev: v1.35.1
     hooks:
       - id: yamllint
-        exclude: ^config/crd|^config/rbac
+        exclude: ^config/crd|^config/rbac|^config/manager|^config/default|^config/prometheus|^config/network-policy
   - repo: https://github.com/codespell-project/codespell
     rev: v2.1.0
     hooks:

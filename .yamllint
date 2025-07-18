@@ -7,6 +7,10 @@ yaml-files:
 ignore: |
   config/crd/*
   config/rbac/*
+  config/manager/*
+  config/default/*
+  config/prometheus/*
+  config/network-policy/*
 rules:
   # anchors: enable
   braces: enable
