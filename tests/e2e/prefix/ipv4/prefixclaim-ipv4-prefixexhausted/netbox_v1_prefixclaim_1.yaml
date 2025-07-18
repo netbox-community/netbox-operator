@@ -1,12 +1,13 @@
 ---
 apiVersion: netbox.dev/v1
-kind: IpRangeClaim
+kind: PrefixClaim
 metadata:
-  name: iprangeclaim-ipv4-invalid-cidr
+  name: prefixclaim-ipv4-prefixexhausted-1
 spec:
   tenant: "MY_TENANT"
+  site: "MY_SITE"
   description: "some description"
   comments: "your comments"
   preserveInNetbox: false
-  parentPrefix: "300.256.999.446/42"
-  size: 30
+  parentPrefix: "2.0.1.0/24"
+  prefixLength: "/25"

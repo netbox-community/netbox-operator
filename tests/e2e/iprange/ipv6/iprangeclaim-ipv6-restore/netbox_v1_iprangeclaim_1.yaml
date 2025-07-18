@@ -2,9 +2,6 @@
 apiVersion: netbox.dev/v1
 kind: IpRangeClaim
 metadata:
-  labels:
-    app.kubernetes.io/name: netbox-operator
-    app.kubernetes.io/managed-by: kustomize
   name: iprangeclaim-ipv6-restore-1
 spec:
   tenant: "MY_TENANT"

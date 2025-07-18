@@ -2,14 +2,11 @@
 apiVersion: netbox.dev/v1
 kind: PrefixClaim
 metadata:
-  labels:
-    app.kubernetes.io/name: netbox-operator
-    app.kubernetes.io/managed-by: kustomize
   name: prefixclaim-ipv6-apply-update
 spec:
   tenant: "MY_TENANT_2"  # Use the `name` value instead of the `slug` value
-  description: "new description"
-  comments: "new comments"
+  description: "some description"
+  comments: "your comments"
   preserveInNetbox: true
   prefixLength: "/124"
   parentPrefixSelector:  # The keys and values are case-sensitive

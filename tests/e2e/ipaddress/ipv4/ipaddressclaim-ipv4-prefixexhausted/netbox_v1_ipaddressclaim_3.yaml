@@ -2,9 +2,6 @@
 apiVersion: netbox.dev/v1
 kind: IpAddressClaim
 metadata:
-  labels:
-    app.kubernetes.io/name: netbox-operator
-    app.kubernetes.io/managed-by: kustomize
   name: ipaddressclaim-ipv4-prefixexhausted-3
 spec:
   tenant: "MY_TENANT"
