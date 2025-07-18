@@ -1,3 +1,4 @@
+---
 
 apiVersion: v1
 kind: Service
@@ -12,13 +13,13 @@ spec:
   type: LoadBalancer
   internalTrafficPolicy: Cluster
   ipFamilies:
-  - IPv4
+    - IPv4
   ipFamilyPolicy: SingleStack
   ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: http
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
   selector:
     app.kubernetes.io/component: netbox
     app.kubernetes.io/instance: netbox

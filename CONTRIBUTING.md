@@ -1,12 +1,12 @@
 # How to contribute
 
-NetBox Operator is Apache 2.0 licensed and accepts contributions via GitHub pull requests. 
+NetBox Operator is Apache 2.0 licensed and accepts contributions via GitHub pull requests.
 
 This document outlines the basics of contributing to NetBox Operator.
 
 ## Running and developing NetBox-Operator locally
 
-There are several ways of deploying the NetBox operator for development. 
+There are several ways of deploying the NetBox operator for development.
 
 ### Running both NetBox Operator and NetBox on a local kind cluster
 

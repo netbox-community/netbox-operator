@@ -1,3 +1,4 @@
+---
 apiVersion: netbox.dev/v1
 kind: IpRange
 metadata:
