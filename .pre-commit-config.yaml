@@ -30,4 +30,4 @@ repos:
     hooks:
       - id: codespell
         files: ^.*\.(py|c|h|md|rst|yml)$
-        args: [--ignore-words-list, "swisscom,thor,cpbroker", "--skip", "*.svg", "--write-changes"]
+        args: [--ignore-words-list, "netbox,NetBox", "--skip", "*.svg", "--write-changes"]
