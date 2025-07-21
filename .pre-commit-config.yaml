@@ -1,5 +1,3 @@
-# todo: run in CI. similar to https://scm.swisscom.com/5gdmc/misc/ci-templates/-/blob/main/stage_lint/jobs/pre-commit.yaml?ref_type=heads
-
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
