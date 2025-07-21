@@ -1,5 +1,3 @@
-# todo: run in CI. similar to https://scm.swisscom.com/5gdmc/misc/ci-templates/-/blob/main/stage_lint/jobs/pre-commit.yaml?ref_type=heads
-
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -30,4 +28,4 @@ repos:
     hooks:
       - id: codespell
         files: ^.*\.(py|c|h|md|rst|yml)$
-        args: [--ignore-words-list, "swisscom,thor,cpbroker", "--skip", "*.svg", "--write-changes"]
+        args: [--ignore-words-list, "netbox,NetBox", "--skip", "*.svg", "--write-changes"]
