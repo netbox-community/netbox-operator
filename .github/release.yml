@@ -1,3 +1,4 @@
+---
 # GitHub Release Notes Configuration
 # This file configures how GitHub auto-generates release notes
 # It separates dependency updates into a "Version Bumps" section
