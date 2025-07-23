@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - 'v*'
+    branches:
+      - 'feature/automatic-releases'  # TODO - Remove before merging!
+  workflow_dispatch:
 
 permissions:
   contents: write
