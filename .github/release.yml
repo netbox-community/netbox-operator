@@ -1,0 +1,13 @@
+# GitHub Release Notes Configuration
+# This file configures how GitHub auto-generates release notes
+# It separates dependency updates into a "Version Bumps" section
+# https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+
+changelog:
+  categories:
+    - title: Version Bumps
+      labels:
+        - dependencies
+    - title: What's Changed
+      labels:
+        - "*"
