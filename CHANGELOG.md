@@ -106,7 +106,7 @@ Adding gh release notes configuration
 ## [v0.2.3] - 2025-06-30
 
 ## What's Changed
-* Distinguish if error occurd or if no matching prefix was found by @bruelea in https://github.com/netbox-community/netbox-operator/pull/346
+* Distinguish if error occurred or if no matching prefix was found by @bruelea in https://github.com/netbox-community/netbox-operator/pull/346
 ## Version Bumps
 * Bump go.uber.org/mock from 0.5.1 to 0.5.2 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/340
 * Bump google.golang.org/grpc from 1.72.2 to 1.73.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/342
@@ -237,7 +237,7 @@ Adding gh release notes configuration
 
 * Add examples by @jstudler in https://github.com/netbox-community/netbox-operator/pull/264
 * Remove duplicate kind cluster creation by @jstudler in https://github.com/netbox-community/netbox-operator/pull/257
-* Improve CRD documention by @jstudler in https://github.com/netbox-community/netbox-operator/pull/263
+* Improve CRD documentation by @jstudler in https://github.com/netbox-community/netbox-operator/pull/263
 * Check restoration hash in NetBox before updating resource in NetBox by @bruelea in https://github.com/netbox-community/netbox-operator/pull/285
 * Consolidate Status and Condition reporting by @alexandernorth in https://github.com/netbox-community/netbox-operator/pull/265
 
@@ -274,7 +274,7 @@ Adding gh release notes configuration
 
 ## [v0.1.0-alpha.6] - 2025-03-04
 
-Improved testing and depenency upgrades
+Improved testing and dependency upgrades
 ## What's Changed
 * Bump google.golang.org/protobuf from 1.36.4 to 1.36.5 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/243
 * Bump golang.org/x/time from 0.9.0 to 0.10.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/247
@@ -297,7 +297,7 @@ Improved testing and depenency upgrades
 
 ## [v0.1.0-alpha.5] - 2025-02-20
 
-Improved testing, depenency upgrades and additional metrics
+Improved testing, dependency upgrades and additional metrics
 ## What's Changed
 * Add e2e tests for Prefix by @henrybear327 in https://github.com/netbox-community/netbox-operator/pull/161
 * Migrate populating local demo data through database.sql to using NetBox API  by @henrybear327 in https://github.com/netbox-community/netbox-operator/pull/177
