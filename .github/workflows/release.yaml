@@ -33,7 +33,7 @@ jobs:
         run: |
           # Get tag name and message
           TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n1 "$TAG_NAME" | sed "s/^$TAG_NAME[[:space:]]*//")
+          TAG_MESSAGE=$(git tag -n1 "$TAG_NAME" | sed "s|^$TAG_NAME[[:space:]]*||")
 
           # If tag message is empty, use a default
           if [ -z "$TAG_MESSAGE" ]; then
