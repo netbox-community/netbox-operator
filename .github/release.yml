@@ -6,9 +6,12 @@
 
 changelog:
   categories:
-    - title: Version Bumps
-      labels:
-        - dependencies
     - title: What's Changed
       labels:
         - "*"
+      exclude:
+        labels:
+          - dependencies
+    - title: Version Bumps
+      labels:
+        - dependencies
