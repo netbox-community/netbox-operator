@@ -22,6 +22,12 @@ DATE=$(echo "$RELEASE_DATA" | jq -r '.publishedAt' | cut -d'T' -f1)
 BODY=$(echo "$RELEASE_DATA" | jq -r '.body')
 URL=$(echo "$RELEASE_DATA" | jq -r '.url')
 
+# Validate extracted fields
+if [ -z "$TAG" ] || [ -z "$DATE" ] || [ -z "$URL" ]; then
+    echo "Release data incomplete. Please check the release format. Exiting."
+    exit 1
+fi
+
 # Create the changelog entry
 ENTRY="## [$TAG] - $DATE
 
