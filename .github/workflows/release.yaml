@@ -6,7 +6,7 @@ on:
     tags:
       - 'v*'
     branches:
-      - 'feature/automatic-releases'  # TODO - Remove before merging!
+      - 'feature/automatic-changelog'  # TODO - Remove before merging!
   workflow_dispatch:
 
 permissions:
