@@ -20,18 +20,8 @@ fi
 
 echo "Updating version to $NEW_VERSION in $KUSTOMIZATION_FILE..."
 
-# Check if images section exists
-if ! grep -q "^images:" "$KUSTOMIZATION_FILE"; then
-    # Add images section
-    echo "" >> "$KUSTOMIZATION_FILE"
-    echo "images:" >> "$KUSTOMIZATION_FILE"
-    echo "- name: controller" >> "$KUSTOMIZATION_FILE"
-    echo "  newName: ghcr.io/netbox-community/netbox-operator" >> "$KUSTOMIZATION_FILE"
-    echo "  newTag: $NEW_VERSION" >> "$KUSTOMIZATION_FILE"
-else
-    # Update existing newTag
-    sed -i.bak "s/newTag: .*/newTag: $NEW_VERSION/" "$KUSTOMIZATION_FILE"
-    rm -f "$KUSTOMIZATION_FILE.bak"
-fi
+# Update the newTag
+sed -i.bak "s/newTag: .*/newTag: $NEW_VERSION/" "$KUSTOMIZATION_FILE"
+rm -f "$KUSTOMIZATION_FILE.bak"
 
 echo "Version bumped to $NEW_VERSION successfully!"

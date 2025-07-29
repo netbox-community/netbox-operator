@@ -65,22 +65,7 @@ jobs:
 
       - name: Update kustomization.yaml
         run: |
-          # Use the bump-version.sh script if it exists, otherwise use inline version
-          if [ -f "scripts/bump-version.sh" ]; then
-            ./scripts/bump-version.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
-          else
-            # Inline version
-            cd config/manager
-            if ! grep -q "^images:" kustomization.yaml; then
-              echo "" >> kustomization.yaml
-              echo "images:" >> kustomization.yaml
-              echo "- name: controller" >> kustomization.yaml
-              echo "  newName: ghcr.io/netbox-community/netbox-operator" >> kustomization.yaml
-              echo "  newTag: ${{ steps.tag_data.outputs.TAG_NAME }}" >> kustomization.yaml
-            else
-              sed -i "s/newTag: .*/newTag: ${{ steps.tag_data.outputs.TAG_NAME }}/" kustomization.yaml
-            fi
-          fi
+          ./scripts/bump-version.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
 
       - name: Commit and push changes
         run: |
