@@ -5,13 +5,10 @@
 # https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
 
 changelog:
+  exclude:
+    labels:
+      - dependencies
   categories:
-    - title: What's Changed
-      labels:
-        - "*"
-      exclude:
-        labels:
-          - dependencies
     - title: Version Bumps
       labels:
         - dependencies
