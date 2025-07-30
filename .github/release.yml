@@ -6,6 +6,23 @@
 
 changelog:
   categories:
-    - title: Version Bumps
+    - title: 🚀 New Features
+      labels:
+        - feature
+        - enhancement
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+    - title: 📚 Documentation
+      labels:
+        - documentation
+        - docs
+    - title: 🔧 Maintenance
+      labels:
+        - maintenance
+        - chore
+        - refactor
+    - title: 📦 Version Bumps
       labels:
         - dependencies
