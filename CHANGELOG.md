@@ -7,18 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.2.5-test] - 2025-07-23
 
-Adding gh release notes configuration
-
-<!-- Release notes generated using configuration in .github/release.yml at v0.2.5-test -->
-
 ## What's Changed
-### Version Bumps
-* Bump github.com/fxamacker/cbor/v2 from 2.8.0 to 2.9.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/381
-* Bump github.com/google/cel-go from 0.25.0 to 0.26.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/380
-* Bump github.com/spf13/pflag from 1.0.6 to 1.0.7 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/379
-* Bump k8s.io/api from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/377
-* Bump k8s.io/client-go from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/378
-### What's Changed
 * Fix iprangeclaim IpRangeName status field yaml/json name by @jstudler in https://github.com/netbox-community/netbox-operator/pull/371
 * Add ownerReference to child resource on update by @jstudler in https://github.com/netbox-community/netbox-operator/pull/369
 * Minor changes to align across controllers by @jstudler in https://github.com/netbox-community/netbox-operator/pull/372
@@ -27,6 +16,12 @@ Adding gh release notes configuration
 * Add formatting configurations and yamllint action by @jstudler in https://github.com/netbox-community/netbox-operator/pull/376
 * Clean up e2e test files by @jstudler in https://github.com/netbox-community/netbox-operator/pull/382
 
+### Version Bumps
+* Bump github.com/fxamacker/cbor/v2 from 2.8.0 to 2.9.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/381
+* Bump github.com/google/cel-go from 0.25.0 to 0.26.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/380
+* Bump github.com/spf13/pflag from 1.0.6 to 1.0.7 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/379
+* Bump k8s.io/api from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/377
+* Bump k8s.io/client-go from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/378
 
 **Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.5...v0.2.5-test
 
@@ -45,7 +40,7 @@ Adding gh release notes configuration
 * Add formatting configurations and yamllint action by @jstudler in https://github.com/netbox-community/netbox-operator/pull/376
 * Clean up e2e test files by @jstudler in https://github.com/netbox-community/netbox-operator/pull/382
 
-## Version Bumps
+### Version Bumps
 * Bump github.com/fxamacker/cbor/v2 from 2.8.0 to 2.9.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/381
 * Bump github.com/google/cel-go from 0.25.0 to 0.26.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/380
 * Bump github.com/spf13/pflag from 1.0.6 to 1.0.7 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/379
@@ -68,7 +63,7 @@ Adding gh release notes configuration
 ## What's Changed
 * Add codespell CI job by @jstudler in https://github.com/netbox-community/netbox-operator/pull/368
 
-## Version Bumps
+### Version Bumps
 * Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc from 1.36.0 to 1.37.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/364
 * Bump golang.org/x/term from 0.32.0 to 0.33.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/363
 * Bump go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp from 0.61.0 to 0.62.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/362
@@ -89,7 +84,7 @@ Adding gh release notes configuration
 ## What's Changed
 * Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors by @pablogarciamiranda in https://github.com/netbox-community/netbox-operator/pull/345
 
-## Version Bumps
+### Version Bumps
 * Bump github.com/go-viper/mapstructure/v2 from 2.2.1 to 2.3.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/358
 * Bump github.com/stoewer/go-strcase from 1.3.0 to 1.3.1 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/357
 * Bump github.com/prometheus/procfs from 0.16.1 to 0.17.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/356
@@ -107,7 +102,8 @@ Adding gh release notes configuration
 
 ## What's Changed
 * Distinguish if error occurred or if no matching prefix was found by @bruelea in https://github.com/netbox-community/netbox-operator/pull/346
-## Version Bumps
+
+### Version Bumps
 * Bump go.uber.org/mock from 0.5.1 to 0.5.2 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/340
 * Bump google.golang.org/grpc from 1.72.2 to 1.73.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/342
 * Bump golang.org/x/time from 0.11.0 to 0.12.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/344
@@ -132,7 +128,7 @@ Adding gh release notes configuration
 * Fix NetBox NGINX deployment for IPv4-only environments by @pablogarciamiranda in https://github.com/netbox-community/netbox-operator/pull/333
 * Add step to e2e tests to clean up resources in the test NetBox instance by @bruelea in https://github.com/netbox-community/netbox-operator/pull/321
 
-## Version bumps
+### Version Bumps
 * Bump github.com/pelletier/go-toml/v2 from 2.2.3 to 2.2.4 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/332
 * Bump go.opentelemetry.io/proto/otlp from 1.6.0 to 1.7.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/330
 * Bump cel.dev/expr from 0.23.1 to 0.24.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/331
@@ -156,7 +152,7 @@ Adding gh release notes configuration
 ## What's Changed
 * Allow overriding image registry and Helm chart sources in NetBox deploy script by @pablogarciamiranda in https://github.com/netbox-community/netbox-operator/pull/296
 
-## Version bumps
+### Version Bumps
 * Bump github.com/go-openapi/errors from 0.22.0 to 0.22.1 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/327
 * Bump github.com/go-logr/logr from 1.4.2 to 1.4.3 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/326
 * Bump github.com/fsnotify/fsnotify from 1.8.0 to 1.9.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/325
@@ -176,7 +172,7 @@ Adding gh release notes configuration
 ## What's Changed
 * Create codeql.yml workflow by @faebr in https://github.com/netbox-community/netbox-operator/pull/315
 
-## Version bumps
+### Version Bumps
 * Bump actions/setup-go from 5.4.0 to 5.5.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/308
 * Bump google.golang.org/grpc from 1.71.0 to 1.72.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/307
 * Bump github.com/go-openapi/jsonpointer from 0.21.0 to 0.21.1 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/306
@@ -209,7 +205,7 @@ Adding gh release notes configuration
 * Adapting deploy-netbox.sh to a vCluster deployment by @pablogarciamiranda in https://github.com/netbox-community/netbox-operator/pull/293
 * Feature/check keys in parent prefix selector by @bruelea in https://github.com/netbox-community/netbox-operator/pull/295
 
-## Version bumps
+### Version Bumps
 * Bump github.com/onsi/gomega from 1.36.2 to 1.37.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/289
 * Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc from 1.34.0 to 1.35.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/291
 * Bump go.uber.org/mock from 0.5.0 to 0.5.1 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/288
@@ -241,7 +237,7 @@ Adding gh release notes configuration
 * Check restoration hash in NetBox before updating resource in NetBox by @bruelea in https://github.com/netbox-community/netbox-operator/pull/285
 * Consolidate Status and Condition reporting by @alexandernorth in https://github.com/netbox-community/netbox-operator/pull/265
 
-## Version bumps
+### Version Bumps
 * Bump golang from 1.23.6 to 1.24.2 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/262
 * Bump golangci/golangci-lint-action from 6.5.2 to 7.0.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/278
 * Bump github.com/google/cel-go from 0.22.0 to 0.25.0 by @dependabot in https://github.com/netbox-community/netbox-operator/pull/252
@@ -396,28 +392,4 @@ Mark Coleman, Richard Boucher, Kristopher Beevers, Jeff Gehlbach, Nat Morris
 
 ---
 
-## [v0.2.4-test] - 2025-07-23
-
-test: add temporary branch trigger for testing release workflow
-
-## What's Changed
-* Fix iprangeclaim IpRangeName status field yaml/json name by @jstudler in https://github.com/netbox-community/netbox-operator/pull/371
-* Add ownerReference to child resource on update by @jstudler in https://github.com/netbox-community/netbox-operator/pull/369
-* Minor changes to align across controllers by @jstudler in https://github.com/netbox-community/netbox-operator/pull/372
-* Verify prefix length when restoring PrefixClaim from NetBox by @jstudler in https://github.com/netbox-community/netbox-operator/pull/373
-* Change of NetBox Operator IpAddress short name to enhance UX in Kubernetes 1.33+ by @jstudler in https://github.com/netbox-community/netbox-operator/pull/375
-* Add formatting configurations and yamllint action by @jstudler in https://github.com/netbox-community/netbox-operator/pull/376
-* Bump github.com/fxamacker/cbor/v2 from 2.8.0 to 2.9.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/381
-* Bump github.com/google/cel-go from 0.25.0 to 0.26.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/380
-* Bump github.com/spf13/pflag from 1.0.6 to 1.0.7 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/379
-* Bump k8s.io/api from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/377
-* Clean up e2e test files by @jstudler in https://github.com/netbox-community/netbox-operator/pull/382
-* Bump k8s.io/client-go from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/378
-
-
-**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.5...v0.2.4-test
-
-[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/untagged-b0aadd6e052540917aea)
-
----
 
