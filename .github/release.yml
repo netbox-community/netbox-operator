@@ -6,6 +6,6 @@
 
 changelog:
   categories:
-    - title: 📦 Version Bumps
+    - title: Version Bumps
       labels:
         - dependencies
