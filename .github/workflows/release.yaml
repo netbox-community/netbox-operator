@@ -1,0 +1,79 @@
+---
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Get tag information
+        id: tag_data
+        run: |
+          # Get tag name and message
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          TAG_MESSAGE=$(git tag -n1 "$TAG_NAME" | sed "s/^$TAG_NAME[[:space:]]*//")
+
+          # If tag message is empty, use a default
+          if [ -z "$TAG_MESSAGE" ]; then
+            TAG_MESSAGE="Release $TAG_NAME"
+          fi
+
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "TAG_MESSAGE<<EOF" >> $GITHUB_OUTPUT
+          echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "VERSION=${TAG_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Determine if this is a prerelease
+          PRERELEASE=""
+          if [[ "${{ steps.tag_data.outputs.TAG_NAME }}" =~ (alpha|beta|rc) ]]; then
+            PRERELEASE="--prerelease"
+          fi
+
+          # Create release with auto-generated notes
+          gh release create "${{ steps.tag_data.outputs.TAG_NAME }}" \
+            --title "${{ steps.tag_data.outputs.TAG_NAME }}" \
+            --notes "${{ steps.tag_data.outputs.TAG_MESSAGE }}" \
+            --generate-notes \
+            $PRERELEASE
+
+      - name: Update kustomization.yaml
+        run: |
+          ./scripts/bump-version.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
+
+      - name: Commit and push changes
+        run: |
+          # Check if there are changes to commit
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add config/manager/kustomization.yaml
+          git commit -m "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} [skip ci]"
+
+          # Push to main branch
+          git push origin HEAD:main
