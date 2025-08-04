@@ -30,7 +30,7 @@ jobs:
         run: |
           # Get tag name and message
           TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n1 "$TAG_NAME" | sed "s/^$TAG_NAME[[:space:]]*//")
+          TAG_MESSAGE=$(git tag -n1 "$TAG_NAME" | sed "s|^$TAG_NAME[[:space:]]*||")
 
           # If tag message is empty, use a default
           if [ -z "$TAG_MESSAGE" ]; then
@@ -64,6 +64,12 @@ jobs:
         run: |
           ./scripts/bump-version.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
 
+      - name: Update CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/update-changelog-from-release.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
+
       - name: Commit and push changes
         run: |
           # Check if there are changes to commit
@@ -72,8 +78,8 @@ jobs:
             exit 0
           fi
 
-          git add config/manager/kustomization.yaml
-          git commit -m "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} [skip ci]"
+          git add config/manager/kustomization.yaml CHANGELOG.md
+          git commit -m "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog [skip ci]"
 
           # Push to main branch
           git push origin HEAD:main
