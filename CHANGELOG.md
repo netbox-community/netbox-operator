@@ -5,27 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.2.5-test] - 2025-07-23
+## [v0.2.8] - 2025-08-04
 
 ## What's Changed
-* Fix iprangeclaim IpRangeName status field yaml/json name by @jstudler in https://github.com/netbox-community/netbox-operator/pull/371
-* Add ownerReference to child resource on update by @jstudler in https://github.com/netbox-community/netbox-operator/pull/369
-* Minor changes to align across controllers by @jstudler in https://github.com/netbox-community/netbox-operator/pull/372
-* Verify prefix length when restoring PrefixClaim from NetBox by @jstudler in https://github.com/netbox-community/netbox-operator/pull/373
-* Change of NetBox Operator IpAddress short name to enhance UX in Kubernetes 1.33+ by @jstudler in https://github.com/netbox-community/netbox-operator/pull/375
-* Add formatting configurations and yamllint action by @jstudler in https://github.com/netbox-community/netbox-operator/pull/376
-* Clean up e2e test files by @jstudler in https://github.com/netbox-community/netbox-operator/pull/382
-
 ### Version Bumps
-* Bump github.com/fxamacker/cbor/v2 from 2.8.0 to 2.9.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/381
-* Bump github.com/google/cel-go from 0.25.0 to 0.26.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/380
-* Bump github.com/spf13/pflag from 1.0.6 to 1.0.7 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/379
-* Bump k8s.io/api from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/377
-* Bump k8s.io/client-go from 0.33.2 to 0.33.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/378
+* Bump github.com/prometheus/client_golang from 1.22.0 to 1.23.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/396
+* Bump go.opentelemetry.io/proto/otlp from 1.7.0 to 1.7.1 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/397
+* Bump github.com/sagikazarmark/locafero from 0.9.0 to 0.10.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/398
+* Bump docker/metadata-action from 5.7.0 to 5.8.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/399
 
-**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.5...v0.2.5-test
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.7...v0.2.8
 
-[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.5-test)
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.8)
+
+---
+
+## [v0.2.7] - 2025-07-28
+
+## What's Changed
+* Fix the codespell --ignore-words-list in pre-commit by @jstudler in https://github.com/netbox-community/netbox-operator/pull/388
+* Print logs in json format by @bruelea in https://github.com/netbox-community/netbox-operator/pull/389
+### Version Bumps
+* Bump github.com/cenkalti/backoff/v5 from 5.0.2 to 5.0.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/391
+* Bump google.golang.org/grpc from 1.73.0 to 1.74.2 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/392
+* Bump sigs.k8s.io/yaml from 1.5.0 to 1.6.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/393
+* Bump github.com/onsi/gomega from 1.37.0 to 1.38.0 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/394
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.6...v0.2.7
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.7)
 
 ---
 
