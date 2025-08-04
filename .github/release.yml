@@ -9,6 +9,3 @@ changelog:
     - title: Version Bumps
       labels:
         - dependencies
-    - title: What's Changed
-      labels:
-        - "*"
