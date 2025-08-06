@@ -45,7 +45,7 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   declare -a Remote_Images=( \
   "busybox:1.36.1" \
   "docker.io/bitnami/redis:7.2.4-debian-12-r9" \
-  "docker.io/netboxcommunity/netbox:v3.7.8" \
+  "docker.io/netboxcommunity/netbox:v4.1.8" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
@@ -78,9 +78,10 @@ elif [[ "${VERSION}" == "4.1.11" ]] ;then
   declare -a Remote_Images=( \
   "busybox:1.37.0" \
   "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
-  "ghcr.io/netbox-community/netbox:v4.1.11" \
+  "ghcr.io/netbox-community/netbox:v4.1.8" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
+  "docker.io/python:3.12-slim"\
   )
 
   # create load-data.sh
