@@ -85,7 +85,7 @@ jobs:
           git checkout -b "$BRANCH_NAME"
 
           git add config/manager/kustomization.yaml CHANGELOG.md
-          git commit -m "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog [skip ci]"
+          git commit -m "[skip ci] chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog"
 
           # Push the branch and create PR
           git push origin "$BRANCH_NAME"
