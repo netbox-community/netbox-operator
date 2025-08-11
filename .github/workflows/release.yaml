@@ -64,7 +64,15 @@ jobs:
         run: |
           ./scripts/bump-version.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
 
+      - name: Update CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/update-changelog-from-release.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
+
       - name: Commit and push changes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Check if there are changes to commit
           if git diff --quiet; then
@@ -72,8 +80,27 @@ jobs:
             exit 0
           fi
 
-          git add config/manager/kustomization.yaml
-          git commit -m "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} [skip ci]"
+          # Create a new branch for the changes
+          BRANCH_NAME="release-updates-${{ steps.tag_data.outputs.TAG_NAME }}"
+          git checkout -b "$BRANCH_NAME"
 
-          # Push to main branch
-          git push origin HEAD:main
+          git add config/manager/kustomization.yaml CHANGELOG.md
+          git commit -m "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog [skip ci]"
+
+          # Push the branch and create PR
+          git push origin "$BRANCH_NAME"
+          PR_URL=$(gh pr create \
+            --title "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog" \
+            --body "Automated version bump and changelog update for release ${{ steps.tag_data.outputs.TAG_NAME }}" \
+            --head "$BRANCH_NAME" \
+            --base main)
+          
+          # Extract PR number from URL
+          PR_NUMBER=$(echo "$PR_URL" | sed 's/.*\/pull\///')
+          echo "Created PR #$PR_NUMBER: $PR_URL"
+          
+          # Auto-approve the PR
+          gh pr review "$PR_NUMBER" --approve --body "Auto-approving automated release PR"
+          
+          # Enable auto-merge and merge the PR
+          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
