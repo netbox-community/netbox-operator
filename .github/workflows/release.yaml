@@ -99,8 +99,5 @@ jobs:
           PR_NUMBER=$(echo "$PR_URL" | sed 's/.*\/pull\///')
           echo "Created PR #$PR_NUMBER: $PR_URL"
 
-          # Auto-approve the PR
-          gh pr review "$PR_NUMBER" --approve --body "Auto-approving automated release PR"
-
           # Enable auto-merge and merge the PR
           gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
