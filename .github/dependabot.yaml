@@ -8,6 +8,10 @@ updates:
       day: monday
       time: "04:00"
       timezone: "Europe/Zurich"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: gomod
     directory: /
@@ -18,6 +22,10 @@ updates:
       timezone: "Europe/Zurich"
     allow:
       - dependency-type: all
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: /
@@ -26,3 +34,8 @@ updates:
       day: monday
       time: "04:00"
       timezone: "Europe/Zurich"
+    groups:
+      docker:
+        patterns:
+          - "*"
+
