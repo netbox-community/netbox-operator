@@ -42,6 +42,14 @@ type PrefixSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// A list of tags that will be assigned to the resource in NetBox.
+	// Each tag may contain either the `name` or `slug` field (one of them is required).
+	// Example:
+	//   - name: tag1
+	//   - slug: tag2
+	//+kubebuilder:validation:XValidation:rule="has(self.name) || has(self.slug)",message="One of the fields `name` or `slug` must be set"
+	Tags []Tag `json:"tags,omitempty"`
+
 	// The NetBox Custom Fields that should be added to the resource in NetBox.
 	// Note that currently only Text Type is supported (GitHub #129)
 	// More info on NetBox Custom Fields:

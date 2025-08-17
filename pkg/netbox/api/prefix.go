@@ -67,6 +67,17 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 		desiredPrefix.Site = &siteDetails.Id
 	}
 
+	if prefix.Metadata != nil && len(prefix.Metadata.Tags) > 0 {
+		desiredPrefix.Tags = []*netboxModels.NestedTag{}
+		for _, tag := range prefix.Metadata.Tags {
+			tagDetails, err := r.GetTagDetails(tag.Name, tag.Slug)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.Tags = append(desiredPrefix.Tags, &netboxModels.NestedTag{ID: tagDetails.Id, Name: &tagDetails.Name, Slug: &tagDetails.Slug})
+		}
+	}
+
 	// create prefix since it doesn't exist
 	if len(responsePrefix.Payload.Results) == 0 {
 		return r.CreatePrefix(desiredPrefix)
