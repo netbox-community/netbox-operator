@@ -12,11 +12,11 @@ import (
 	reflect "reflect"
 
 	runtime "github.com/go-openapi/runtime"
-	gomock "go.uber.org/mock/gomock"
 	dcim "github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	extras "github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	ipam "github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	tenancy "github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIpamInterface is a mock of IpamInterface interface.
