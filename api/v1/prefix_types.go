@@ -47,7 +47,6 @@ type PrefixSpec struct {
 	// Example:
 	//   - name: tag1
 	//   - slug: tag2
-	//+kubebuilder:validation:XValidation:rule="has(self.name) || has(self.slug)",message="One of the fields `name` or `slug` must be set"
 	Tags []Tag `json:"tags,omitempty"`
 
 	// The NetBox Custom Fields that should be added to the resource in NetBox.

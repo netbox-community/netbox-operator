@@ -129,9 +129,6 @@ spec:
                       type: string
                   type: object
                 type: array
-                x-kubernetes-validations:
-                - message: One of the fields `name` or `slug` must be set
-                  rule: has(self.name) || has(self.slug)
               tenant:
                 description: |-
                   The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
