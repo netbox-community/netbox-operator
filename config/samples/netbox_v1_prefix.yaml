@@ -13,3 +13,6 @@ spec:
   comments: "your comments"
   preserveInNetbox: true
   prefix: "2.0.0.0/24"
+  tags:
+    - name: Alpga
+    - slug: golf
