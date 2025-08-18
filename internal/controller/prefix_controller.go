@@ -216,7 +216,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	/* 3. unlock lease of parent prefix */
-	if ll != nil {
+	for i := 0; i < 5 && ll != nil; i++ {
 		ll.Unlock()
 	}
 
