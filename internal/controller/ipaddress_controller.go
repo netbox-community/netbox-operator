@@ -35,6 +35,7 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -201,8 +202,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// 3. unlock lease of parent prefix
-	for i := 0; i < 5 && ll != nil; i++ {
-		ll.Unlock()
+	if ll != nil {
+		timerCtx, timerCancel := context.WithTimeout(ctx, 10*time.Second)
+		defer timerCancel()
+		wait.JitterUntil(func() {
+			ll.Unlock() // Todo: check for ll.Unlock() to be successful and if successful cancel()
+		}, 1*time.Second, 1.2, true, timerCtx.Done())
 	}
 
 	// 4. update status fields
