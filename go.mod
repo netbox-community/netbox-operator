@@ -17,7 +17,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
-	github.com/swisscom/leaselocker v0.2.0
+	github.com/swisscom/leaselocker v0.3.0
 	go.uber.org/mock v0.5.2
 	go.uber.org/zap v1.27.0
 	k8s.io/api v0.33.4

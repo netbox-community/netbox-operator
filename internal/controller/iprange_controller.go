@@ -180,7 +180,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 3. unlock lease of parent prefix
 	if ll != nil {
-		ll.Unlock()
+		ll.UnlockWithRetry(ctx)
 	}
 
 	// 4. update status fields
