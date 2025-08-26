@@ -6,6 +6,9 @@
 
 changelog:
   categories:
+    - title: Contributions
+      labels:
+        - '*'
     - title: Version Bumps
       labels:
         - dependencies
