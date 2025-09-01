@@ -292,6 +292,14 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 		}
 	}
 
+	convertedTags := make([]models.Tag, len(spec.Tags))
+	for i, t := range spec.Tags {
+		convertedTags[i] = models.Tag{
+			Name: t.Name,
+			Slug: t.Slug,
+		}
+	}
+
 	return &models.Prefix{
 		Prefix: spec.Prefix,
 		Metadata: &models.NetboxMetadata{
@@ -300,6 +308,7 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 			Description: req.NamespacedName.String() + " // " + spec.Description,
 			Site:        spec.Site,
 			Tenant:      spec.Tenant,
+			Tags:        convertedTags,
 		},
 	}, nil
 }
