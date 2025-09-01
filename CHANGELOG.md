@@ -12,6 +12,9 @@ Bump the go-dependencies group with 10 updates (#419)
 <!-- Release notes generated using configuration in .github/release.yml at v0.2.12 -->
 
 ## What's Changed
+### Contributions
+* Bump leaselocker to v0.3.0 and switch to `ll.UnlockWithRetry()` by @jstudler in https://github.com/netbox-community/netbox-operator/pull/417
+
 ### Version Bumps
 * Bump the go-dependencies group with 10 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/419
 
@@ -29,6 +32,11 @@ Bump golang from 1.24.6 to 1.25.0 in the docker group (#412)
 <!-- Release notes generated using configuration in .github/release.yml at v0.2.11 -->
 
 ## What's Changed
+### Contributions
+* put skip ci message at beginning of commit message for clarity/consistency by @jstudler in https://github.com/netbox-community/netbox-operator/pull/409
+* Dependabot Updates by @jstudler in https://github.com/netbox-community/netbox-operator/pull/411
+* Remove self-approval step from release workflow as it's not allowed in gh by @jstudler in https://github.com/netbox-community/netbox-operator/pull/410
+
 ### Version Bumps
 * Bump the go-dependencies group with 9 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/414
 * Bump actions/checkout from 4 to 5 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/413
