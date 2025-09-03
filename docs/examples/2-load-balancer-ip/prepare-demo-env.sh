@@ -5,13 +5,7 @@ set -e
 make deploy-kind
 
 # install curl pod to demo access to created service
-kind load docker-image curlimages/curl
-kind load docker-image curlimages/curl
-kubectl run curl --image curlimages/curl --image-pull-policy=Never -- sleep infinity
-
-# load the nginx image into the kind cluster
-kind load docker-image nginx
-kind load docker-image nginx
+kubectl run curl --image curlimages/curl -- sleep infinity
 
 DEPLOYMENT_NAME=netbox-operator-controller-manager
 NAMESPACE=netbox-operator-system
