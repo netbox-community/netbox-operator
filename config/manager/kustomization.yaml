@@ -4,4 +4,4 @@ resources:
 images:
 - name: controller
   newName: ghcr.io/netbox-community/netbox-operator
-  newTag: v0.2.13
+  newTag: v0.2.14
