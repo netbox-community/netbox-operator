@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.14] - 2025-09-05
+
+Bump golang from 1.25.0 to 1.25.1 (#428)
+
+<!-- Release notes generated using configuration in .github/release.yml at v0.2.14 -->
+
+## What's Changed
+### Contributions
+* chore: bump version to v0.2.13 and update changelog by @github-actions[bot] in https://github.com/netbox-community/netbox-operator/pull/425
+* Bump actions/setup-go from 5.5.0 to 6.0.0 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/426
+* Bump the go-dependencies group with 6 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/427
+* Bump golang from 1.25.0 to 1.25.1 by @jstudler in https://github.com/netbox-community/netbox-operator/pull/428
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.13...v0.2.14
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.14)
+
+---
+
 ## [v0.2.13] - 2025-09-01
 
 Bump the go-dependencies group with 29 updates (#424)
