@@ -18,7 +18,7 @@ The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Op
 
 ## Prerequisites
 
-- go version v1.25.0+
+- go version v1.25.1+
 - docker version 17.03+
 - kubectl version v1.11.3+
 - Access to a Kubernetes v1.11.3+ cluster
