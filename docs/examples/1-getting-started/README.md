@@ -21,7 +21,7 @@ kubectl port-forward deploy/netbox 8080:8080
 
 # 0.3 Navigate to the example folder
 
-Navigate to 'docs/examples/example1-getting-started' to run the examples below
+Navigate to 'docs/examples/1-getting-started' to run the examples below
 
 # 1.1 Claim a Prefix
 
@@ -46,7 +46,7 @@ kubectl get  pxc,px
 
 In this example, we use a `.spec.parentPrefixSelector`, which is a list of selectors that tell NetBox Operator from which parent prefixes to claim our Prefix from.
 
-Navigate to 'docs/examples/example1-getting-started' to run the following commands.
+Navigate to 'docs/examples/1-getting-started' to run the following commands.
 
 1. Inspect the spec of the sample prefix claim CR
 ```bash
