@@ -18,6 +18,7 @@ package api
 
 import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
+	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
@@ -52,4 +53,16 @@ func (r *NetboxClient) GetTagDetails(name string, slug string) (*models.Tag, err
 		Slug: *tag.Slug,
 	}, nil
 
+}
+
+func (r *NetboxClient) buildWritableTags(tags []models.Tag) ([]*netboxModels.NestedTag, error) {
+	nestedTags := make([]*netboxModels.NestedTag, 0, len(tags))
+	for _, tag := range tags {
+		tagDetails, err := r.GetTagDetails(tag.Name, tag.Slug)
+		if err != nil {
+			return nil, err
+		}
+		nestedTags = append(nestedTags, &netboxModels.NestedTag{ID: tagDetails.Id, Name: &tagDetails.Name, Slug: &tagDetails.Slug})
+	}
+	return nestedTags, nil
 }

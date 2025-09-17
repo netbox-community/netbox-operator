@@ -318,6 +318,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			prefix.Spec.Description = updatedPrefixSpec.Description
 			prefix.Spec.Comments = updatedPrefixSpec.Comments
 			prefix.Spec.PreserveInNetbox = updatedPrefixSpec.PreserveInNetbox
+			prefix.Spec.Tags = updatedPrefixSpec.Tags
 			err = controllerutil.SetControllerReference(o, prefix, r.Scheme)
 			if err != nil {
 				return err

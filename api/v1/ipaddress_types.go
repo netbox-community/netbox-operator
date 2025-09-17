@@ -36,6 +36,10 @@ type IpAddressSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// A list of tags that will be assigned to the resource in NetBox.
+	// Each tag must define exactly one of the `name` or `slug` fields.
+	Tags []Tag `json:"tags,omitempty"`
+
 	// The NetBox Custom Fields that should be added to the resource in NetBox.
 	// Note that currently only Text Type is supported (GitHub #129)
 	// More info on NetBox Custom Fields:

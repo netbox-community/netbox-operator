@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 type Tag struct {
+	// +kubebuilder:validation:XValidation:rule="(!has(self.name) && has(self.slug)) || (has(self.name) && !has(self.slug))",message="exactly one of name or slug must be specified"
 	// +optional
 	// Name of the tag
 	Name string `json:"name,omitempty"`

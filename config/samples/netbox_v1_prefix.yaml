@@ -14,6 +14,6 @@ spec:
   preserveInNetbox: true
   prefix: "2.0.0.0/24"
   tags:
-    - name: Alpga
+    - name: Alpha
     - slug: golf
     - name: Bravo

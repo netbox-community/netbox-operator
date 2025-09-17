@@ -11,5 +11,7 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
+  tags:
+    - name: range-alpha
   startAddress: "2.0.0.200/32"
   endAddress: "2.0.0.202/32"

@@ -11,4 +11,6 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
+  tags:
+    - name: claim-alpha
   parentPrefix: "2.0.0.0/16"

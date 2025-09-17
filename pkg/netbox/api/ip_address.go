@@ -54,6 +54,15 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 		desiredIPAddress.Tenant = &tenantDetails.Id
 	}
 
+	desiredIPAddress.Tags = []*netboxModels.NestedTag{}
+	if ipAddress.Metadata != nil {
+		var err error
+		desiredIPAddress.Tags, err = r.buildWritableTags(ipAddress.Metadata.Tags)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// create ip address since it doesn't exist
 	if len(responseIpAddress.Payload.Results) == 0 {
 		return r.CreateIpAddress(desiredIPAddress)

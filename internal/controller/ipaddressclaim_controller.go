@@ -142,6 +142,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					ParentPrefix: o.Spec.ParentPrefix,
 					Metadata: &models.NetboxMetadata{
 						Tenant: o.Spec.Tenant,
+						Tags:   convertAPITagsToModelTags(o.Spec.Tags),
 					},
 				})
 			if err != nil {
@@ -192,6 +193,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			ipAddress.Spec.Comments = updatedIpAddressSpec.Comments
 			ipAddress.Spec.Description = updatedIpAddressSpec.Description
 			ipAddress.Spec.PreserveInNetbox = updatedIpAddressSpec.PreserveInNetbox
+			ipAddress.Spec.Tags = updatedIpAddressSpec.Tags
 			err = controllerutil.SetControllerReference(o, ipAddress, r.Scheme)
 			if err != nil {
 				return err

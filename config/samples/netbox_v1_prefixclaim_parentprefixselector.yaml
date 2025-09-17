@@ -12,6 +12,8 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
+  tags:
+    - name: selector-alpha
   prefixLength: "/31"
   parentPrefixSelector:
     tenant: "MY_TENANT"

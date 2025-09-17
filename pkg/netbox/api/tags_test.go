@@ -23,6 +23,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -133,4 +134,70 @@ func TestTags_GetTagDetailsNoInput(t *testing.T) {
 	actual, err := netboxClient.GetTagDetails("", "")
 	assert.Nil(t, actual)
 	assert.Contains(t, err.Error(), "either name or slug must be provided")
+}
+
+func TestTags_BuildWritableTags(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
+
+	tagName := "tag-by-name"
+	tagSlug := "tag-by-slug"
+	tagID := int64(1)
+
+	nameRequest := extras.NewExtrasTagsListParams().WithName(&tagName)
+	nameResponse := &extras.ExtrasTagsListOK{
+		Payload: &extras.ExtrasTagsListOKBody{
+			Results: []*netboxModels.Tag{{
+				ID:   tagID,
+				Name: &tagName,
+				Slug: &tagSlug,
+			}},
+		},
+	}
+
+	slugRequest := extras.NewExtrasTagsListParams().WithSlug(&tagSlug)
+	slugResponse := &extras.ExtrasTagsListOK{
+		Payload: &extras.ExtrasTagsListOKBody{
+			Results: []*netboxModels.Tag{{
+				ID:   tagID + 1,
+				Name: &tagName,
+				Slug: &tagSlug,
+			}},
+		},
+	}
+
+	gomock.InOrder(
+		mockExtras.EXPECT().ExtrasTagsList(nameRequest, nil).Return(nameResponse, nil),
+		mockExtras.EXPECT().ExtrasTagsList(slugRequest, nil).Return(slugResponse, nil),
+	)
+
+	client := &NetboxClient{Extras: mockExtras}
+
+	result, err := client.buildWritableTags([]models.Tag{{Name: tagName}, {Slug: tagSlug}})
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, tagID, result[0].ID)
+	assert.Equal(t, tagName, *result[0].Name)
+	assert.Equal(t, tagSlug, *result[0].Slug)
+	assert.Equal(t, tagID+1, result[1].ID)
+	assert.Equal(t, tagName, *result[1].Name)
+	assert.Equal(t, tagSlug, *result[1].Slug)
+}
+
+func TestTags_BuildWritableTagsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
+
+	tagName := "tag-error"
+	nameRequest := extras.NewExtrasTagsListParams().WithName(&tagName)
+
+	mockExtras.EXPECT().ExtrasTagsList(nameRequest, nil).Return(nil, errors.New("boom"))
+
+	client := &NetboxClient{Extras: mockExtras}
+
+	result, err := client.buildWritableTags([]models.Tag{{Name: tagName}})
+	assert.Nil(t, result)
+	assert.Error(t, err)
 }
