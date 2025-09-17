@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.15] - 2025-09-15
+
+Bump the go-dependencies group with 19 updates (#432)
+
+<!-- Release notes generated using configuration in .github/release.yml at v0.2.15 -->
+
+## What's Changed
+### Contributions
+* chore: bump version to v0.2.14 and update changelog by @github-actions[bot] in https://github.com/netbox-community/netbox-operator/pull/429
+* Bump the go-dependencies group with 7 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/430
+* Bump the go-dependencies group with 19 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/432
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.14...v0.2.15
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.15)
+
+---
+
+## [v0.2.14] - 2025-09-05
+
+Bump golang from 1.25.0 to 1.25.1 (#428)
+
+<!-- Release notes generated using configuration in .github/release.yml at v0.2.14 -->
+
+## What's Changed
+### Contributions
+* chore: bump version to v0.2.13 and update changelog by @github-actions[bot] in https://github.com/netbox-community/netbox-operator/pull/425
+* Bump actions/setup-go from 5.5.0 to 6.0.0 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/426
+* Bump the go-dependencies group with 6 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/427
+* Bump golang from 1.25.0 to 1.25.1 by @jstudler in https://github.com/netbox-community/netbox-operator/pull/428
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.13...v0.2.14
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.14)
+
+---
+
+## [v0.2.13] - 2025-09-01
+
+Bump the go-dependencies group with 29 updates (#424)
+
+<!-- Release notes generated using configuration in .github/release.yml at v0.2.13 -->
+
+## What's Changed
+### Contributions
+* chore: bump version to v0.2.12 and update changelog by @github-actions[bot] in https://github.com/netbox-community/netbox-operator/pull/421
+* Bump golang from 1.24 to 1.25 by @jstudler in https://github.com/netbox-community/netbox-operator/pull/423
+* Fix release notes to include all contributions by @pablogarciamiranda in https://github.com/netbox-community/netbox-operator/pull/422
+* Bump the go-dependencies group with 29 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/424
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.12...v0.2.13
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.13)
+
+---
+
+## [v0.2.12] - 2025-08-26
+
+Bump the go-dependencies group with 10 updates (#419)
+
+<!-- Release notes generated using configuration in .github/release.yml at v0.2.12 -->
+
+## What's Changed
+### Contributions
+* Bump leaselocker to v0.3.0 and switch to `ll.UnlockWithRetry()` by @jstudler in https://github.com/netbox-community/netbox-operator/pull/417
+
+### Version Bumps
+* Bump the go-dependencies group with 10 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/419
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.11...v0.2.12
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.12)
+
+---
+
 ## [v0.2.11] - 2025-08-18
 
 Bump golang from 1.24.6 to 1.25.0 in the docker group (#412)
@@ -12,6 +91,11 @@ Bump golang from 1.24.6 to 1.25.0 in the docker group (#412)
 <!-- Release notes generated using configuration in .github/release.yml at v0.2.11 -->
 
 ## What's Changed
+### Contributions
+* put skip ci message at beginning of commit message for clarity/consistency by @jstudler in https://github.com/netbox-community/netbox-operator/pull/409
+* Dependabot Updates by @jstudler in https://github.com/netbox-community/netbox-operator/pull/411
+* Remove self-approval step from release workflow as it's not allowed in gh by @jstudler in https://github.com/netbox-community/netbox-operator/pull/410
+
 ### Version Bumps
 * Bump the go-dependencies group with 9 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/414
 * Bump actions/checkout from 4 to 5 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/413

@@ -65,8 +65,4 @@ spec:
       cleanup:
         - script:
             content: |-
-              LEASES=$(kubectl -n netbox-operator-system get lease -oname | grep -v netbox) # to be enhanced in usage of leaselocker
-              if [ -n "$LEASES" ]; then
-                echo "$LEASES" | xargs -n1 kubectl -n netbox-operator-system delete
-              fi
               kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-invalid-customfieldnotexisting -n $NAMESPACE
