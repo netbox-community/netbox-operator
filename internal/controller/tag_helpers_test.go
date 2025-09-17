@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
-	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 )
 
