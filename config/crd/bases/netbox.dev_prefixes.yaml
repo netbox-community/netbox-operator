@@ -128,6 +128,9 @@ spec:
                       description: Slug of the tag
                       type: string
                   type: object
+                  x-kubernetes-validations:
+                  - message: exactly one of name or slug must be specified
+                    rule: has(self.name) != has(self.slug)
                 type: array
               tenant:
                 description: |-
