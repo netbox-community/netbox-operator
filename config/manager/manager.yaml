@@ -16,6 +16,7 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
+      app.kubernetes.io/name: thor-operator
   replicas: 1
   template:
     metadata:
