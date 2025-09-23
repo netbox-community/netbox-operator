@@ -76,7 +76,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+<<<<<<< HEAD
           # Update changelog with the generated notes
+=======
+          # Read the generated release notes
+          RELEASE_NOTES=$(cat /tmp/release_notes.md)
+
+          # Update changelog with the generated notes
+          echo "" >> CHANGELOG.md
+          echo "## ${{ inputs.version }}" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "$RELEASE_NOTES" >> CHANGELOG.md
+
+          # Also run your existing changelog script if needed
+>>>>>>> 34c53d0 (start release pipeline on workflow_dispatch)
           ./scripts/update-changelog-from-release.sh "${{ inputs.version }}"
 
       - name: Commit and push changes
@@ -108,7 +121,11 @@ jobs:
           PR_NUMBER=$(echo "$PR_URL" | sed 's/.*\/pull\///')
           echo "Created PR #$PR_NUMBER: $PR_URL"
 
+<<<<<<< HEAD
           # Merge the PR
+=======
+          # Enable merge the PR
+>>>>>>> 34c53d0 (start release pipeline on workflow_dispatch)
           gh pr merge "$PR_NUMBER" --squash --delete-branch
 
       - name: Create GitHub Release
@@ -119,4 +136,9 @@ jobs:
           gh release create "${{ inputs.version }}" \
             --title "${{ inputs.version }}" \
             --notes "${{ inputs.tagMessage }}" \
+<<<<<<< HEAD
             --generate-notes
+=======
+            --generate-notes \
+            $PRERELEASE
+>>>>>>> 34c53d0 (start release pipeline on workflow_dispatch)
