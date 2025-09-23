@@ -2,9 +2,16 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version that should be released, format: v0.0.0'
+        required: true
+        type: string
+      tagMessage:
+        description: 'Message that will be added to the version tag'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -25,50 +32,57 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Get tag information
-        id: tag_data
-        run: |
-          # Get tag name and message
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          TAG_MESSAGE=$(git tag -n1 "$TAG_NAME" | sed "s|^$TAG_NAME[[:space:]]*||")
-
-          # If tag message is empty, use a default
-          if [ -z "$TAG_MESSAGE" ]; then
-            TAG_MESSAGE="Release $TAG_NAME"
-          fi
-
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "TAG_MESSAGE<<EOF" >> $GITHUB_OUTPUT
-          echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "VERSION=${TAG_NAME#v}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Determine if this is a prerelease
-          PRERELEASE=""
-          if [[ "${{ steps.tag_data.outputs.TAG_NAME }}" =~ (alpha|beta|rc) ]]; then
-            PRERELEASE="--prerelease"
-          fi
-
-          # Create release with auto-generated notes
-          gh release create "${{ steps.tag_data.outputs.TAG_NAME }}" \
-            --title "${{ steps.tag_data.outputs.TAG_NAME }}" \
-            --notes "${{ steps.tag_data.outputs.TAG_MESSAGE }}" \
-            --generate-notes \
-            $PRERELEASE
-
       - name: Update kustomization.yaml
         run: |
-          ./scripts/bump-version.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
+          # Fail if tag already exists
+          if [ -n "$(git tag --list "${{ inputs.version }}")" ]; then
+            echo "Tag "${{ inputs.version }}" already exists. Exit."
+            exit 1
+          else
+            echo "Tag "${{ inputs.version }}" does not exist. Continue."
+          fi
+          ./scripts/bump-version.sh "${{ inputs.version }}"
+
+      - name: Generate release notes for changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the previous tag to determine commit range
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          # Generate release notes using GitHub API without creating a release
+          if [ -n "$PREVIOUS_TAG" ]; then
+            RELEASE_NOTES=$(gh api repos/:owner/:repo/releases/generate-notes \
+              -f tag_name="${{ inputs.version }}" \
+              -f target_commitish="$(git rev-parse HEAD)" \
+              -f previous_tag_name="$PREVIOUS_TAG" \
+              --jq '.body')
+          else
+            # If no previous tag, generate notes from all commits
+            RELEASE_NOTES=$(gh api repos/:owner/:repo/releases/generate-notes \
+              -f tag_name="${{ inputs.version }}" \
+              -f target_commitish="$(git rev-parse HEAD)" \
+              --jq '.body')
+          fi
+
+          # Save release notes to a file for use in changelog
+          echo "$RELEASE_NOTES" > /tmp/release_notes.md
 
       - name: Update CHANGELOG.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./scripts/update-changelog-from-release.sh "${{ steps.tag_data.outputs.TAG_NAME }}"
+          # Read the generated release notes
+          RELEASE_NOTES=$(cat /tmp/release_notes.md)
+
+          # Update changelog with the generated notes
+          echo "" >> CHANGELOG.md
+          echo "## ${{ inputs.version }}" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "$RELEASE_NOTES" >> CHANGELOG.md
+
+          # Also run your existing changelog script if needed
+          ./scripts/update-changelog-from-release.sh "${{ inputs.version }}"
 
       - name: Commit and push changes
         env:
@@ -81,17 +95,17 @@ jobs:
           fi
 
           # Create a new branch for the changes
-          BRANCH_NAME="release-updates-${{ steps.tag_data.outputs.TAG_NAME }}"
+          BRANCH_NAME="release-updates-${{ inputs.version }}"
           git checkout -b "$BRANCH_NAME"
 
           git add config/manager/kustomization.yaml CHANGELOG.md
-          git commit -m "[skip ci] chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog"
-
+          git commit -m "[skip ci] chore: bump version to ${{ inputs.version }} and update changelog"
           # Push the branch and create PR
+
           git push origin "$BRANCH_NAME"
           PR_URL=$(gh pr create \
-            --title "chore: bump version to ${{ steps.tag_data.outputs.TAG_NAME }} and update changelog" \
-            --body "Automated version bump and changelog update for release ${{ steps.tag_data.outputs.TAG_NAME }}" \
+            --title "chore: bump version to ${{ inputs.version }} and update changelog" \
+            --body "Automated version bump and changelog update for release ${{ inputs.version }}" \
             --head "$BRANCH_NAME" \
             --base main)
 
@@ -99,5 +113,16 @@ jobs:
           PR_NUMBER=$(echo "$PR_URL" | sed 's/.*\/pull\///')
           echo "Created PR #$PR_NUMBER: $PR_URL"
 
-          # Enable auto-merge and merge the PR
-          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
+          # Enable merge the PR
+          gh pr merge "$PR_NUMBER" --squash --delete-branch
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create release with auto-generated notes
+          gh release create "${{ inputs.version }}" \
+            --title "${{ inputs.version }}" \
+            --notes "${{ inputs.tagMessage }}" \
+            --generate-notes \
+            $PRERELEASE

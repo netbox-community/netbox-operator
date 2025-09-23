@@ -13,14 +13,14 @@ fi
 
 echo "Updating CHANGELOG.md for release $TAG_NAME..."
 
-# Get release data from GitHub
-RELEASE_DATA=$(gh release view "$TAG_NAME" --json tagName,publishedAt,body,url)
+# Get release data from file
+RELEASE_NOTES=$(cat /tmp/release_notes.md)
 
-# Extract fields
-TAG=$(echo "$RELEASE_DATA" | jq -r '.tagName')
-DATE=$(echo "$RELEASE_DATA" | jq -r '.publishedAt' | cut -d'T' -f1)
-BODY=$(echo "$RELEASE_DATA" | jq -r '.body')
-URL=$(echo "$RELEASE_DATA" | jq -r '.url')
+# Use current date and tag name from parameter
+TAG="$TAG_NAME"
+DATE=$(date +%Y-%m-%d)
+BODY="$RELEASE_NOTES"
+URL="https://github.com/netbox-community/netbox-operator/releases/tag/$TAG_NAME"
 
 # Validate extracted fields
 if [ -z "$TAG" ] || [ -z "$DATE" ] || [ -z "$URL" ]; then
