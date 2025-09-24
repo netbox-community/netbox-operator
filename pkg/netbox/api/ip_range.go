@@ -57,6 +57,15 @@ func (r *NetboxClient) ReserveOrUpdateIpRange(ipRange *models.IpRange) (*netboxM
 		desiredIpRange.Tenant = &tenantDetails.Id
 	}
 
+	desiredIpRange.Tags = []*netboxModels.NestedTag{}
+	if ipRange.Metadata != nil {
+		var err error
+		desiredIpRange.Tags, err = r.buildWritableTags(ipRange.Metadata.Tags)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// create ip range since it doesn't exist
 	if len(responseIpRange.Payload.Results) == 0 {
 		return r.CreateIpRange(desiredIpRange)
