@@ -44,7 +44,7 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
   "busybox:1.36.1" \
-  "docker.io/bitnami/redis:7.2.4-debian-12-r9" \
+  "docker.io/bitnamilegacy/redis:7.2.4-debian-12-r9" \
   "docker.io/netboxcommunity/netbox:v3.7.8" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
@@ -61,7 +61,7 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
   "busybox:1.36.1" \
-  "docker.io/bitnami/redis:7.4.0-debian-12-r2" \
+  "docker.io/bitnamilegacy/redis:7.4.0-debian-12-r2" \
   "ghcr.io/netbox-community/netbox:v4.0.11" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
@@ -77,7 +77,7 @@ elif [[ "${VERSION}" == "4.1.11" ]] ;then
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
   "busybox:1.37.0" \
-  "docker.io/bitnami/redis:7.4.1-debian-12-r2" \
+  "docker.io/bitnamilegacy/redis:7.4.1-debian-12-r2" \
   "ghcr.io/netbox-community/netbox:v4.1.11" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
@@ -202,7 +202,9 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.requests.memory="512Mi" \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
-  $REGISTRY_ARG
+  --set redis.image.repository="bitnamilegacy/redis" \
+  --set global.security.allowInsecureImages=true
+    $REGISTRY_ARG
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   echo "Creating nginx-unit ConfigMap and patching deployment"
