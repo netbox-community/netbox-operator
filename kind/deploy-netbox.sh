@@ -91,6 +91,16 @@ else
   exit 1
 fi
 
+if $IS_VCLUSTER; then
+  echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
+else
+  echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
+  for img in "${Remote_Images[@]}"; do
+    docker pull "$img"
+    kind load docker-image "$img" --name "${CLUSTER}"
+  done
+fi
+
 # build image for loading local data via NetBox API
 cd "$SCRIPT_DIR/load-data-job"
 
