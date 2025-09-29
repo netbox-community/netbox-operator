@@ -8,7 +8,7 @@ set -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Allow override via environment variable, otherwise fallback to default
-NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.0.2/netbox-7.0.2.tgz"
+NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
 if [[ $# -lt 3 || $# -gt 4 ]]; then
     echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE> [--vcluster]"
@@ -44,12 +44,13 @@ if [[ "${VERSION}" == "3.7.8" ]] ;then
   # need to align with netbox-chart otherwise the creation of the cluster will hang
   declare -a Remote_Images=( \
   "busybox:1.36.1" \
+  "docker.io/bitnamilegacy/redis:7.2.4-debian-12-r9" \
   "docker.io/netboxcommunity/netbox:v3.7.8" \
   "ghcr.io/zalando/postgres-operator:v1.12.2" \
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.0.2/netbox-7.0.2.tgz"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
@@ -66,7 +67,7 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.0.2/netbox-7.0.2.tgz"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
@@ -201,7 +202,9 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.requests.memory="512Mi" \
   --set resources.limits.cpu="2000m" \
   --set resources.limits.memory="2Gi" \
-  $REGISTRY_ARG
+  --set redis.image.repository="bitnamilegacy/redis" \
+  --set global.security.allowInsecureImages=true
+    $REGISTRY_ARG
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   echo "Creating nginx-unit ConfigMap and patching deployment"
