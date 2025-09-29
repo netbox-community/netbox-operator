@@ -9,6 +9,10 @@ on:  # yamllint disable-line rule:truthy
       - main
     tags:
       - v*
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+    branches: [main]
   pull_request:
 env:
   NETBOX_HOST: demo.netbox.dev
