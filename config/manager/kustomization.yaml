@@ -3,7 +3,7 @@ resources:
 
 images:
 - name: controller
-  newName: netbox-operator
-  newTag: v0.2.19
+  newName: ghcr.io/netbox-community/netbox-operator
+  newTag: v0.2.20
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
