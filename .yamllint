@@ -11,6 +11,7 @@ ignore: |
   config/default/*
   config/prometheus/*
   config/network-policy/*
+  kind/job/kustomization.yaml
 rules:
   # anchors: enable
   braces: enable
