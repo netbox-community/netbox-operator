@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.19] - 2025-09-30
+
+<!-- Release notes generated using configuration in .github/release.yml at 504a0c79ab983cb3c9a2e51b1b3c407ceb35f3e7 -->
+
+## What's Changed
+### Contributions
+* Fix: docker image tag after release by @bruelea in https://github.com/netbox-community/netbox-operator/pull/442
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.18...v0.2.19
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.19)
+
+---
+
 ## [v0.2.18] - 2025-09-29
 
 <!-- Release notes generated using configuration in .github/release.yml at 5594054632410970cb4f1709379230fb055fff8d -->
