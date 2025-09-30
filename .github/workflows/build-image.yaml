@@ -17,11 +17,14 @@ env:
 jobs:
   push:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
     permissions:
       packages: write
       contents: read
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493  # v5.0.0
+        with:
+          fetch-tags: true
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -33,6 +36,17 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get tag information
+        id: tag_info
+        run: |
+          LATEST_TAG=$(git tag --points-at HEAD || echo "no-tag")
+
+          # if LATEST_TAG is empty set it to "no-tag"
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="no-tag"
+          fi
+
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
       - name: Generate docker image tag
         id: meta
         uses: docker/metadata-action@v5.8.0
@@ -44,8 +58,8 @@ jobs:
             # (for all commits) generate a tag named sha-[short sha value]
             type=sha,enable=true
             # (for tagged commits only) generate tags identical to the git tag version, with and without the leading v
-            type=semver,pattern={{raw}},enable=${{startsWith(github.ref, 'refs/tags/v')}}
-            type=semver,pattern={{version}},enable=${{startsWith(github.ref, 'refs/tags/v')}}
+            type=semver,pattern={{raw}},enable=${{ steps.tag_info.outputs.latest_tag != 'no-tag' }},value=${{ steps.tag_info.outputs.latest_tag }}
+            type=semver,pattern={{version}},enable=${{ steps.tag_info.outputs.latest_tag != 'no-tag' }},value=${{ steps.tag_info.outputs.latest_tag }}
       - name: Build and push
         uses: docker/build-push-action@v6
         with:

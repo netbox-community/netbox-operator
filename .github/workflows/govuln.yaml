@@ -15,6 +15,7 @@ permissions: read-all
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493  # v5.0.0
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
