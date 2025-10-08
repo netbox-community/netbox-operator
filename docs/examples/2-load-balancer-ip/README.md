@@ -27,12 +27,12 @@ kubectl port-forward deploy/netbox 8080:8080
 
 ### 0.3 Navigate to the example folder
 
-Navigate to 'docs/examples/example2-load-balancer-ip/' to run the examples below
+Navigate to 'docs/examples/2-load-balancer-ip/' to run the examples below
 
 ## Example Steps
 
-0. Install kro and metallb with the installation script `docs/examples/example2-load-balancer-ip/prepare-demo-env.sh`
-Then navigate to 'docs/examples/example2-load-balancer-ip' to follow the steps below.
+0. Install kro and metallb with the installation script `docs/examples/2-load-balancer-ip/prepare-demo-env.sh`
+Then navigate to 'docs/examples/2-load-balancer-ip' to follow the steps below.
 
 1. Inspect the spec of the sample prefix claim CR
 ```bash
