@@ -248,6 +248,7 @@ var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
+	Tags:        []*netboxModels.NestedTag{},
 	Tenant:      &tenantId}
 
 var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
@@ -259,6 +260,7 @@ var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
+	Tags:        []*netboxModels.NestedTag{},
 	Tenant:      &tenantId}
 
 var ExpectedIpAddressUpdateParams = ipam.NewIpamIPAddressesUpdateParams().WithDefaults().
