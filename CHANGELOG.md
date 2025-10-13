@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.22] - 2025-10-13
+
+<!-- Release notes generated using configuration in .github/release.yml at d1ead7430dbf98f11dd91e8d5f9d074c000d8dec -->
+
+## What's Changed
+### Contributions
+* Adding app label to spec.selector by @pablogarciamiranda in https://github.com/netbox-community/netbox-operator/pull/437
+* fix prefixLength regex pattern in prefixclaim by @faebr in https://github.com/netbox-community/netbox-operator/pull/450
+* Bump the go-dependencies group with 11 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/452
+* Bump github/codeql-action from 3 to 4 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/453
+* Bump golang from 1.25.1 to 1.25.2 in the docker group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/451
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.21...v0.2.22
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.22)
+
+---
+
 ## [v0.2.21] - 2025-10-06
 
 <!-- Release notes generated using configuration in .github/release.yml at 2104151728ad29f80c2e737e2609d11b27319aa8 -->
