@@ -32,10 +32,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/multicluster-runtime"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
 const IpRangeClaimFinalizerName = "iprangeclaim.netbox.dev/finalizer"
@@ -48,6 +49,7 @@ type IpRangeClaimReconciler struct {
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
+	Manager             mcmanager.Manager
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=iprangeclaims,verbs=get;list;watch;create;update;patch;delete
@@ -62,8 +64,11 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	logger.Info("reconcile loop started")
 
+	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
+
 	o := &netboxv1.IpRangeClaim{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err = cl.GetClient().Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -77,15 +82,15 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// if being deleted
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
-		err = r.Client.Get(ctx, ipRangeLookupKey, ipRange)
+		err = cl.GetClient().Get(ctx, ipRangeLookupKey, ipRange)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeClaimFinalizerName)
+			return ctrl.Result{}, removeFinalizer(ctx, cl.GetClient(), o, IpRangeClaimFinalizerName)
 		}
 
-		err = r.Client.Delete(ctx, ipRange)
+		err = cl.GetClient().Delete(ctx, ipRange)
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
@@ -102,7 +107,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
-	err = r.Client.Get(ctx, ipRangeLookupKey, ipRange)
+	err = cl.GetClient().Get(ctx, ipRangeLookupKey, ipRange)
 	if err != nil {
 		// return error if not a notfound error
 		if !apierrors.IsNotFound(err) {
@@ -118,17 +123,17 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		// create the IpRange CR
 		ipRangeResource := generateIpRangeFromIpRangeClaim(ctx, o, ipRangeModel.StartAddress, ipRangeModel.EndAddress)
-		err = controllerutil.SetControllerReference(o, ipRangeResource, r.Scheme)
+		err = controllerutil.SetControllerReference(o, ipRangeResource, cl.GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		err = addFinalizer(ctx, r.Client, o, IpRangeClaimFinalizerName)
+		err = addFinalizer(ctx, cl.GetClient(), o, IpRangeClaimFinalizerName)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Create(ctx, ipRangeResource)
+		err = cl.GetClient().Create(ctx, ipRangeResource)
 		if err != nil {
 			errSetCondition := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
 			if errSetCondition != nil {
@@ -147,12 +152,12 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// update spec of IpRange object
 		logger.V(4).Info("update iprange resource")
 		ipRange.Spec = generateIpRangeSpec(o, ipRange.Spec.StartAddress, ipRange.Spec.EndAddress, logger)
-		err = controllerutil.SetControllerReference(o, ipRange, r.Scheme)
+		err = controllerutil.SetControllerReference(o, ipRange, cl.GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Update(ctx, ipRange)
+		err = cl.GetClient().Update(ctx, ipRange)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -177,7 +182,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
-	err = r.Client.Status().Update(ctx, o)
+	err = cl.GetClient().Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

@@ -33,14 +33,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/multicluster-runtime"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/swisscom/leaselocker"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
 const PrefixFinalizerName = "prefix.netbox.dev/finalizer"
@@ -54,6 +55,7 @@ type PrefixReconciler struct {
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
+	Manager             mcmanager.Manager
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=prefixes,verbs=get;list;watch;create;update;patch;delete
@@ -68,9 +70,15 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	logger.Info("reconcile loop started")
 
+	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
+
 	/* 0. check if the matching Prefix object exists */
 	o := &netboxv1.Prefix{}
-	if err := r.Client.Get(ctx, req.NamespacedName, o); err != nil {
+	if err = cl.GetClient().Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -125,7 +133,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	*/
 	ownerReferences := o.ObjectMeta.OwnerReferences
 	var ll *leaselocker.LeaseLocker
-	var err error
 	if len(ownerReferences) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 		// get prefixClaim
 		ownerReferencesLookupKey := types.NamespacedName{
@@ -133,7 +140,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			Namespace: req.Namespace,
 		}
 		prefixClaim := &netboxv1.PrefixClaim{}
-		if err := r.Client.Get(ctx, ownerReferencesLookupKey, prefixClaim); err != nil {
+		if err := cl.GetClient().Get(ctx, ownerReferencesLookupKey, prefixClaim); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -195,7 +202,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			// delete the prefix so it can be recreated by the prefix claim controller
 			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
-			err = r.Client.Delete(ctx, o)
+			err = cl.GetClient().Delete(ctx, o)
 			if err != nil {
 				if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
 					corev1.EventTypeWarning, err); updateStatusErr != nil {
@@ -223,7 +230,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	/* 4. update status fields */
 	o.Status.PrefixId = netboxPrefixModel.ID
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
-	err = r.Client.Status().Update(ctx, o)
+	err = cl.GetClient().Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

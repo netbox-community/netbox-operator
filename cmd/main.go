@@ -35,16 +35,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	ctrl "sigs.k8s.io/multicluster-runtime"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/internal/controller"
 	//+kubebuilder:scaffold:imports
+
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
+	"sigs.k8s.io/multicluster-runtime/providers/kind"
 )
 
 var (
@@ -127,7 +130,8 @@ func main() {
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	provider := kind.New()
+	mgr, err := mcmanager.New(ctrl.GetConfigOrDie(), provider, ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -170,67 +174,55 @@ func main() {
 	}
 
 	if err = (&controller.IpAddressReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-address-controller")),
-		NetboxClient:        netboxClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		Manager:           mgr,
+		RestConfig:        mgr.GetLocalManager().GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IpAddress")
 		os.Exit(1)
 	}
 	if err = (&controller.IpAddressClaimReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-address-claim-controller")),
-		NetboxClient:        netboxClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		Manager:           mgr,
+		RestConfig:        mgr.GetLocalManager().GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IpAddressClaim")
 		os.Exit(1)
 	}
 	if err = (&controller.PrefixReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-controller")),
-		NetboxClient:        netboxClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		Manager:           mgr,
+		RestConfig:        mgr.GetLocalManager().GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Prefix")
 		os.Exit(1)
 	}
 	if err = (&controller.PrefixClaimReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-claim-controller")),
-		NetboxClient:        netboxClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		Manager:           mgr,
+		RestConfig:        mgr.GetLocalManager().GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PrefixClaim")
 		os.Exit(1)
 	}
 	if err = (&controller.IpRangeClaimReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-claim-controller")),
-		NetboxClient:        netboxClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		Manager:           mgr,
+		RestConfig:        mgr.GetLocalManager().GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IpRangeClaim")
 		os.Exit(1)
 	}
 	if err = (&controller.IpRangeReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-controller")),
-		NetboxClient:        netboxClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
+		NetboxClient:      netboxClient,
+		OperatorNamespace: operatorNamespace,
+		Manager:           mgr,
+		RestConfig:        mgr.GetLocalManager().GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IpRange")
 		os.Exit(1)

@@ -97,7 +97,7 @@ else
   echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
   for img in "${Remote_Images[@]}"; do
     docker pull "$img"
-    kind load docker-image "$img" --name "${CLUSTER}"
+    # kind load docker-image "$img" --name "${CLUSTER}"
   done
 fi
 

@@ -36,10 +36,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/multicluster-runtime"
+
+	mcbuilder "sigs.k8s.io/multicluster-runtime/pkg/builder"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
+	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 )
 
 const IpAddressFinalizerName = "ipaddress.netbox.dev/finalizer"
@@ -53,6 +57,7 @@ type IpAddressReconciler struct {
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
+	Manager             mcmanager.Manager
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipaddresses,verbs=get;list;watch;create;update;patch;delete
@@ -61,14 +66,17 @@ type IpAddressReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	debugLogger := logger.V(4)
+
+	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
 
 	logger.Info("reconcile loop started")
 
 	o := &netboxv1.IpAddress{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err = cl.GetClient().Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -79,10 +87,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
 				if err != nil {
-					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
-						return ctrl.Result{}, errReport
-					}
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{Requeue: true}, err
 				}
 			}
 
@@ -130,7 +135,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Namespace: req.Namespace,
 		}
 		ipAddressClaim := &netboxv1.IpAddressClaim{}
-		err = r.Client.Get(ctx, orLookupKey, ipAddressClaim)
+		err = cl.GetClient().Get(ctx, orLookupKey, ipAddressClaim)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -179,7 +184,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// delete the ip address so it can be recreated by the ip address claim controller
 			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
-			err = r.Client.Delete(ctx, o)
+			err = cl.GetClient().Delete(ctx, o)
 			if err != nil {
 				if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpaddressReadyFalse,
 					corev1.EventTypeWarning, err); updateStatusErr != nil {
@@ -208,7 +213,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// 4. update status fields
 	o.Status.IpAddressId = netboxIpAddressModel.ID
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
-	err = r.Client.Status().Update(ctx, o)
+	err = cl.GetClient().Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -253,7 +258,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *IpAddressReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	return mcbuilder.ControllerManagedBy(mgr).
 		For(&netboxv1.IpAddress{}).
 		Complete(r)
 }

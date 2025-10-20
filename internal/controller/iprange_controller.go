@@ -36,10 +36,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/multicluster-runtime"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
 const IpRangeFinalizerName = "iprange.netbox.dev/finalizer"
@@ -53,6 +54,7 @@ type IpRangeReconciler struct {
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
+	Manager             mcmanager.Manager
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipranges,verbs=get;list;watch;create;update;patch;delete
@@ -67,8 +69,11 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	logger.Info("reconcile loop started")
 
+	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-range-controller"))
+
 	o := &netboxv1.IpRange{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err = cl.GetClient().Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -89,7 +94,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 
-		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
+		return ctrl.Result{}, removeFinalizer(ctx, cl.GetClient(), o, IpRangeFinalizerName)
 	}
 
 	// Set ready to false initially
@@ -102,7 +107,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox {
-		err = addFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
+		err = addFinalizer(ctx, cl.GetClient(), o, IpRangeFinalizerName)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -158,7 +163,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			// delete the ip range so it can be recreated by the ip range claim controller
 			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
-			err = r.Client.Delete(ctx, o)
+			err = cl.GetClient().Delete(ctx, o)
 			if err != nil {
 				if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
 					corev1.EventTypeWarning, err); err != nil {
@@ -186,7 +191,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// 4. update status fields
 	o.Status.IpRangeId = netboxIpRangeModel.ID
 	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(netboxIpRangeModel.ID, 10)
-	err = r.Client.Status().Update(ctx, o)
+	err = cl.GetClient().Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -280,7 +285,7 @@ func (r *IpRangeReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *ne
 	}
 
 	ipRangeClaim := &netboxv1.IpRangeClaim{}
-	err := r.Client.Get(ctx, orLookupKey, ipRangeClaim)
+	err := r.Manager.GetLocalManager().GetClient().Get(ctx, orLookupKey, ipRangeClaim)
 	if err != nil {
 		return types.NamespacedName{}, "", "", err
 	}

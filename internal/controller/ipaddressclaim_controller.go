@@ -32,10 +32,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/multicluster-runtime"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
 // IpAddressClaimReconciler reconciles a IpAddressClaim object
@@ -46,6 +47,7 @@ type IpAddressClaimReconciler struct {
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
+	Manager             mcmanager.Manager
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=ipaddressclaims,verbs=get;list;watch;create;update;patch;delete
@@ -59,11 +61,14 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	logger := log.FromContext(ctx)
 	debugLogger := logger.V(4)
 
+	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-addressclaim-controller"))
+
 	logger.Info("reconcile loop started")
 
 	/* 0. check if the matching IpAddressClaim object exists */
 	o := &netboxv1.IpAddressClaim{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err = cl.GetClient().Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -90,7 +95,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Namespace: o.Namespace,
 	}
 
-	err = r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
+	err = cl.GetClient().Get(ctx, ipAddressLookupKey, ipAddress)
 	if err != nil {
 		// return error if not a notfound error
 		if !apierrors.IsNotFound(err) {
@@ -159,12 +164,12 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// 6.a create the IPAddress object
 		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress, logger)
-		err = controllerutil.SetControllerReference(o, ipAddressResource, r.Scheme)
+		err = controllerutil.SetControllerReference(o, ipAddressResource, cl.GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Create(ctx, ipAddressResource)
+		err = cl.GetClient().Create(ctx, ipAddressResource)
 		if err != nil {
 			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
 				return ctrl.Result{}, errReport
@@ -180,19 +185,19 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	} else {
 		// 6.b update fields of IPAddress object
 		debugLogger.Info("update ipaddress resource")
-		err := r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
+		err := cl.GetClient().Get(ctx, ipAddressLookupKey, ipAddress)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
 		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress, logger)
-		_, err = ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
+		_, err = ctrl.CreateOrUpdate(ctx, cl.GetClient(), ipAddress, func() error {
 			// only add the mutable fields here
 			ipAddress.Spec.CustomFields = updatedIpAddressSpec.CustomFields
 			ipAddress.Spec.Comments = updatedIpAddressSpec.Comments
 			ipAddress.Spec.Description = updatedIpAddressSpec.Description
 			ipAddress.Spec.PreserveInNetbox = updatedIpAddressSpec.PreserveInNetbox
-			err = controllerutil.SetControllerReference(o, ipAddress, r.Scheme)
+			err = controllerutil.SetControllerReference(o, ipAddress, cl.GetScheme())
 			if err != nil {
 				return err
 			}

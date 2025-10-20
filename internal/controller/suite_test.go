@@ -26,7 +26,7 @@ import (
 	"runtime"
 	"testing"
 
-	ctrl "sigs.k8s.io/controller-runtime"
+	ctrl "sigs.k8s.io/multicluster-runtime"
 
 	"go.uber.org/mock/gomock"
 
@@ -113,35 +113,33 @@ var _ = BeforeSuite(func() {
 	tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
 	dcimMock = mock_interfaces.NewMockDcimInterface(mockCtrl)
 
-	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
-	Expect(k8sManager.GetConfig()).NotTo(BeNil())
+	k8sManager, err := ctrl.NewManager(cfg, nil, k8sManagerOptions)
+	Expect(k8sManager.GetLocalManager().GetClient()).NotTo(BeNil())
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IpAddressReconciler{
-		Client:              k8sManager.GetClient(),
-		Scheme:              k8sManager.GetScheme(),
-		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-controller")),
+		Client: k8sManager.GetLocalManager().GetClient(),
+		Scheme: k8sManager.GetLocalManager().GetScheme(),
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddress,
 			Tenancy: tenancyMock,
 			Dcim:    dcimMock,
 		},
 		OperatorNamespace: OperatorNamespace,
-		RestConfig:        k8sManager.GetConfig(),
+		RestConfig:        k8sManager.GetLocalManager().GetConfig(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&IpAddressClaimReconciler{
-		Client:              k8sManager.GetClient(),
-		Scheme:              k8sManager.GetScheme(),
-		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-claim-controller")),
+		Client: k8sManager.GetLocalManager().GetClient(),
+		Scheme: k8sManager.GetLocalManager().GetScheme(),
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddressClaim,
 			Tenancy: tenancyMock,
 			Dcim:    dcimMock,
 		},
 		OperatorNamespace: OperatorNamespace,
-		RestConfig:        k8sManager.GetConfig(),
+		RestConfig:        k8sManager.GetLocalManager().GetConfig(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

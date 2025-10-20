@@ -30,13 +30,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	ctrl "sigs.k8s.io/multicluster-runtime"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
+	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
 )
 
 const (
@@ -51,6 +52,7 @@ type PrefixClaimReconciler struct {
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
+	Manager             mcmanager.Manager
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=prefixclaims,verbs=get;list;watch;create;update;patch;delete
@@ -66,9 +68,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	logger.Info("reconcile loop started")
 
+	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
+
 	/* 0. check if the matching PrefixClaim object exists */
 	o := &netboxv1.PrefixClaim{}
-	if err := r.Client.Get(ctx, req.NamespacedName, o); err != nil {
+	if err = cl.GetClient().Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -198,7 +203,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		Name:      prefixName,
 		Namespace: o.Namespace,
 	}
-	if err := r.Client.Get(ctx, prefixLookupKey, prefix); err != nil { // if not nil (likely the Prefix object is not found)
+	if err := cl.GetClient().Get(ctx, prefixLookupKey, prefix); err != nil { // if not nil (likely the Prefix object is not found)
 		/* return error if not a notfound error */
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -288,11 +293,11 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		/* 7.a create the Prefix object */
 		prefixResource := generatePrefixFromPrefixClaim(o, prefixModel.Prefix, logger)
-		err = controllerutil.SetControllerReference(o, prefixResource, r.Scheme)
+		err = controllerutil.SetControllerReference(o, prefixResource, cl.GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		err = r.Client.Create(ctx, prefixResource)
+		err = cl.GetClient().Create(ctx, prefixResource)
 		if err != nil {
 			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
 				return ctrl.Result{}, errReport
@@ -306,19 +311,19 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	} else { // Prefix object exists
 		/* 7.b update fields of the Prefix object */
 		debugLogger.Info("update prefix resource")
-		if err := r.Client.Get(ctx, prefixLookupKey, prefix); err != nil {
+		if err := cl.GetClient().Get(ctx, prefixLookupKey, prefix); err != nil {
 			return ctrl.Result{}, err
 		}
 
 		updatedPrefixSpec := generatePrefixSpec(o, prefix.Spec.Prefix, logger)
-		if _, err = ctrl.CreateOrUpdate(ctx, r.Client, prefix, func() error {
+		if _, err = ctrl.CreateOrUpdate(ctx, cl.GetClient(), prefix, func() error {
 			// only add the mutable fields here
 			prefix.Spec.Site = updatedPrefixSpec.Site
 			prefix.Spec.CustomFields = updatedPrefixSpec.CustomFields
 			prefix.Spec.Description = updatedPrefixSpec.Description
 			prefix.Spec.Comments = updatedPrefixSpec.Comments
 			prefix.Spec.PreserveInNetbox = updatedPrefixSpec.PreserveInNetbox
-			err = controllerutil.SetControllerReference(o, prefix, r.Scheme)
+			err = controllerutil.SetControllerReference(o, prefix, cl.GetScheme())
 			if err != nil {
 				return err
 			}
