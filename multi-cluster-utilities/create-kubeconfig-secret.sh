@@ -1,3 +1,4 @@
+# File copied from https://github.com/kubernetes-sigs/multicluster-runtime/blob/main/examples/kubeconfig/README.md
 #!/bin/bash
 
 # Script to create a kubeconfig secret for the pod lister controller
@@ -44,14 +45,14 @@ function create_rbac {
   local rules_file="$2"
   local role_name="$3"
   local namespace="$4"
-  
+
   if [ ! -f "$rules_file" ]; then
     echo "ERROR: Rules file not found: $rules_file"
     exit 1
   fi
-  
+
   echo "Creating ${role_type} '${role_name}'..."
-  
+
   if [ "$role_type" = "role" ]; then
     # Create Role
     ROLE_YAML=$(cat <<EOF
@@ -64,9 +65,9 @@ rules:
 $(yq '.rules' "$rules_file")
 EOF
 )
-    
+
     echo "$ROLE_YAML" | kubectl --context=${KUBECONFIG_CONTEXT} apply -f -
-    
+
     # Create RoleBinding
     ROLEBINDING_YAML=$(cat <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
@@ -84,9 +85,9 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 )
-    
+
     echo "$ROLEBINDING_YAML" | kubectl --context=${KUBECONFIG_CONTEXT} apply -f -
-    
+
   else
     # Create ClusterRole
     CLUSTERROLE_YAML=$(cat <<EOF
@@ -98,9 +99,9 @@ rules:
 $(yq '.rules' "$rules_file")
 EOF
 )
-    
+
     echo "$CLUSTERROLE_YAML" | kubectl --context=${KUBECONFIG_CONTEXT} apply -f -
-    
+
     # Create ClusterRoleBinding
     CLUSTERROLEBINDING_YAML=$(cat <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
@@ -117,10 +118,10 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 )
-    
+
     echo "$CLUSTERROLEBINDING_YAML" | kubectl --context=${KUBECONFIG_CONTEXT} apply -f -
   fi
-  
+
   echo "$(tr '[:lower:]' '[:upper:]' <<< ${role_type:0:1})${role_type:1} '${role_name}' created successfully!"
 }
 
@@ -128,13 +129,13 @@ EOF
 function ensure_service_account {
   local namespace="$1"
   local service_account="$2"
-  
+
   echo "Checking if service account '${service_account}' exists in namespace '${namespace}'..."
-  
+
   # Check if service account exists
   if ! kubectl --context=${KUBECONFIG_CONTEXT} get serviceaccount ${service_account} -n ${namespace} &>/dev/null; then
     echo "Service account '${service_account}' not found in namespace '${namespace}'. Creating..."
-    
+
     # Create the service account
     SERVICE_ACCOUNT_YAML=$(cat <<EOF
 apiVersion: v1
@@ -144,7 +145,7 @@ metadata:
   namespace: ${namespace}
 EOF
 )
-    
+
     echo "$SERVICE_ACCOUNT_YAML" | kubectl --context=${KUBECONFIG_CONTEXT} apply -f -
     echo "Service account '${service_account}' created successfully in namespace '${namespace}'"
   else
@@ -310,4 +311,4 @@ echo "Creating kubeconfig secret..."
 echo "$SECRET_YAML" | kubectl apply -f -
 
 echo "Secret '${SECRET_NAME}' created in namespace '${NAMESPACE}'"
-echo "The operator should now be able to discover and connect to this cluster" 
+echo "The operator should now be able to discover and connect to this cluster"
