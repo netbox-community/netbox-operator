@@ -83,7 +83,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
 				if err := r.NetboxClient.DeletePrefix(o.Status.PrefixId); err != nil {
@@ -100,7 +100,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				return ctrl.Result{}, errors.New("failed to remove the finalizer")
 			}
 
-			if err := r.Update(ctx, o); err != nil {
+			if err := cl.GetClient().Update(ctx, o); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -121,7 +121,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
 		debugLogger.Info("adding the finalizer")
 		controllerutil.AddFinalizer(o, PrefixFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
+		if err := cl.GetClient().Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -131,7 +131,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			- the prefix is owned by at least 1 prefixClaim
 			- the prefix status condition is not ready
 	*/
-	ownerReferences := o.ObjectMeta.OwnerReferences
+	ownerReferences := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	if len(ownerReferences) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 		// get prefixClaim
@@ -251,7 +251,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// update object to store lastIpAddressMetadata annotation
-	if err := r.Update(ctx, o); err != nil {
+	if err := cl.GetClient().Update(ctx, o); err != nil {
 		return ctrl.Result{}, err
 	}
 

@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,7 +41,6 @@ import (
 // IpAddressClaimReconciler reconciles a IpAddressClaim object
 type IpAddressClaimReconciler struct {
 	client.Client
-	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
@@ -62,6 +60,9 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	debugLogger := logger.V(4)
 
 	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, nil
+	}
 	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-addressclaim-controller"))
 
 	logger.Info("reconcile loop started")
@@ -74,7 +75,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		// end loop if deletion timestamp is not zero
 		return ctrl.Result{}, nil
 	}
@@ -89,7 +90,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// 1. check if matching IpAddress object already exists
 	ipAddress := &netboxv1.IpAddress{}
-	ipAddressName := o.ObjectMeta.Name
+	ipAddressName := o.Name
 	ipAddressLookupKey := types.NamespacedName{
 		Name:      ipAddressName,
 		Namespace: o.Namespace,
@@ -164,7 +165,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// 6.a create the IPAddress object
 		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress, logger)
-		err = controllerutil.SetControllerReference(o, ipAddressResource, cl.GetScheme())
+		err = controllerutil.SetControllerReference(o, ipAddressResource, r.Manager.GetLocalManager().GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -197,7 +198,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			ipAddress.Spec.Comments = updatedIpAddressSpec.Comments
 			ipAddress.Spec.Description = updatedIpAddressSpec.Description
 			ipAddress.Spec.PreserveInNetbox = updatedIpAddressSpec.PreserveInNetbox
-			err = controllerutil.SetControllerReference(o, ipAddress, cl.GetScheme())
+			err = controllerutil.SetControllerReference(o, ipAddress, r.Manager.GetLocalManager().GetScheme())
 			if err != nil {
 				return err
 			}

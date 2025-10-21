@@ -70,6 +70,9 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	logger.Info("reconcile loop started")
 
 	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, nil
+	}
 	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-range-controller"))
 
 	o := &netboxv1.IpRange{}
@@ -79,7 +82,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
@@ -115,7 +118,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 1. try to lock lease of parent prefix if IpRange status condition is not true
 	// and IpRange is owned by an IpRangeClaim
-	or := o.ObjectMeta.OwnerReferences
+	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 
@@ -212,7 +215,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// update object to store lastIpRangeMetadata annotation
-	err = r.Update(ctx, o)
+	err = cl.GetClient().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

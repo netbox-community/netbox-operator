@@ -128,11 +128,12 @@ func (r *NetboxClient) GetAvailablePrefixesByParentPrefixSelector(prefixClaimSpe
 	}
 
 	if family, ok := prefixClaimSpec.ParentPrefixSelector["family"]; ok {
-		if family == "IPv4" {
+		switch family {
+		case "IPv4":
 			family = "4"
-		} else if family == "IPv6" {
+		case "IPv6":
 			family = "6"
-		} else {
+		default:
 			return nil, ErrInvalidIpFamily
 		}
 		fieldEntries["family"] = family

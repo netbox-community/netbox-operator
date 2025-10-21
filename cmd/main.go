@@ -46,8 +46,9 @@ import (
 	"github.com/netbox-community/netbox-operator/internal/controller"
 	//+kubebuilder:scaffold:imports
 
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
-	"sigs.k8s.io/multicluster-runtime/providers/kind"
+	"sigs.k8s.io/multicluster-runtime/providers/kubeconfig"
 )
 
 var (
@@ -130,8 +131,17 @@ func main() {
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
 
-	provider := kind.New()
-	mgr, err := mcmanager.New(ctrl.GetConfigOrDie(), provider, ctrl.Options{
+	providerOpts := kubeconfig.Options{
+		Namespace: "default",
+		ClusterOptions: []cluster.Option{
+			func(clusterOptions *cluster.Options) {
+				clusterOptions.Scheme = scheme
+			},
+		},
+	}
+
+	provider := kubeconfig.New(providerOpts)
+	mgr, err := mcmanager.New(ctrl.GetConfigOrDie(), provider, mcmanager.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -238,8 +248,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	setupLog.Info("setup provider")
+	ctx := ctrl.SetupSignalHandler()
+	err = provider.SetupWithManager(ctx, mgr)
+	if err != nil {
+		setupLog.Error(err, "Unable to setup provider with manager")
+		os.Exit(1)
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

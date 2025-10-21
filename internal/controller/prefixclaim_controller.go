@@ -69,6 +69,9 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	logger.Info("reconcile loop started")
 
 	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, nil
+	}
 	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
 
 	/* 0. check if the matching PrefixClaim object exists */
@@ -78,7 +81,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		// end loop if deletion timestamp is not zero
 		return ctrl.Result{}, nil
 	}
@@ -198,7 +201,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	/* 2. check if the matching Prefix object exists */
 	prefix := &netboxv1.Prefix{}
-	prefixName := o.ObjectMeta.Name
+	prefixName := o.Name
 	prefixLookupKey := types.NamespacedName{
 		Name:      prefixName,
 		Namespace: o.Namespace,
@@ -293,7 +296,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		/* 7.a create the Prefix object */
 		prefixResource := generatePrefixFromPrefixClaim(o, prefixModel.Prefix, logger)
-		err = controllerutil.SetControllerReference(o, prefixResource, cl.GetScheme())
+		err = controllerutil.SetControllerReference(o, prefixResource, r.Scheme)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -323,7 +326,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			prefix.Spec.Description = updatedPrefixSpec.Description
 			prefix.Spec.Comments = updatedPrefixSpec.Comments
 			prefix.Spec.PreserveInNetbox = updatedPrefixSpec.PreserveInNetbox
-			err = controllerutil.SetControllerReference(o, prefix, cl.GetScheme())
+			err = controllerutil.SetControllerReference(o, prefix, r.Scheme)
 			if err != nil {
 				return err
 			}

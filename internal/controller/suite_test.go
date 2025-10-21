@@ -119,7 +119,6 @@ var _ = BeforeSuite(func() {
 
 	err = (&IpAddressReconciler{
 		Client: k8sManager.GetLocalManager().GetClient(),
-		Scheme: k8sManager.GetLocalManager().GetScheme(),
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddress,
 			Tenancy: tenancyMock,
@@ -132,7 +131,6 @@ var _ = BeforeSuite(func() {
 
 	err = (&IpAddressClaimReconciler{
 		Client: k8sManager.GetLocalManager().GetClient(),
-		Scheme: k8sManager.GetLocalManager().GetScheme(),
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddressClaim,
 			Tenancy: tenancyMock,

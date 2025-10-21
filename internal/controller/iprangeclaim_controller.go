@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,7 +43,6 @@ const IpRangeClaimFinalizerName = "iprangeclaim.netbox.dev/finalizer"
 // IpRangeClaimReconciler reconciles a IpRangeClaim object
 type IpRangeClaimReconciler struct {
 	client.Client
-	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
@@ -65,6 +63,9 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	logger.Info("reconcile loop started")
 
 	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, nil
+	}
 	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
 
 	o := &netboxv1.IpRangeClaim{}
@@ -81,7 +82,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		err = cl.GetClient().Get(ctx, ipRangeLookupKey, ipRange)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
@@ -123,7 +124,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		// create the IpRange CR
 		ipRangeResource := generateIpRangeFromIpRangeClaim(ctx, o, ipRangeModel.StartAddress, ipRangeModel.EndAddress)
-		err = controllerutil.SetControllerReference(o, ipRangeResource, cl.GetScheme())
+		err = controllerutil.SetControllerReference(o, ipRangeResource, r.Manager.GetLocalManager().GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -152,7 +153,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// update spec of IpRange object
 		logger.V(4).Info("update iprange resource")
 		ipRange.Spec = generateIpRangeSpec(o, ipRange.Spec.StartAddress, ipRange.Spec.EndAddress, logger)
-		err = controllerutil.SetControllerReference(o, ipRange, cl.GetScheme())
+		err = controllerutil.SetControllerReference(o, ipRange, r.Manager.GetLocalManager().GetScheme())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -213,7 +214,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	}
 
 	claimNSN := types.NamespacedName{
-		Name:      o.ObjectMeta.Name,
+		Name:      o.Name,
 		Namespace: o.Namespace,
 	}
 

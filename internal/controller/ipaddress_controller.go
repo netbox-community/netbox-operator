@@ -71,6 +71,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Req
 	debugLogger := logger.V(4)
 
 	cl, err := r.Manager.GetCluster(ctx, req.ClusterName)
+	if err != nil {
+		return ctrl.Result{}, nil
+	}
 	r.EventStatusRecorder = NewEventStatusRecorder(cl.GetClient(), cl.GetEventRecorderFor("ip-address-controller"))
 
 	logger.Info("reconcile loop started")
@@ -82,7 +85,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Req
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
 				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
@@ -97,7 +100,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Req
 				return ctrl.Result{}, errors.New("failed to remove the finalizer")
 			}
 
-			err = r.Update(ctx, o)
+			err = cl.GetClient().Update(ctx, o)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -111,7 +114,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Req
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
 		debugLogger.Info("adding the finalizer")
 		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
+		if err := cl.GetClient().Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -126,7 +129,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Req
 
 	// 1. try to lock lease of parent prefix if IpAddress status condition is not true
 	// and IpAddress is owned by an IpAddressClaim
-	or := o.ObjectMeta.OwnerReferences
+	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	if len(or) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 		// get ip address claim
@@ -234,7 +237,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req mcreconcile.Req
 	}
 
 	// update object to store lastIpAddressMetadata annotation
-	if err := r.Update(ctx, o); err != nil {
+	if err := cl.GetClient().Update(ctx, o); err != nil {
 		return ctrl.Result{}, err
 	}
 
