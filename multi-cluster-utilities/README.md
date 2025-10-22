@@ -7,7 +7,7 @@ This Readme cover only what is relevant for setting up a `Management cluster` wh
 
 Follow the guide in project's root folder.
 If all the prerequisites are in place, then `make create-kind` creates the cluster which is going to be used for the all the controller's depedencies (netbox backend, databases etc).
-This cluster also contains RBAC for handling the netbox relates CRs, but those RBACs should not be necessary for our example.
+This cluster is also configured with the netbox-operator CRDs but the CRs are hosted and reconciled only in Resource Clusters.
 
 ## 2. Create Resource Clusters
 
@@ -29,8 +29,26 @@ Execute RBAC scripts for kubeconfig provider, towards each cluster you created i
 For each cluster that gets configured as a 'Resource' cluster, a secret is populated in the 'Management' cluster.
 Make sure that the appropriate secrets are populated in the kind-kind cluster, with names `kind-<res-cluster-name>`.
 
-## Limitations
-With the setup described in this README the kubernetes operator can be executed locally, but not in a pod on the managment cluster.
-In order to make it executable from the management cluster:
-- ClusterRole `manager-role` needs to allow reading, listing and watching secrets.
-- The secrets generated from the `create-kubeconfig-secret` needs to point to the correct ip. currently it's pointing a localhost ip.
+## 4-1. Execute manager process locally
+At this point, you should be able to sucesfully start netbox operator process locally after:
+- Establishing a port forward from Management cluster to your host for the Netbox service: `kubectl port-forward deploy/netbox 8080:8080 -n default`
+- Setting environment variable `export NETBOX_HOST=localhost:8080`
+
+## 4-2. Execute manager process on managment cluster
+Deploying the manager in the management cluster involves additional manual steps.
+
+From the project's parent directory, execute `make deploy-kind`
+
+### Patch cluster role of netbox operator manager
+ClusterRole `manager-role` needs to allow reading, listing and watching secrets.
+    - Execute `patch-netbox-clusterrole.sh`
+
+### Update secret in controller cluster
+The secrets generated from the `create-kubeconfig-secret` needs to reffer to the correct ip:port for each resource cluster. Currently it's pointing a localhost ip, which is only reachable from the host machine.
+- Execute script `create-kubeconfig-secret-cluster.sh -c kind-<res-cluster-name> --skip-create-rbac`
+    - This script updates the secret on management cluster, to use the IP of control-plane node of the resource cluster, retrieved from ``docker inspect <resouce-cluster>-control-plane | jq '.[0].NetworkSettings.Networks.kind.IPAddress'``
+    - The port of the K8s API server is assumed to be `6443`. You can check it with `docker inspect <resource-cluster>-control-plane | jq '.[0].NetworkSettings.Ports'`
+
+## 5. Test Reconciliation
+Apply an example CR in resource cluster and check if it's getting reconciled.
+`kubectl --context <resource-cluster> apply -f config/samples/netbox_v1_ipaddress.yaml`
