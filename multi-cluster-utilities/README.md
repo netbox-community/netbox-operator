@@ -1,7 +1,7 @@
 # Multicluster Configuration
 The create-kubeconfig-secret.sh is copied from [multicluster-runtime project](https://github.com/kubernetes-sigs/multicluster-runtime/tree/main), especially, from the `Kubeconfig Provider Example`.
 
-This Readme cover only what is relevant for setting up a `Management cluster` which runs the controller, and `Resource Clusters` which host the Netbox Operator Resources. For more information over the scripts, and how a multicluster setup could be setup with Kubeconfig provider please read [this](https://github.com/kubernetes-sigs/multicluster-runtime/blob/main/examples/kubeconfig/README.md)
+This Readme cover only what is relevant for setting up a `Management cluster` which hosts the kubernetes operator, and `Resource Clusters` which host the Netbox Operator Resources. For more information over the scripts, and how a multicluster setup could be setup with Kubeconfig provider please read [this](https://github.com/kubernetes-sigs/multicluster-runtime/blob/main/examples/kubeconfig/README.md)
 
 ## 1. Create Management Cluster
 
@@ -24,13 +24,13 @@ Set kubectl context back to `management cluster`
 `kubectl config use-context kind-kind`
 
 Execute RBAC scripts for kubeconfig provider, towards each cluster you created in the previous step.
-- `./create-kubeconfig-secret.sh -c <res-cluster-name>`
+- `./create-kubeconfig-secret.sh -c kind-<res-cluster-name>`
 
-For each cluster that gets configures as a 'Resource' cluster, a secret is populated in the 'Management' cluster.
-Make sure that the appropriate secrets are populated in the kind-kind cluster, with names `kind-<resource cluster name>`.
+For each cluster that gets configured as a 'Resource' cluster, a secret is populated in the 'Management' cluster.
+Make sure that the appropriate secrets are populated in the kind-kind cluster, with names `kind-<res-cluster-name>`.
 
 ## Limitations
-Currently the controller could be executed locally, not from the managment cluster.
+With the setup described in this README the kubernetes operator can be executed locally, but not in a pod on the managment cluster.
 In order to make it executable from the management cluster:
 - ClusterRole `manager-role` needs to allow reading, listing and watching secrets.
 - The secrets generated from the `create-kubeconfig-secret` needs to point to the correct ip. currently it's pointing a localhost ip.
