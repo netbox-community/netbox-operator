@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
@@ -376,12 +377,13 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		},
 	}
 
-	t.Run("reserve with tenant and site", func(t *testing.T) {
+	t.Run("reserve with tenant, site, and tags", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+		mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
 
 		//prefix mock output
 		createPrefixOutput := &ipam.IpamPrefixesCreateCreated{
@@ -400,16 +402,37 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
-		mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes()
+		tagByName := "tag-by-name"
+		tagBySlug := "tag-by-slug"
+		resolvedTagByName := &netboxModels.Tag{ID: 1, Name: &tagByName, Slug: &tagBySlug}
+		resolvedTagBySlug := &netboxModels.Tag{ID: 2, Name: &tagByName, Slug: &tagBySlug}
+
+		nameRequest := extras.NewExtrasTagsListParams().WithName(&tagByName)
+		slugRequest := extras.NewExtrasTagsListParams().WithSlug(&tagBySlug)
+
+		gomock.InOrder(
+			mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes(),
+			mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes(),
+			mockExtras.EXPECT().ExtrasTagsList(nameRequest, nil).Return(&extras.ExtrasTagsListOK{Payload: &extras.ExtrasTagsListOKBody{Results: []*netboxModels.Tag{resolvedTagByName}}}, nil),
+			mockExtras.EXPECT().ExtrasTagsList(slugRequest, nil).Return(&extras.ExtrasTagsListOK{Payload: &extras.ExtrasTagsListOKBody{Results: []*netboxModels.Tag{resolvedTagBySlug}}}, nil),
+		)
+
 		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(emptyPrefixListOutput, nil)
-		// use go mock Any as the input parameter contains pointers
-		mockIpam.EXPECT().IpamPrefixesCreate(gomock.Any(), nil).Return(createPrefixOutput, nil)
+		mockIpam.EXPECT().IpamPrefixesCreate(gomock.AssignableToTypeOf(&ipam.IpamPrefixesCreateParams{}), nil).DoAndReturn(
+			func(params *ipam.IpamPrefixesCreateParams, _ interface{}, _ ...ipam.ClientOption) (*ipam.IpamPrefixesCreateCreated, error) {
+				if assert.Len(t, params.Data.Tags, 2) {
+					assert.Equal(t, resolvedTagByName.ID, params.Data.Tags[0].ID)
+					assert.Equal(t, resolvedTagBySlug.ID, params.Data.Tags[1].ID)
+				}
+				return createPrefixOutput, nil
+			},
+		)
 
 		netboxClient := &NetboxClient{
 			Ipam:    mockIpam,
 			Tenancy: mockTenancy,
 			Dcim:    mockDcim,
+			Extras:  mockExtras,
 		}
 
 		prefixModel := models.Prefix{
@@ -420,6 +443,10 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 				Site:        site,
 				Custom:      make(map[string]string),
 				Tenant:      tenant,
+				Tags: []models.Tag{
+					{Name: tagByName},
+					{Slug: tagBySlug},
+				},
 			},
 		}
 
@@ -429,11 +456,12 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("update without tenant and site", func(t *testing.T) {
+	t.Run("update without tenant and site updates tags", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
 
 		prefixListOutput := &ipam.IpamPrefixesListOK{
 			Payload: &ipam.IpamPrefixesListOKBody{
@@ -461,11 +489,25 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		}
 
 		mockIpam.EXPECT().IpamPrefixesList(prefixListRequestInput, nil).Return(prefixListOutput, nil)
-		mockIpam.EXPECT().IpamPrefixesUpdate(gomock.Any(), nil).Return(updatePrefixOutput, nil)
+
+		updatedTagName := "updated-tag"
+		updatedTagSlug := "updated-tag"
+		nameRequest := extras.NewExtrasTagsListParams().WithName(&updatedTagName)
+		mockExtras.EXPECT().ExtrasTagsList(nameRequest, nil).Return(&extras.ExtrasTagsListOK{Payload: &extras.ExtrasTagsListOKBody{Results: []*netboxModels.Tag{{ID: 3, Name: &updatedTagName, Slug: &updatedTagSlug}}}}, nil)
+
+		mockIpam.EXPECT().IpamPrefixesUpdate(gomock.AssignableToTypeOf(&ipam.IpamPrefixesUpdateParams{}), nil).DoAndReturn(
+			func(params *ipam.IpamPrefixesUpdateParams, _ interface{}, _ ...ipam.ClientOption) (*ipam.IpamPrefixesUpdateOK, error) {
+				if assert.Len(t, params.Data.Tags, 1) {
+					assert.Equal(t, int64(3), params.Data.Tags[0].ID)
+				}
+				return updatePrefixOutput, nil
+			},
+		)
 
 		netboxClient := &NetboxClient{
 			Ipam:    mockIpam,
 			Tenancy: mockTenancy,
+			Extras:  mockExtras,
 		}
 
 		prefixModel := models.Prefix{
@@ -473,6 +515,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Metadata: &models.NetboxMetadata{
 				Comments:    comments,
 				Description: description,
+				Tags:        []models.Tag{{Name: updatedTagName}},
 			},
 		}
 

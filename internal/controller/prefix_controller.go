@@ -300,6 +300,7 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 			Description: req.NamespacedName.String() + " // " + spec.Description,
 			Site:        spec.Site,
 			Tenant:      spec.Tenant,
+			Tags:        convertAPITagsToModelTags(spec.Tags),
 		},
 	}, nil
 }
