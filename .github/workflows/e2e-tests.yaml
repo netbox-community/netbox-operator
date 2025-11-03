@@ -3,7 +3,7 @@
 name: e2e-tests
 permissions:
   contents: read
-on:  # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
   push:
     branches:
       - main
@@ -26,10 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run' }}
     steps:
-      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493  # v5.0.0
-      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: 1.25.1
+          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
@@ -40,10 +40,10 @@ jobs:
     name: Against netbox version 4.0.11
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493  # v5.0.0
-      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: 1.25.1
+          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
@@ -54,10 +54,10 @@ jobs:
     name: Against netbox version 4.1.11
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493  # v5.0.0
-      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00  # v6.0.0
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: 1.25.1
+          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
