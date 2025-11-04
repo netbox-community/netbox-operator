@@ -1,4 +1,5 @@
 # File copied from https://github.com/kubernetes-sigs/multicluster-runtime/blob/main/examples/kubeconfig/README.md
+// Modified by Swisscom (Schweiz) AG.
 #!/bin/bash
 
 # Script to create a kubeconfig secret for the pod lister controller
