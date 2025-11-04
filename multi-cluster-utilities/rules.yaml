@@ -1,3 +1,4 @@
+---
 # Rules required for controlled service account to manage NetBox Operator resources
 # Copied from config/rbac/role.yaml
 rules:
