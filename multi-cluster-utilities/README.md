@@ -46,9 +46,9 @@ ClusterRole `manager-role` needs to allow reading, listing and watching secrets.
 ### Update secret in controller cluster
 The secrets generated from the `create-kubeconfig-secret` needs to reffer to the correct ip:port for each resource cluster. Currently it's pointing a localhost ip, which is only reachable from the host machine.
 - Execute script `create-kubeconfig-secret-cluster.sh -c kind-<res-cluster-name> --skip-create-rbac`
-    - This script updates the secret on management cluster, to use the IP of control-plane node of the resource cluster, retrieved from ``docker inspect <resouce-cluster>-control-plane | jq '.[0].NetworkSettings.Networks.kind.IPAddress'``
-    - The port of the K8s API server is assumed to be `6443`. You can check it with `docker inspect <resource-cluster>-control-plane | jq '.[0].NetworkSettings.Ports'`
+    - This script updates the secret on management cluster, to use the IP of control-plane node of the resource cluster, retrieved from ``docker inspect <res-cluster-name>-control-plane | jq '.[0].NetworkSettings.Networks.kind.IPAddress'``
+    - The port of the K8s API server is assumed to be `6443`. You can check it with `docker inspect <res-cluster-name>-control-plane | jq '.[0].NetworkSettings.Ports'`
 
 ## 5. Test Reconciliation
 Apply an example CR in resource cluster and check if it's getting reconciled.
-`kubectl --context <resource-cluster> apply -f config/samples/netbox_v1_ipaddress.yaml`
+`kubectl --context kind-<res-cluster-name> apply -f config/samples/netbox_v1_ipaddress.yaml`
