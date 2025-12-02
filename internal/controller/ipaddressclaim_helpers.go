@@ -55,6 +55,7 @@ func generateIpAddressSpec(claim *netboxv1.IpAddressClaim, ip string, logger log
 	return netboxv1.IpAddressSpec{
 		IpAddress:        ip,
 		Tenant:           claim.Spec.Tenant,
+		Tags:             cloneAPITags(claim.Spec.Tags),
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,
 		Comments:         claim.Spec.Comments,
