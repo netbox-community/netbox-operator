@@ -59,6 +59,7 @@ func generateIpRangeSpec(claim *netboxv1.IpRangeClaim, startIp string, endIp str
 		StartAddress:     startIp,
 		EndAddress:       endIp,
 		Tenant:           claim.Spec.Tenant,
+		Tags:             cloneAPITags(claim.Spec.Tags),
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,
 		Comments:         claim.Spec.Comments,
