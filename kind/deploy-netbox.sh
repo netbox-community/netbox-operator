@@ -204,6 +204,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   --set redis.image.repository="bitnamilegacy/redis" \
   --set global.security.allowInsecureImages=true \
+  --set worker.enabled=false \
     $REGISTRY_ARG
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
