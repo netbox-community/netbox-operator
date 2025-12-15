@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.31] - 2025-12-15
+
+<!-- Release notes generated using configuration in .github/release.yml at 9db56cc87f4a6c0edaa0c693b8992696fa6ccaa5 -->
+
+## What's Changed
+### Contributions
+* Disable NetBox Worker to improve e2e test stability by @jstudler in https://github.com/netbox-community/netbox-operator/pull/482
+* Bump the go-dependencies group across 1 directory with 30 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/484
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.30...v0.2.31
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.31)
+
+---
+
 ## [v0.2.30] - 2025-12-08
 
 <!-- Release notes generated using configuration in .github/release.yml at 3db09448b0512c2ede41ca4ac6394c05e3ea072f -->
