@@ -20,7 +20,7 @@ i=0
 
 # Loop to create the specified number of clusters
 for clustername in "$@"; do
-  config_file="docs/examples/example5-multicluster/cluster-cfg.yaml"
+  config_file="docs/examples/5-multicluster/cluster-cfg.yaml"
   temp_config="tmp/cluster-$clustername-cfg.yaml"
   i=$((i + 1))
 
