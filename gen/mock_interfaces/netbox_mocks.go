@@ -344,6 +344,106 @@ func (mr *MockIpamInterfaceMockRecorder) IpamPrefixesUpdate(params, authInfo any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamInterface)(nil).IpamPrefixesUpdate), varargs...)
 }
 
+// IpamVlanGroupsList mocks base method.
+func (m *MockIpamInterface) IpamVlanGroupsList(params *ipam.IpamVlanGroupsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlanGroupsListOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamVlanGroupsList", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamVlanGroupsListOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamVlanGroupsList indicates an expected call of IpamVlanGroupsList.
+func (mr *MockIpamInterfaceMockRecorder) IpamVlanGroupsList(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlanGroupsList", reflect.TypeOf((*MockIpamInterface)(nil).IpamVlanGroupsList), varargs...)
+}
+
+// IpamVlansCreate mocks base method.
+func (m *MockIpamInterface) IpamVlansCreate(params *ipam.IpamVlansCreateParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansCreateCreated, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamVlansCreate", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamVlansCreateCreated)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamVlansCreate indicates an expected call of IpamVlansCreate.
+func (mr *MockIpamInterfaceMockRecorder) IpamVlansCreate(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansCreate", reflect.TypeOf((*MockIpamInterface)(nil).IpamVlansCreate), varargs...)
+}
+
+// IpamVlansDelete mocks base method.
+func (m *MockIpamInterface) IpamVlansDelete(params *ipam.IpamVlansDeleteParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansDeleteNoContent, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamVlansDelete", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamVlansDeleteNoContent)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamVlansDelete indicates an expected call of IpamVlansDelete.
+func (mr *MockIpamInterfaceMockRecorder) IpamVlansDelete(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansDelete", reflect.TypeOf((*MockIpamInterface)(nil).IpamVlansDelete), varargs...)
+}
+
+// IpamVlansList mocks base method.
+func (m *MockIpamInterface) IpamVlansList(params *ipam.IpamVlansListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansListOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamVlansList", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamVlansListOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamVlansList indicates an expected call of IpamVlansList.
+func (mr *MockIpamInterfaceMockRecorder) IpamVlansList(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansList", reflect.TypeOf((*MockIpamInterface)(nil).IpamVlansList), varargs...)
+}
+
+// IpamVlansUpdate mocks base method.
+func (m *MockIpamInterface) IpamVlansUpdate(params *ipam.IpamVlansUpdateParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansUpdateOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamVlansUpdate", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamVlansUpdateOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamVlansUpdate indicates an expected call of IpamVlansUpdate.
+func (mr *MockIpamInterfaceMockRecorder) IpamVlansUpdate(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansUpdate", reflect.TypeOf((*MockIpamInterface)(nil).IpamVlansUpdate), varargs...)
+}
+
 // MockTenancyInterface is a mock of TenancyInterface interface.
 type MockTenancyInterface struct {
 	ctrl     *gomock.Controller

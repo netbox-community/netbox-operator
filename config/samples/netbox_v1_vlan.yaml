@@ -1,0 +1,11 @@
+apiVersion: netbox.dev/v1
+kind: Vlan
+metadata:
+  name: vlan-sample
+spec:
+  vlanId: 200
+  name: static-vlan-sample
+  site: Site-1
+  vlanGroup: Group-1
+  description: "Static VLAN managed directly by Vlan CR"
+  preserveInNetbox: false

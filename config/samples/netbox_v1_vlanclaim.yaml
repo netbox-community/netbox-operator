@@ -1,0 +1,11 @@
+apiVersion: netbox.dev/v1
+kind: VLANClaim
+metadata:
+  name: vlanclaim-sample
+spec:
+  vlanId: 100
+  name: static-vlan-100
+  site: Site-1
+  vlanGroup: Group-1
+  description: "Sample VLAN Claim managed by NetBox Operator"
+  preserveInNetbox: false

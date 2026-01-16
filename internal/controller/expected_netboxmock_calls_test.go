@@ -20,8 +20,10 @@ import (
 	"fmt"
 
 	"github.com/go-test/deep"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"go.uber.org/mock/gomock"
 )
@@ -264,24 +266,88 @@ func mockTenancyTenancyTenantsList(tenancyMock *mock_interfaces.MockTenancyInter
 		}).MinTimes(1)
 }
 
+func mockVlansListResponse(count int64) *ipam.IpamVlansListOK {
+	return &ipam.IpamVlansListOK{
+		Payload: &ipam.IpamVlansListOKBody{
+			Count:   &count,
+			Results: []*netboxModels.VLAN{},
+		},
+	}
+}
+
+func mockVlanGroupsListResponse(name string, id int64) *ipam.IpamVlanGroupsListOK {
+	return &ipam.IpamVlanGroupsListOK{
+		Payload: &ipam.IpamVlanGroupsListOKBody{
+			Count: &[]int64{1}[0],
+			Results: []*netboxModels.VLANGroup{
+				{
+					ID:   id,
+					Name: &name,
+					Slug: &name,
+				},
+			},
+		},
+	}
+}
+
+func mockSitesListResponse(name string) *dcim.DcimSitesListOK {
+	return &dcim.DcimSitesListOK{
+		Payload: &dcim.DcimSitesListOKBody{
+			Count: &[]int64{1}[0],
+			Results: []*netboxModels.Site{
+				{
+					ID:   1,
+					Name: &name,
+					Slug: &name,
+				},
+			},
+		},
+	}
+}
+
+func mockTenantsListResponse() *tenancy.TenancyTenantsListOK {
+	tenantName := "test-tenant"
+	return &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Count: &[]int64{1}[0],
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   1,
+					Name: &tenantName,
+					Slug: &tenantName,
+				},
+			},
+		},
+	}
+}
+
 // -----------------------------
 // Reset Mock Functions
 // -----------------------------
 
-func resetMockFunctions(ipamMockA *mock_interfaces.MockIpamInterface, ipamMockB *mock_interfaces.MockIpamInterface, tenancyMock *mock_interfaces.MockTenancyInterface) {
-	ipamMockA.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).Times(0)
-	ipamMockA.EXPECT().IpamIPAddressesUpdate(gomock.Any(), gomock.Any(), nil).Times(0)
-	ipamMockA.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).Times(0)
-	ipamMockA.EXPECT().IpamPrefixesAvailableIpsList(gomock.Any(), gomock.Any()).Times(0)
-	ipamMockA.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).Times(0)
-	ipamMockA.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Times(0)
-	ipamMockA.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).Times(0)
-	ipamMockB.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).Times(0)
-	ipamMockB.EXPECT().IpamIPAddressesUpdate(gomock.Any(), gomock.Any(), nil).Times(0)
-	ipamMockB.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).Times(0)
-	ipamMockB.EXPECT().IpamPrefixesAvailableIpsList(gomock.Any(), gomock.Any()).Times(0)
-	ipamMockB.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).Times(0)
-	ipamMockB.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Times(0)
-	ipamMockB.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).Times(0)
-	tenancyMock.EXPECT().TenancyTenantsList(gomock.Any(), nil).Times(0)
+func resetMockFunctions(
+	ipamMockA *mock_interfaces.MockIpamInterface,
+	ipamMockB *mock_interfaces.MockIpamInterface,
+	ipamMockC *mock_interfaces.MockIpamInterface,
+	ipamMockD *mock_interfaces.MockIpamInterface,
+	tenancyMock *mock_interfaces.MockTenancyInterface,
+	dcimMock *mock_interfaces.MockDcimInterface,
+) {
+	mocks := []*mock_interfaces.MockIpamInterface{ipamMockA, ipamMockB, ipamMockC, ipamMockD}
+	for _, m := range mocks {
+		m.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamIPAddressesUpdate(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamPrefixesAvailableIpsList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamIPAddressesDelete(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamIPAddressesUpdate(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamIPAddressesCreate(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamVlansList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamVlansCreate(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamVlansUpdate(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamVlansDelete(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+		m.EXPECT().IpamVlanGroupsList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+	}
+	tenancyMock.EXPECT().TenancyTenantsList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
+	dcimMock.EXPECT().DcimSitesList(gomock.Any(), gomock.Any()).AnyTimes().Return(nil, nil).Times(0)
 }
