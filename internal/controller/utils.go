@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -29,6 +30,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// StatusError wraps an error that should update status conditions.
+// Use NewStatusError to create errors that should be reflected in status.
+type StatusError struct {
+	err error
+}
+
+func (e *StatusError) Error() string {
+	return e.err.Error()
+}
+
+func (e *StatusError) Unwrap() error {
+	return e.err
+}
+
+// NewStatusError creates an error that will update the resource status condition.
+// Use this for errors that should be visible in kubectl describe output.
+func NewStatusError(format string, args ...interface{}) error {
+	return &StatusError{err: fmt.Errorf(format, args...)}
+}
+
+// IsStatusError checks if an error should update status conditions.
+func IsStatusError(err error) bool {
+	var statusErr *StatusError
+	return errors.As(err, &statusErr)
+}
 
 func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
