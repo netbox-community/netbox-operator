@@ -61,13 +61,22 @@ type IpAddressReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 	debugLogger := logger.V(4)
 
 	logger.Info("reconcile loop started")
 
 	o := &netboxv1.IpAddress{}
+
+	defer func() {
+		err := r.UpdateConditions(ctx, o)
+		if err != nil {
+			reconcileErr = errors.Join(reconcileErr, err)
+		}
+		logger.Info("reconcile loop ended")
+	}()
+
 	err := r.Client.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -108,14 +117,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
 		if err := r.Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
-		}
-	}
-
-	// Set ready to false initially
-	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
 		}
 	}
 
@@ -289,4 +290,24 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 			Tenant:      spec.Tenant,
 		},
 	}, nil
+}
+
+func (r *IpAddressReconciler) UpdateConditions(ctx context.Context, o *netboxv1.IpAddress) error {
+	o.Status.ObservedGeneration = o.Generation
+
+	changed := false
+	if o.Status.IpAddressUrl == "" {
+		changed = apismeta.SetStatusCondition(o.Conditions(), netboxv1.ConditionIpaddressReadyFalse)
+	} else if o.Status.SyncState == netboxv1.SyncStateFailed {
+		changed = apismeta.SetStatusCondition(o.Conditions(), netboxv1.ConditionIpaddressReadyFalseUpdateFailed)
+	}
+
+	if changed {
+		err := r.Status().Update(ctx, o)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
