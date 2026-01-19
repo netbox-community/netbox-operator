@@ -265,5 +265,10 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 		}
 	}
 
+	err := r.Status().Update(ctx, claim)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

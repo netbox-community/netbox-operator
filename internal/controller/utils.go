@@ -127,11 +127,6 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 	if conditionChanged {
 		esr.rec.Event(o, eventType, condition.Reason, condition.Message)
 		logger.Info("Condition "+condition.Type+" changed to "+string(condition.Status), "Reason", condition.Reason, "Message", condition.Message)
-
-		err := esr.client.Status().Update(ctx, o)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
