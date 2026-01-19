@@ -78,7 +78,7 @@ type IpAddressStatus struct {
 
 	// Indicates if Sync with the backend was sucessful
 	// If connection to the backend failed but the spec did not change it is set to unkown
-	SyncState SyncState
+	SyncState SyncState `json:"syncState,omitempty"`
 
 	// Generation observed during the last reconciliation
 	ObservedGeneration int64 `json:"observedGeneration"`
@@ -154,7 +154,7 @@ var ConditionIpaddressReadyFalseDeletionFailed = metav1.Condition{
 type SyncState string
 
 const (
-	SyncStatePending   SyncState = "Unknown"
+	SyncStateUnknown   SyncState = "Unknown"
 	SyncStateSucceeded SyncState = "Succeeded"
 	SyncStateFailed    SyncState = "Failed"
 )

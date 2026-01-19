@@ -181,11 +181,22 @@ spec:
                 description: The ID of the resource in NetBox
                 format: int64
                 type: integer
+              observedGeneration:
+                description: Generation observed during the last reconciliation
+                format: int64
+                type: integer
+              syncState:
+                description: |-
+                  Indicates if Sync with the backend was sucessful
+                  If connection to the backend failed but the spec did not change it is set to unkown
+                type: string
               url:
                 description: |-
                   The URL to the resource in the NetBox UI. Note that the base of this
                   URL depends on the runtime config of NetBox Operator
                 type: string
+            required:
+            - observedGeneration
             type: object
         type: object
     served: true
