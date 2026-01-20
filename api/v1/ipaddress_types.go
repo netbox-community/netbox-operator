@@ -76,8 +76,8 @@ type IpAddressStatus struct {
 	// URL depends on the runtime config of NetBox Operator
 	IpAddressUrl string `json:"url,omitempty"`
 
-	// Indicates if Sync with the backend was sucessful
-	// If connection to the backend failed but the spec did not change it is set to unkown
+	// Indicates if Sync with the backend was successful
+	// If connection to the backend failed but the spec did not change it is set to unknmown
 	SyncState SyncState `json:"syncState,omitempty"`
 
 	// Generation observed during the last reconciliation

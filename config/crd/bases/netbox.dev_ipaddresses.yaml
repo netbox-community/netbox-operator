@@ -187,8 +187,8 @@ spec:
                 type: integer
               syncState:
                 description: |-
-                  Indicates if Sync with the backend was sucessful
-                  If connection to the backend failed but the spec did not change it is set to unkown
+                  Indicates if Sync with the backend was successful
+                  If connection to the backend failed but the spec did not change it is set to unknmown
                 type: string
               url:
                 description: |-
