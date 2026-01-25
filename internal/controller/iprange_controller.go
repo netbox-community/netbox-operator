@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	nclient "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
@@ -50,6 +51,7 @@ type IpRangeReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
+	NetboxClientV4      *nclient.APIClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -151,7 +153,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ipRangeModel)
+	netboxIpRangeModel, err := api.ReserveOrUpdateIpRange(ctx, r.NetboxClient, r.NetboxClientV4, ipRangeModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
 			// if there is a restoration hash mismatch and the IpRangeId status field is not set,
@@ -184,8 +186,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// 4. update status fields
-	o.Status.IpRangeId = netboxIpRangeModel.ID
-	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(netboxIpRangeModel.ID, 10)
+	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
+	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
 	err = r.Client.Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err

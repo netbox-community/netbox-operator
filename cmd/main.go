@@ -162,6 +162,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	netboxClientV4, err := api.GetNetboxClientV4()
+	if err != nil {
+		setupLog.Error(err, "failed to initialize netbox client v4")
+		os.Exit(1)
+	}
+
 	// check existence of ENV POD_NAMESPACE
 	operatorNamespace, envVarExists := os.LookupEnv("POD_NAMESPACE")
 	if !envVarExists {
@@ -229,6 +235,7 @@ func main() {
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxClient,
+		NetboxClientV4:      netboxClientV4,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {

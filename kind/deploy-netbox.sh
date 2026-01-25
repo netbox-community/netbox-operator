@@ -50,6 +50,10 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
 elif [[ "${VERSION}" == "4.1.10" ]] ;then
   echo "Using default helm chart and demo data"
 
+elif [[ "${VERSION}" == "4.4.5" ]] ;then
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.6/netbox-7.2.6.tgz"
+  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.5.sql"
+
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -159,6 +163,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   --set redis.image.repository="bitnamilegacy/redis" \
   --set global.security.allowInsecureImages=true \
+  --set image.tag=v${VERSION} \
   --set worker.enabled=false \
     $REGISTRY_ARG
 
