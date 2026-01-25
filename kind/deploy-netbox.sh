@@ -85,6 +85,19 @@ elif [[ "${VERSION}" == "4.1.11" ]] ;then
 
   # create load-data.sh
   cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh
+elif [[ "${VERSION}" == "4.4.5" ]] ;then
+  echo "Using version ${VERSION}"
+  # need to align with netbox-chart otherwise the creation of the cluster will hang
+  # declare -a Remote_Images=( \
+  # "busybox:1.37.0" \
+  # "docker.io/bitnamilegacy/redis:7.4.1-debian-12-r2" \
+  # "ghcr.io/netbox-community/netbox:v4.1.11" \
+  # "ghcr.io/zalando/postgres-operator:v1.12.2" \
+  # "ghcr.io/zalando/spilo-16:3.2-p3" \
+  # )
+
+  # create load-data.sh
+  cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh
 
 else
   echo "Unknown version ${VERSION}"
@@ -204,6 +217,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   --set redis.image.repository="bitnamilegacy/redis" \
   --set global.security.allowInsecureImages=true \
+  --set image.tag=v${VERSION} \
   --set worker.enabled=false \
     $REGISTRY_ARG
 

@@ -653,7 +653,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:1:1::/127",
-        description="chainsaw test ipaddressclaim-ipv4-prefixexhausted",
+        description="chainsaw test ipaddressclaim-ipv6-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
@@ -878,7 +878,7 @@ prefixes = [
     ),
     Prefix(
         prefix="3:2:1::/122",
-        description="chainsaw test iprangeclaim-ipv4-prefixexhausted",
+        description="chainsaw test iprangeclaim-ipv6-prefixexhausted",
         site=None,
         tenant={
             "name": "MY_TENANT",
