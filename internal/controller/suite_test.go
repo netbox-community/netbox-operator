@@ -120,7 +120,7 @@ var _ = BeforeSuite(func() {
 	err = (&IpAddressReconciler{
 		Client:              k8sManager.GetClient(),
 		Scheme:              k8sManager.GetScheme(),
-		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-controller")),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddress,
 			Tenancy: tenancyMock,
@@ -134,7 +134,7 @@ var _ = BeforeSuite(func() {
 	err = (&IpAddressClaimReconciler{
 		Client:              k8sManager.GetClient(),
 		Scheme:              k8sManager.GetScheme(),
-		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-claim-controller")),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient: &api.NetboxClient{
 			Ipam:    ipamMockIpAddressClaim,
 			Tenancy: tenancyMock,
