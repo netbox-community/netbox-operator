@@ -76,6 +76,13 @@ type IpAddressStatus struct {
 	// URL depends on the runtime config of NetBox Operator
 	IpAddressUrl string `json:"url,omitempty"`
 
+	// Indicates if Sync with the backend was successful
+	// If connection to the backend failed but the spec did not change it is set to unknmown
+	SyncState SyncState `json:"syncState,omitempty"`
+
+	// Generation observed during the last reconciliation
+	ObservedGeneration int64 `json:"observedGeneration"`
+
 	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
@@ -130,9 +137,24 @@ var ConditionIpaddressReadyFalse = metav1.Condition{
 	Message: "Failed to reserve IP in NetBox",
 }
 
+var ConditionIpaddressReadyFalseUpdateFailed = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "FailedToUpdateIpInNetbox",
+	Message: "Failed to update IP in NetBox",
+}
+
 var ConditionIpaddressReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
 	Reason:  "FailedToDeleteIpInNetbox",
 	Message: "Failed to delete IP in NetBox",
 }
+
+type SyncState string
+
+const (
+	SyncStateUnknown   SyncState = "Unknown"
+	SyncStateSucceeded SyncState = "Succeeded"
+	SyncStateFailed    SyncState = "Failed"
+)
