@@ -1,0 +1,8 @@
+apiVersion: netbox.dev/v1
+kind: VLANClaim
+metadata:
+  name: vlanclaim-invalid-site
+spec:
+  site: NON-EXISTENT-SITE
+  description: "Invalid site test"
+  preserveInNetbox: false

@@ -1,0 +1,9 @@
+apiVersion: netbox.dev/v1
+kind: VLANClaim
+metadata:
+  name: vlanclaim-dyn-unique
+spec:
+  name: dynamic-vlan-test
+  site: MY_SITE
+  description: "Dynamic VID allocation test"
+  preserveInNetbox: false

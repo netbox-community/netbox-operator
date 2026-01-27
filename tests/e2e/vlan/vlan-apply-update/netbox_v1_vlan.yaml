@@ -1,0 +1,10 @@
+apiVersion: netbox.dev/v1
+kind: Vlan
+metadata:
+  name: vlan-apply-update
+spec:
+  vlanId: 201
+  name: vlan-test-apply-update
+  site: MY_SITE
+  description: "Initial description"
+  preserveInNetbox: false

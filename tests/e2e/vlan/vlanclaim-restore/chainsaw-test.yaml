@@ -1,0 +1,77 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlanclaim-restore
+spec:
+  steps:
+    - name: Apply VlanClaim 1
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim_1.yaml
+    - name: Assert VlanClaim 1 Ready
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-rest-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Delete VlanClaim 1
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              name: vlanclaim-rest-1
+    - name: Apply VlanClaim 2
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim_2.yaml
+    - name: Assert VlanClaim 2 Ready
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-rest-2
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Restore VlanClaim 1
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim_1.yaml
+    - name: Assert VlanClaim 1 Restored
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-rest-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup
+      try:
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-rest-1
+              spec:
+                preserveInNetbox: false
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-rest-2
+              spec:
+                preserveInNetbox: false
+

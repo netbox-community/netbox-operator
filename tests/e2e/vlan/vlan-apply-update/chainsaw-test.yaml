@@ -1,0 +1,39 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlan-apply-update
+spec:
+  steps:
+    - name: Apply Vlan
+      try:
+        - apply:
+            file: netbox_v1_vlan.yaml
+    - name: Assert Vlan Ready
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlan-apply-update
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update Vlan
+      try:
+        - apply:
+            file: netbox_v1_vlan-update.yaml
+    - name: Assert Vlan Updated
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlan-apply-update
+              spec:
+                name: vlan-test-apply-update-modified
+                description: "Updated description"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'

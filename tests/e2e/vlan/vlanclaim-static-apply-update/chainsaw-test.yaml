@@ -1,0 +1,61 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlanclaim-static-apply-update
+spec:
+  steps:
+    - name: Apply static VLANClaim
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim.yaml
+    - name: Assert VLANClaim and Vlan Ready
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-stat-unique
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlanclaim-stat-unique
+              spec:
+                vlanId: 102
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update static VLANClaim
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim-update.yaml
+    - name: Assert VLANClaim and Vlan Updated
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-stat-unique
+              spec:
+                description: "Updated claim description"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlanclaim-stat-unique
+              spec:
+                description: "Updated claim description"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+

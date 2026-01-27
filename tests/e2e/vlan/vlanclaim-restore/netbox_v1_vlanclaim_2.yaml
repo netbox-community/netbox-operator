@@ -1,0 +1,8 @@
+apiVersion: netbox.dev/v1
+kind: VLANClaim
+metadata:
+  name: vlanclaim-rest-2
+spec:
+  site: MY_SITE
+  description: "Restoration unique - Claim 2"
+  preserveInNetbox: true

@@ -45,7 +45,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 
 	AfterEach(func() {
 		By("Resetting the mock controller")
-		resetMockFunctions(ipamMockIpAddress, ipamMockIpAddressClaim, tenancyMock)
+		resetMockFunctions(ipamMockIpAddress, ipamMockIpAddressClaim, ipamMockVlan, ipamMockVlanClaim, tenancyMock, dcimMock)
 	})
 
 	DescribeTable("Reconciler (ip address CR without owner reference)", func(

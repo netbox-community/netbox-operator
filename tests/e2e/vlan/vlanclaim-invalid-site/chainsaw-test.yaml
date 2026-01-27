@@ -1,0 +1,27 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlanclaim-invalid-site
+spec:
+  steps:
+    - name: Apply invalid VLANClaim
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim.yaml
+    - name: Assert VLANClaim Failure status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-invalid-site
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+                    reason: VlanResourceNotReady
+    - name: Cleanup events
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=vlanclaim-invalid-site -n $NAMESPACE

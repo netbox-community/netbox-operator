@@ -34,6 +34,10 @@ func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
 }
 
+func convertVlanGroupToLeaseLockName(vlanGroup string) string {
+	return "vlangroup-" + strings.ReplaceAll(vlanGroup, " ", "-")
+}
+
 func generateManagedCustomFieldsAnnotation(customFields map[string]string) (string, error) {
 	if customFields == nil {
 		customFields = make(map[string]string)

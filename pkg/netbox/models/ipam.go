@@ -70,3 +70,22 @@ type IpRangeClaim struct {
 	Size         int             `json:"size,omitempty"`
 	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
 }
+
+type Vlan struct {
+	VlanId   int             `json:"vlanId,omitempty"`
+	Name     string          `json:"name,omitempty"`
+	Status   string          `json:"status,omitempty"`
+	Metadata *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type VlanGroup struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
+type VLANClaim struct {
+	VlanId    int             `json:"vlanId,omitempty"`
+	VlanGroup string          `json:"vlanGroup,omitempty"`
+	Metadata  *NetboxMetadata `json:"metadata,omitempty"`
+}
