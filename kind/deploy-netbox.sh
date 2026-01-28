@@ -42,15 +42,15 @@ fi
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
-  declare -a Remote_Images=( \
-  "busybox:1.36.1" \
-  "docker.io/bitnamilegacy/redis:7.2.4-debian-12-r9" \
-  "docker.io/netboxcommunity/netbox:v3.7.8" \
-  "ghcr.io/zalando/postgres-operator:v1.12.2" \
-  "ghcr.io/zalando/spilo-16:3.2-p3" \
-  )
+  # declare -a Remote_Images=( \
+  # "busybox:1.36.1" \
+  # "docker.io/bitnamilegacy/redis:7.2.4-debian-12-r9" \
+  # "docker.io/netboxcommunity/netbox:v3.7.8" \
+  # "ghcr.io/zalando/postgres-operator:v1.12.2" \
+  # "ghcr.io/zalando/spilo-16:3.2-p3" \
+  # )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
@@ -67,7 +67,7 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   "ghcr.io/zalando/spilo-16:3.2-p3" \
   )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
 
   # patch load-data.sh
   sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
@@ -75,13 +75,13 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
 elif [[ "${VERSION}" == "4.1.11" ]] ;then
   echo "Using version ${VERSION}"
   # need to align with netbox-chart otherwise the creation of the cluster will hang
-  declare -a Remote_Images=( \
-  "busybox:1.37.0" \
-  "docker.io/bitnamilegacy/redis:7.4.1-debian-12-r2" \
-  "ghcr.io/netbox-community/netbox:v4.1.11" \
-  "ghcr.io/zalando/postgres-operator:v1.12.2" \
-  "ghcr.io/zalando/spilo-16:3.2-p3" \
-  )
+  # declare -a Remote_Images=( \
+  # "busybox:1.37.0" \
+  # "docker.io/bitnamilegacy/redis:7.4.1-debian-12-r2" \
+  # "ghcr.io/netbox-community/netbox:v4.1.11" \
+  # "ghcr.io/zalando/postgres-operator:v1.12.2" \
+  # "ghcr.io/zalando/spilo-16:3.2-p3" \
+  # )
 
   # create load-data.sh
   cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh

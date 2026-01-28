@@ -213,11 +213,17 @@ func getIpRange(ctx context.Context, c *nclient.APIClient, ipRange *models.IpRan
 func createIpRange(ctx context.Context, c *nclient.APIClient, ipRange *nclient.WritableIPRangeRequest) (*nclient.IPRange, error) {
 	req := c.IpamAPI.IpamIpRangesCreate(ctx).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, err := req.Execute()
+
+	if httpResp != nil {
+		defer httpResp.Body.Close()
+	}
+
 	if err != nil {
 		return nil, utils.NetboxError("failed to reserve IP Range", err)
 	}
-	if httpResp.StatusCode != http.StatusOK {
-		return nil, utils.NetboxError("failed to reserve IP Range", errors.New(httpResp.Status))
+
+	if httpResp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("failed to reserve IP Range: unexpected status %d, body: %s", httpResp.StatusCode, httpResp.Body)
 	}
 
 	return resp, nil
@@ -236,7 +242,7 @@ func updateIpRange(ctx context.Context, c *nclient.APIClient, ipRangeId int32, i
 	return resp, nil
 }
 
-func deleteIpRange(ctx context.Context, c *nclient.APIClient, ipRangeId int64) error {
+func DeleteIpRange(ctx context.Context, c *nclient.APIClient, ipRangeId int64) error {
 	req := c.IpamAPI.IpamIpRangesDestroy(ctx, int32(ipRangeId))
 	httpResp, err := req.Execute()
 	if err != nil {

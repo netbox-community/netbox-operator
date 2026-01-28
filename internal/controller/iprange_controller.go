@@ -79,7 +79,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				err := r.NetboxClient.DeleteIpRange(o.Status.IpRangeId)
+				err := api.DeleteIpRange(ctx, r.NetboxClientV4, o.Status.IpRangeId)
 				if err != nil {
 					err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
 						corev1.EventTypeWarning, err)
