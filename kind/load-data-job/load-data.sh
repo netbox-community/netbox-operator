@@ -2,7 +2,7 @@
 set -o errexit
 
 # Allow override of demo SQL file URL
-NETBOX_SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql}"
+NETBOX_SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql}"
 
 TMP_SQL_FILE=$(mktemp /tmp/netbox-data-dump.XXXXXXX.sql) || exit 1
 

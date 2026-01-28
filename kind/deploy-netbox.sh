@@ -41,64 +41,28 @@ fi
 # load remote images
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   echo "Using version ${VERSION}"
-  # need to align with netbox-chart otherwise the creation of the cluster will hang
-  declare -a Remote_Images=( \
-  "busybox:1.36.1" \
-  "docker.io/bitnamilegacy/redis:7.2.4-debian-12-r9" \
-  "docker.io/netboxcommunity/netbox:v3.7.8" \
-  "ghcr.io/zalando/postgres-operator:v1.12.2" \
-  "ghcr.io/zalando/spilo-16:3.2-p3" \
-  )
+
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
 
-  # patch load-data.sh
-  sed 's/netbox-demo-v4.1.sql/netbox-demo-v3.7.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
-
-  # patch dockerfile (See README at https://github.com/netbox-community/pynetbox for the supported version matrix)
+  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v3.7.sql"
 elif [[ "${VERSION}" == "4.0.11" ]] ;then
   echo "Using version ${VERSION}"
-  # need to align with netbox-chart otherwise the creation of the cluster will hang
-  declare -a Remote_Images=( \
-  "busybox:1.36.1" \
-  "docker.io/bitnamilegacy/redis:7.4.0-debian-12-r2" \
-  "ghcr.io/netbox-community/netbox:v4.0.11" \
-  "ghcr.io/zalando/postgres-operator:v1.12.2" \
-  "ghcr.io/zalando/spilo-16:3.2-p3" \
-  )
   # Allow override via environment variable, otherwise fallback to default
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
 
-  # patch load-data.sh
-  sed 's/netbox-demo-v4.1.sql/netbox-demo-v4.0.sql/g' $SCRIPT_DIR/load-data-job/load-data.orig.sh > $SCRIPT_DIR/load-data-job/load-data.sh && chmod +x $SCRIPT_DIR/load-data-job/load-data.sh
-
+  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql"
 elif [[ "${VERSION}" == "4.1.11" ]] ;then
   echo "Using version ${VERSION}"
-  # need to align with netbox-chart otherwise the creation of the cluster will hang
-  declare -a Remote_Images=( \
-  "busybox:1.37.0" \
-  "docker.io/bitnamilegacy/redis:7.4.1-debian-12-r2" \
-  "ghcr.io/netbox-community/netbox:v4.1.11" \
-  "ghcr.io/zalando/postgres-operator:v1.12.2" \
-  "ghcr.io/zalando/spilo-16:3.2-p3" \
-  )
+elif [[ "${VERSION}" == "4.4.5" ]] ;then
+  echo "Using version ${VERSION}"
+  # Allow override via environment variable, otherwise fallback to default
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.6/netbox-7.2.6.tgz"
 
-  # create load-data.sh
-  cp $SCRIPT_DIR/load-data-job/load-data.orig.sh $SCRIPT_DIR/load-data-job/load-data.sh
-
+  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.5.sql"
 else
   echo "Unknown version ${VERSION}"
   exit 1
-fi
-
-if $IS_VCLUSTER; then
-  echo "[Running in vCluster mode] skipping docker pull and kind load for remote images."
-else
-  echo "[Running in Kind mode] pulling and loading remote images into kind cluster..."
-  for img in "${Remote_Images[@]}"; do
-    docker pull "$img"
-    kind load docker-image "$img" --name "${CLUSTER}"
-  done
 fi
 
 # build image for loading local data via NetBox API
@@ -204,6 +168,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set resources.limits.memory="2Gi" \
   --set redis.image.repository="bitnamilegacy/redis" \
   --set global.security.allowInsecureImages=true \
+  --set image.tag=v${VERSION} \
   --set worker.enabled=false \
     $REGISTRY_ARG
 
@@ -237,7 +202,7 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   # Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors
   DEPLOYMENT_NAME="netbox"
   # Get all ReplicaSets in JSON
-  RS_JSON=$(eval "$KUBECTL get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json" | sed '/^{/,$!d')
+  RS_JSON=$(${KUBECTL} get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json | sed '/^{/,$!d')
 
   # Extract the latest one
   LATEST_RS=$(echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" '
@@ -323,6 +288,3 @@ ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=comple
 # Load local data
 ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
 ${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
-
-# clean up
-rm $SCRIPT_DIR/load-data-job/load-data.sh
