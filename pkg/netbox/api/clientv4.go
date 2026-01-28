@@ -57,7 +57,14 @@ func GetNetboxClientV4() (*nclient.APIClient, error) {
 		Timeout: time.Second * time.Duration(RequestTimeout),
 	}
 
+	var desiredRuntimeClientScheme string
+	desiredRuntimeClientScheme = "http"
+	if config.GetOperatorConfig().HttpsEnable {
+		desiredRuntimeClientScheme = "https"
+	}
+
 	cfg := nclient.NewConfiguration()
+	cfg.Scheme = desiredRuntimeClientScheme
 	cfg.Host = config.GetOperatorConfig().NetboxHost
 	cfg.DefaultHeader["Authorization"] = fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken)
 	cfg.HTTPClient = httpClient
