@@ -12,6 +12,14 @@ rules:
   - create
   - patch
 - apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - netbox.dev
   resources:
   - ipaddressclaims
