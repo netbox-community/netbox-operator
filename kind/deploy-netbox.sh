@@ -291,6 +291,9 @@ ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=comple
 # Load local data
 ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
 ${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
+<<<<<<< HEAD
 
 # clean up
 rm $SCRIPT_DIR/job/kustomization.yaml
+=======
+>>>>>>> 17b1771 (fix versions for e2e tests)
