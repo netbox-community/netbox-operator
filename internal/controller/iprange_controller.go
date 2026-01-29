@@ -26,7 +26,6 @@ import (
 	"strings"
 	"time"
 
-	nclient "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
@@ -51,7 +50,7 @@ type IpRangeReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
-	NetboxClientV4      *nclient.APIClient
+	NetboxClientV4      *api.NetboxClientV4
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -79,7 +78,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				err := api.DeleteIpRange(ctx, r.NetboxClientV4, o.Status.IpRangeId)
+				err := r.NetboxClientV4.DeleteIpRange(ctx, o.Status.IpRangeId)
 				if err != nil {
 					err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
 						corev1.EventTypeWarning, err)
@@ -153,7 +152,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	netboxIpRangeModel, err := api.ReserveOrUpdateIpRange(ctx, r.NetboxClient, r.NetboxClientV4, ipRangeModel)
+	netboxIpRangeModel, err := r.NetboxClientV4.ReserveOrUpdateIpRange(ctx, r.NetboxClient, ipRangeModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
 			// if there is a restoration hash mismatch and the IpRangeId status field is not set,

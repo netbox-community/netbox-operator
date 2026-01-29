@@ -17,11 +17,15 @@ limitations under the License.
 package interfaces
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/go-openapi/runtime"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	nclient "github.com/netbox-community/go-netbox/v4"
 )
 
 type IpamInterface interface {
@@ -54,4 +58,38 @@ type ExtrasInterface interface {
 
 type DcimInterface interface {
 	DcimSitesList(params *dcim.DcimSitesListParams, authInfo runtime.ClientAuthInfoWriter, opts ...dcim.ClientOption) (*dcim.DcimSitesListOK, error)
+}
+
+// V4 API Interfaces - Request Objects
+
+// IpamIpRangesListRequest represents the fluent API for listing IP ranges
+type IpamIpRangesListRequest interface {
+	StartAddress(startAddress []string) IpamIpRangesListRequest
+	EndAddress(endAddress []string) IpamIpRangesListRequest
+	Execute() (*nclient.PaginatedIPRangeList, *http.Response, error)
+}
+
+// IpamIpRangesCreateRequest represents the fluent API for creating IP ranges
+type IpamIpRangesCreateRequest interface {
+	WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) IpamIpRangesCreateRequest
+	Execute() (*nclient.IPRange, *http.Response, error)
+}
+
+// IpamIpRangesUpdateRequest represents the fluent API for updating IP ranges
+type IpamIpRangesUpdateRequest interface {
+	WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) IpamIpRangesUpdateRequest
+	Execute() (*nclient.IPRange, *http.Response, error)
+}
+
+// IpamIpRangesDestroyRequest represents the fluent API for deleting IP ranges
+type IpamIpRangesDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
+// IpamV4API represents the v4 API interface for IPAM operations
+type IpamAPI interface {
+	IpamIpRangesList(ctx context.Context) IpamIpRangesListRequest
+	IpamIpRangesCreate(ctx context.Context) IpamIpRangesCreateRequest
+	IpamIpRangesUpdate(ctx context.Context, id int32) IpamIpRangesUpdateRequest
+	IpamIpRangesDestroy(ctx context.Context, id int32) IpamIpRangesDestroyRequest
 }

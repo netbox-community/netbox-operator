@@ -1,0 +1,104 @@
+/*
+Copyright 2024 Swisscom (Schweiz) AG.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package api
+
+import (
+	"context"
+	"net/http"
+
+	nclient "github.com/netbox-community/go-netbox/v4"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
+)
+
+// Adapter implementations for v4 API request objects
+
+// ipamIpRangesListRequestAdapter adapts the v4 list request to the interface
+type ipamIpRangesListRequestAdapter struct {
+	req nclient.ApiIpamIpRangesListRequest
+}
+
+func (a *ipamIpRangesListRequestAdapter) StartAddress(startAddress []string) interfaces.IpamIpRangesListRequest {
+	a.req = a.req.StartAddress(startAddress)
+	return a
+}
+
+func (a *ipamIpRangesListRequestAdapter) EndAddress(endAddress []string) interfaces.IpamIpRangesListRequest {
+	a.req = a.req.EndAddress(endAddress)
+	return a
+}
+
+func (a *ipamIpRangesListRequestAdapter) Execute() (*nclient.PaginatedIPRangeList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamIpRangesCreateRequestAdapter adapts the v4 create request to the interface
+type ipamIpRangesCreateRequestAdapter struct {
+	req nclient.ApiIpamIpRangesCreateRequest
+}
+
+func (a *ipamIpRangesCreateRequestAdapter) WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) interfaces.IpamIpRangesCreateRequest {
+	a.req = a.req.WritableIPRangeRequest(writableIPRangeRequest)
+	return a
+}
+
+func (a *ipamIpRangesCreateRequestAdapter) Execute() (*nclient.IPRange, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamIpRangesUpdateRequestAdapter adapts the v4 update request to the interface
+type ipamIpRangesUpdateRequestAdapter struct {
+	req nclient.ApiIpamIpRangesUpdateRequest
+}
+
+func (a *ipamIpRangesUpdateRequestAdapter) WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) interfaces.IpamIpRangesUpdateRequest {
+	a.req = a.req.WritableIPRangeRequest(writableIPRangeRequest)
+	return a
+}
+
+func (a *ipamIpRangesUpdateRequestAdapter) Execute() (*nclient.IPRange, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamIpRangesDestroyRequestAdapter adapts the v4 destroy request to the interface
+type ipamIpRangesDestroyRequestAdapter struct {
+	req nclient.ApiIpamIpRangesDestroyRequest
+}
+
+func (a *ipamIpRangesDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamV4APIAdapter adapts the v4 IpamAPI to the interface
+type ipamV4APIAdapter struct {
+	api nclient.IpamAPI
+}
+
+func (a *ipamV4APIAdapter) IpamIpRangesList(ctx context.Context) interfaces.IpamIpRangesListRequest {
+	return &ipamIpRangesListRequestAdapter{req: a.api.IpamIpRangesList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamIpRangesCreate(ctx context.Context) interfaces.IpamIpRangesCreateRequest {
+	return &ipamIpRangesCreateRequestAdapter{req: a.api.IpamIpRangesCreate(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamIpRangesUpdate(ctx context.Context, id int32) interfaces.IpamIpRangesUpdateRequest {
+	return &ipamIpRangesUpdateRequestAdapter{req: a.api.IpamIpRangesUpdate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamIpRangesDestroy(ctx context.Context, id int32) interfaces.IpamIpRangesDestroyRequest {
+	return &ipamIpRangesDestroyRequestAdapter{req: a.api.IpamIpRangesDestroy(ctx, id)}
+}

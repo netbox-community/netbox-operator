@@ -25,10 +25,16 @@ import (
 
 	nclient "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/config"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
 	log "github.com/sirupsen/logrus"
 )
 
-func GetNetboxClientV4() (*nclient.APIClient, error) {
+type NetboxClientV4 struct {
+	client  *nclient.APIClient
+	IpamAPI interfaces.IpamAPI
+}
+
+func GetNetboxClientV4() (*NetboxClientV4, error) {
 	logger := log.StandardLogger()
 	logger.Debug(fmt.Sprintf("Initializing netbox client v4 at host %v", config.GetOperatorConfig().NetboxHost))
 
@@ -70,5 +76,8 @@ func GetNetboxClientV4() (*nclient.APIClient, error) {
 	cfg.HTTPClient = httpClient
 	client := nclient.NewAPIClient(cfg)
 
-	return client, nil
+	return &NetboxClientV4{
+		client:  client,
+		IpamAPI: &ipamV4APIAdapter{api: client.IpamAPI},
+	}, nil
 }
