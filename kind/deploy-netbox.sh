@@ -8,7 +8,7 @@ set -e -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Allow override via environment variable, otherwise fallback to default
-NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.169/netbox-5.0.0-beta.169.tgz"
+NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.9/netbox-5.0.9.tgz"
 
 if [[ $# -lt 3 || $# -gt 4 ]]; then
     echo "Usage: $0 <CLUSTER> <VERSION> <NAMESPACE> [--vcluster]"
@@ -40,19 +40,16 @@ fi
 
 # load remote images
 if [[ "${VERSION}" == "3.7.8" ]] ;then
-  echo "Using version ${VERSION}"
-
-  # Allow override via environment variable, otherwise fallback to default
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v3.7.sql"
-elif [[ "${VERSION}" == "4.0.11" ]] ;then
-  echo "Using version ${VERSION}"
 
-  # Allow override via environment variable, otherwise fallback to default
+elif [[ "${VERSION}" == "4.0.11" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql"
-elif [[ "${VERSION}" == "4.1.11" ]] ;then
-  echo "Using version ${VERSION}"
+
+elif [[ "${VERSION}" == "4.1.10" ]] ;then
+  echo "Using default helm chart and demo data"
+
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -164,6 +161,12 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set global.security.allowInsecureImages=true \
   --set worker.enabled=false \
     $REGISTRY_ARG
+
+    # Print the app version of the NetBox helm release
+    # For the helm charts for Netbox v4+ it is printed by the helm install command
+    # but not for the helm chart for v3.7.8
+    echo "NetBox version of the installed helm release:"
+    ${HELM} list -n "${NAMESPACE}" -o json | jq -r '.[] | select(.name=="netbox") | .app_version'
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   echo "Creating nginx-unit ConfigMap and patching deployment"
