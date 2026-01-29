@@ -51,8 +51,9 @@ elif [[ "${VERSION}" == "4.1.10" ]] ;then
   echo "Using default helm chart and demo data"
 
 elif [[ "${VERSION}" == "4.4.5" ]] ;then
-  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.6/netbox-7.2.6.tgz"
-  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.5.sql"
+  # TODO: switch to correct helm chart and demo-data for NetBox v4.4.5
+  # NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.6/netbox-7.2.6.tgz"
+  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql"
 
 else
   echo "Unknown version ${VERSION}"
@@ -149,6 +150,7 @@ if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
 fi
 
 # Install NetBox
+# TODO: Remove overwrite of image tag once the correct helm chart is used for NetBox v4.4.5
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
@@ -294,6 +296,6 @@ ${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
 <<<<<<< HEAD
 
 # clean up
-rm $SCRIPT_DIR/job/kustomization.yaml
+rm $SCRIPT_DIR/kind/job/kustomization.yaml
 =======
 >>>>>>> 17b1771 (fix versions for e2e tests)

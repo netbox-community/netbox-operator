@@ -60,6 +60,7 @@ func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRang
 		StartAddress: *res.StartAddress,
 		EndAddress:   *res.EndAddress,
 		Id:           res.ID,
+		Size:         int32(res.Size),
 	}, nil
 }
 

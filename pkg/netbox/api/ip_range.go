@@ -18,7 +18,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -150,6 +149,7 @@ func ReserveOrUpdateIpRange(ctx context.Context, cLegacy *NetboxClient, c *nclie
 
 	desiredIpRange := nclient.NewWritableIPRangeRequest(ipRange.StartAddress, ipRange.EndAddress)
 	desiredIpRange.SetStatus("active")
+	desiredIpRange.SetMarkPopulated(true)
 
 	if ipRange.Metadata != nil {
 		desiredIpRange.SetComments(ipRange.Metadata.Comments + warningComment)
@@ -198,13 +198,18 @@ func ReserveOrUpdateIpRange(ctx context.Context, cLegacy *NetboxClient, c *nclie
 func getIpRange(ctx context.Context, c *nclient.APIClient, ipRange *models.IpRange) (*nclient.PaginatedIPRangeList, error) {
 	req := c.IpamAPI.IpamIpRangesList(ctx).
 		StartAddress([]string{ipRange.StartAddress}).
-		EndAddress([]string{ipRange.StartAddress})
+		EndAddress([]string{ipRange.EndAddress})
 	resp, httpResp, err := req.Execute()
+
+	if httpResp != nil {
+		defer httpResp.Body.Close()
+	}
+
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch IpRange details", err)
 	}
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, utils.NetboxError("failed to fetch IpRange details", errors.New(httpResp.Status))
+		return nil, fmt.Errorf("failed to fetch IpRange details: unexpected status %d, body: %s", httpResp.StatusCode, httpResp.Body)
 	}
 
 	return resp, err
@@ -232,11 +237,16 @@ func createIpRange(ctx context.Context, c *nclient.APIClient, ipRange *nclient.W
 func updateIpRange(ctx context.Context, c *nclient.APIClient, ipRangeId int32, ipRange *nclient.WritableIPRangeRequest) (*nclient.IPRange, error) {
 	req := c.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, err := req.Execute()
+
+	if httpResp != nil {
+		defer httpResp.Body.Close()
+	}
+
 	if err != nil {
 		return nil, utils.NetboxError("failed to update IP Range", err)
 	}
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, utils.NetboxError("failed to update IP Range", errors.New(httpResp.Status))
+		return nil, fmt.Errorf("failed to update IP Range: unexpected status %d, body: %s", httpResp.StatusCode, httpResp.Body)
 	}
 
 	return resp, nil
@@ -245,11 +255,19 @@ func updateIpRange(ctx context.Context, c *nclient.APIClient, ipRangeId int32, i
 func DeleteIpRange(ctx context.Context, c *nclient.APIClient, ipRangeId int64) error {
 	req := c.IpamAPI.IpamIpRangesDestroy(ctx, int32(ipRangeId))
 	httpResp, err := req.Execute()
+
+	if httpResp != nil {
+		defer httpResp.Body.Close()
+	}
+
 	if err != nil {
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+			return nil
+		}
 		return utils.NetboxError("failed to delete ip range from Netbox", err)
 	}
 	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusNotFound {
-		return utils.NetboxError("failed to delete ip range from Netbox", errors.New(httpResp.Status))
+		return fmt.Errorf("failed to delete ip range from Netbox: unexpected status %d, body: %s", httpResp.StatusCode, httpResp.Body)
 	}
 
 	return nil

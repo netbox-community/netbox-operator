@@ -302,16 +302,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 		logger.V(4).Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	} else {
 		// reassign reserved ip range from netbox
-
-		// check if the restored ip range has the size requested by the claim
-		availableIpRanges, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRangeModel.Id)
-		if err != nil {
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, err, "failed getting available IP Addresses By Range"); errReport != nil {
-				return nil, ctrl.Result{}, errReport
-			}
-			return nil, ctrl.Result{}, err
-		}
-		if len(availableIpRanges.Payload) != o.Spec.Size {
+		if int(ipRangeModel.Size) != o.Spec.Size {
 			ll.Unlock()
 			err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMismatch, corev1.EventTypeWarning, err)
 			if err != nil {
