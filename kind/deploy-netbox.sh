@@ -162,11 +162,13 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set worker.enabled=false \
     $REGISTRY_ARG
 
+if [[ "${VERSION}" == "3.7.8" ]] ;then
     # Print the app version of the NetBox helm release
     # For the helm charts for Netbox v4+ it is printed by the helm install command
     # but not for the helm chart for v3.7.8
     echo "NetBox version of the installed helm release:"
     ${HELM} list -n "${NAMESPACE}" -o json | jq -r '.[] | select(.name=="netbox") | .app_version'
+fi
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   echo "Creating nginx-unit ConfigMap and patching deployment"
