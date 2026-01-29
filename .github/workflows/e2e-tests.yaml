@@ -50,8 +50,8 @@ jobs:
       - name: Run e2e tests
         run: |
           make test-e2e-4.0.11
-  e2e-tests-4-1-11:
-    name: Against netbox version 4.1.11
+  e2e-tests-4-1-10:
+    name: Against netbox version 4.1.10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.0
@@ -63,4 +63,4 @@ jobs:
           cat ".github/env" >> "$GITHUB_ENV"
       - name: Run e2e tests
         run: |-
-          make test-e2e-4.1.11
+          make test-e2e-4.1.10
