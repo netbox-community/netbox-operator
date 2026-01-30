@@ -295,4 +295,4 @@ ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
 ${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
 
 # clean up
-rm $SCRIPT_DIR/kind/job/kustomization.yaml
+rm $SCRIPT_DIR/job/kustomization.yaml
