@@ -80,10 +80,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 	}
 
 	/* 1. compute and assign the parent prefix if required */
@@ -95,9 +92,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			// set status, and condition field
 			msg := fmt.Sprintf("parentPrefix is provided in CR: %v", o.Status.SelectedParentPrefix)
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedTrue, corev1.EventTypeNormal, nil, msg); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
+			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedTrue, corev1.EventTypeNormal, nil, msg)
 		} else if len(o.Spec.ParentPrefixSelector) > 0 {
 			// we first check if a prefix can be restored from the netbox
 
@@ -106,9 +101,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			h := generatePrefixRestorationHash(o)
 			canBeRestored, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.Spec.PrefixLength)
 			if err != nil {
-				if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("failed to look up prefix by hash: %w", err)); errReport != nil {
-					return ctrl.Result{}, errReport
-				}
+				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("failed to look up prefix by hash: %w", err))
 
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -144,9 +137,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// we write a special string in the ParentPrefix status field indicating the situation
 				o.Status.SelectedParentPrefix = msgCanNotInferParentPrefix
 
-				if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedTrue, corev1.EventTypeNormal, nil, msgCanNotInferParentPrefix); errReport != nil {
-					return ctrl.Result{}, errReport
-				}
+				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedTrue, corev1.EventTypeNormal, nil, msgCanNotInferParentPrefix)
 			} else {
 				// No, so we need to select one parent prefix from prefix candidates
 
@@ -157,17 +148,13 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(&o.Spec)
 				if err != nil {
 					r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+err.Error())
-					if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); err != nil {
-						return ctrl.Result{}, err
-					}
+					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
 					return ctrl.Result{Requeue: true}, nil
 				}
 				if len(parentPrefixCandidates) == 0 {
 					message := "no parent prefix found matching the parentPrefixSelector"
 					r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+message)
-					if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, errors.New(message)); err != nil {
-						return ctrl.Result{}, err
-					}
+					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, errors.New(message))
 					// we requeue as this might be a temporary prefix exhausation
 					return ctrl.Result{Requeue: true}, nil
 				}
@@ -178,15 +165,11 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 				// set status, and condition field
 				msg := fmt.Sprintf("parentPrefix is selected: %v", o.Status.SelectedParentPrefix)
-				if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedTrue, corev1.EventTypeNormal, nil, msg); errReport != nil {
-					return ctrl.Result{}, errReport
-				}
+				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedTrue, corev1.EventTypeNormal, nil, msg)
 			}
 		} else {
 			// this case should not be triggered anymore, as we have validation rules put in place on the CR
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "either ParentPrefixSelector or ParentPrefix needs to be set")); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
+			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionParentPrefixSelectedFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "either ParentPrefixSelector or ParentPrefix needs to be set"))
 			return ctrl.Result{}, nil
 		}
 	}
@@ -241,9 +224,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		h := generatePrefixRestorationHash(o)
 		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.Spec.PrefixLength)
 		if err != nil {
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
+			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
 			return ctrl.Result{Requeue: true}, nil
 		}
 
@@ -263,9 +244,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				})
 			if err != nil {
 				if errors.Is(err, api.ErrParentPrefixExhausted) {
-					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, fmt.Errorf("%w, will restart the parent prefix selection process", err)); errReport != nil {
-						return ctrl.Result{}, errReport
-					}
+					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, fmt.Errorf("%w, will restart the parent prefix selection process", err))
 
 					// we reset the selected parent prefix, since this one is already exhausted
 					o.Status.SelectedParentPrefix = ""
@@ -273,9 +252,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					return ctrl.Result{Requeue: true}, nil
 				}
 
-				if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
-					return ctrl.Result{}, errReport
-				}
+				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
 				return ctrl.Result{Requeue: true}, nil
 			}
 			debugLogger.Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
@@ -294,15 +271,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		err = r.Client.Create(ctx, prefixResource)
 		if err != nil {
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
+			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
 			return ctrl.Result{}, err
 		}
 
-		if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedTrue, corev1.EventTypeNormal, nil); err != nil {
-			return ctrl.Result{}, err
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedTrue, corev1.EventTypeNormal, nil)
+
 	} else { // Prefix object exists
 		/* 7.b update fields of the Prefix object */
 		debugLogger.Info("update prefix resource")
@@ -335,15 +309,11 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		o.Status.Prefix = prefix.Spec.Prefix
 		o.Status.PrefixName = prefix.Name
 
-		if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixClaimReadyTrue, corev1.EventTypeNormal, nil); errReport != nil {
-			return ctrl.Result{}, errReport
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixClaimReadyTrue, corev1.EventTypeNormal, nil)
 	} else {
 		debugLogger.Info("prefix status ready false")
 
-		if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, nil); errReport != nil {
-			return ctrl.Result{}, errReport
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, nil)
 		return ctrl.Result{Requeue: true}, nil
 	}
 

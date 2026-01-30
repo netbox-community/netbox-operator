@@ -207,7 +207,7 @@ func (r *IpAddressClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// updateStatus updates the IpAddressClaim status based on the current state of the owned IpAddress.
+// Status updates the IpAddressClaim status based on the current state of the owned IpAddress.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
 // It captures any reconcile errors to include them in the status condition message.
 func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpAddressClaim, lookupKey types.NamespacedName, reconcileErr error, debugLogger logr.Logger) error {
@@ -215,9 +215,7 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 
 	// Initialize status conditions if this is a new resource
 	if apismeta.FindStatusCondition(claim.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		if err := r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil); err != nil {
-			return fmt.Errorf("failed to initialise Ready condition: %w", err)
-		}
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 	}
 
 	// Fetch the latest IpAddress object
@@ -228,9 +226,7 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 			if reconcileErr != nil {
 				// If we have an error and no IpAddress, it means IP assignment failed
 				debugLogger.Info("ipaddress not found with reconcile error, reporting IpAssigned false")
-				if err := r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reconcileErr); err != nil {
-					return fmt.Errorf("failed to report IpAssigned false condition: %w", err)
-				}
+				r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reconcileErr)
 			} else {
 				// No error and no IpAddress - this shouldn't happen in normal flow, skip update
 				debugLogger.Info("ipaddress not found without error, skipping status update")
@@ -242,27 +238,20 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 
 	// IpAddress exists - report successful IP assignment if not already reported
 	if apismeta.FindStatusCondition(claim.Status.Conditions, netboxv1.ConditionIpAssignedTrue.Type) == nil {
-		if err := r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, nil); err != nil {
-			return fmt.Errorf("failed to report IpAssigned condition: %w", err)
-		}
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, nil)
 	}
-
 	// Update status based on IpAddress readiness
 	if apismeta.IsStatusConditionTrue(ipAddress.Status.Conditions, "Ready") {
 		debugLogger.Info("ipaddress status ready true")
 		claim.Status.IpAddress = ipAddress.Spec.IpAddress
 		claim.Status.IpAddressDotDecimal = strings.Split(ipAddress.Spec.IpAddress, "/")[0]
 		claim.Status.IpAddressName = ipAddress.Name
-		if err := r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyTrue, corev1.EventTypeNormal, nil); err != nil {
-			return fmt.Errorf("failed to report IpClaimReady true condition: %w", err)
-		}
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyTrue, corev1.EventTypeNormal, nil)
 	} else {
 		debugLogger.Info("ipaddress status ready false")
 		// Pass any reconcile error to the status condition
 		// StatusErrors are user-facing, regular errors indicate transient/system issues
-		if err := r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, reconcileErr); err != nil {
-			return fmt.Errorf("failed to report IpClaimReady false condition: %w", err)
-		}
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
 	}
 
 	err := r.Status().Update(ctx, claim)

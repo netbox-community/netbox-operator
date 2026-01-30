@@ -112,7 +112,7 @@ func NewEventStatusRecorder(client client.Client, rec record.EventRecorder) *Eve
 	}
 }
 
-func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditions, condition metav1.Condition, eventType string, errExt error, additionalMessages ...string) error {
+func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditions, condition metav1.Condition, eventType string, errExt error, additionalMessages ...string) {
 	logger := log.FromContext(ctx)
 
 	if errExt != nil {
@@ -128,8 +128,6 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 		esr.rec.Event(o, eventType, condition.Reason, condition.Message)
 		logger.Info("Condition "+condition.Type+" changed to "+string(condition.Status), "Reason", condition.Reason, "Message", condition.Message)
 	}
-
-	return nil
 }
 
 func (esr *EventStatusRecorder) Recorder() record.EventRecorder {

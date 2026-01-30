@@ -283,30 +283,18 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 func (r *IpAddressReconciler) UpdateConditions(ctx context.Context, o *netboxv1.IpAddress, msg string) error {
 	if o.DeletionTimestamp.IsZero() {
 		if o.Status.IpAddressUrl == "" {
-			err := r.EventStatusRecorder.Report(ctx, o,
+			r.EventStatusRecorder.Report(ctx, o,
 				netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
-			if err != nil {
-				return err
-			}
 		} else if o.Status.SyncState == netboxv1.SyncStateFailed {
-			err := r.EventStatusRecorder.Report(ctx, o,
+			r.EventStatusRecorder.Report(ctx, o,
 				netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
-			if err != nil {
-				return err
-			}
 		} else {
-			err := r.EventStatusRecorder.Report(ctx, o,
+			r.EventStatusRecorder.Report(ctx, o,
 				netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil, msg)
-			if err != nil {
-				return err
-			}
 		}
 	} else {
-		err := r.EventStatusRecorder.Report(ctx, o,
+		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil, msg)
-		if err != nil {
-			return err
-		}
 	}
 
 	err := r.Status().Update(ctx, o)
