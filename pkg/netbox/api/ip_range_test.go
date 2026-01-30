@@ -31,22 +31,23 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+const (
+	IpRangeId = int32(4)
+)
+
 func TestIpRange(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
-	mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
-	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
 	startAddress := "10.0.0.1"
 	endAddress := "10.0.0.10"
 	tenantId := int64(2)
 	tenantName := "Tenant1"
-	id := 1
 	Label := "Status"
 	Value := "active"
 	comment := Comments
 	description := Description
+	markPopulatedTrue := true
 
 	expectedTenant := nclient.NewBriefTenant(int32(tenantId), "", "", tenantName, "")
 	expectedStatus := nclient.NewIPRangeStatus()
@@ -57,17 +58,19 @@ func TestIpRange(t *testing.T) {
 	expectedIPRange := func() nclient.IPRange {
 		return nclient.IPRange{
 
-			Id:           int32(id),
-			StartAddress: startAddress,
-			EndAddress:   endAddress,
-			Comments:     &comment,
-			Description:  &description,
-			Tenant:       *nclient.NewNullableBriefTenant(expectedTenant),
-			Status:       expectedStatus,
+			Id:            IpRangeId,
+			StartAddress:  startAddress,
+			EndAddress:    endAddress,
+			Comments:      &comment,
+			Description:   &description,
+			Tenant:        *nclient.NewNullableBriefTenant(expectedTenant),
+			Status:        expectedStatus,
+			MarkPopulated: &markPopulatedTrue,
 		}
 	}
 
 	t.Run("Retrieve Existing IP Range.", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		// Setup expectations
 		mockIpamAPI.EXPECT().
@@ -109,14 +112,14 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().Tenant.Get().Id, actual.Results[0].Tenant.Get().Id)
 		assert.Equal(t, expectedIPRange().Tenant.Get().Name, actual.Results[0].Tenant.Get().Name)
 		assert.Equal(t, expectedIPRange().Tenant.Get().Slug, actual.Results[0].Tenant.Get().Slug)
+		assert.Equal(t, expectedIPRange().MarkPopulated, actual.Results[0].MarkPopulated)
 	})
 
 	t.Run("ReserveOrUpdate, reserve new ip range", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockCreateRequest := mock_interfaces.NewMockIpamIpRangesCreateRequest(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
-
-		startAddress := "10.0.0.1"
-		endAddress := "10.0.0.10"
 
 		// Setup expectations
 		mockIpamAPI.EXPECT().
@@ -146,9 +149,13 @@ func TestIpRange(t *testing.T) {
 
 		// Create expected response
 		expectedResp := &nclient.IPRange{
-			Id:           1,
-			StartAddress: startAddress,
-			EndAddress:   endAddress,
+			Id:            IpRangeId,
+			StartAddress:  startAddress,
+			EndAddress:    endAddress,
+			Comments:      &comment,
+			Description:   &description,
+			MarkPopulated: &markPopulatedTrue,
+			Tenant:        expectedIPRange().Tenant,
 		}
 
 		mockCreateRequest.EXPECT().
@@ -183,7 +190,7 @@ func TestIpRange(t *testing.T) {
 		ipRangeRequest.SetStatus("active")
 
 		// Test
-		result, err := client.ReserveOrUpdateIpRange(context.TODO(),
+		actual, err := client.ReserveOrUpdateIpRange(context.TODO(),
 			legacyClient,
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -195,14 +202,21 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, int32(1), result.Id)
-		assert.Equal(t, startAddress, result.StartAddress)
-		assert.Equal(t, endAddress, result.EndAddress)
+		assert.NotNil(t, actual)
+		assert.Equal(t, IpRangeId, actual.Id)
+		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
+		assert.Equal(t, expectedIPRange().Description, actual.Description)
+		assert.Equal(t, startAddress, actual.StartAddress)
+		assert.Equal(t, endAddress, actual.EndAddress)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Id, actual.Tenant.Get().Id)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Name, actual.Tenant.Get().Name)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Slug, actual.Tenant.Get().Slug)
+		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
 	t.Run("ReserveOrUpdate, restoration hash mismatch", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().
@@ -263,6 +277,7 @@ func TestIpRange(t *testing.T) {
 
 	t.Run("ReserveOrUpdate, update existing ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
 
@@ -299,10 +314,11 @@ func TestIpRange(t *testing.T) {
 			Execute().
 			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{
 				{
-					Id:           ipRangeId,
-					CustomFields: map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
-					Comments:     &comment,
-					Description:  &description,
+					Id:            ipRangeId,
+					CustomFields:  map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
+					Comments:      &comment,
+					Description:   &description,
+					MarkPopulated: &markPopulatedTrue,
 				},
 			}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
@@ -317,12 +333,13 @@ func TestIpRange(t *testing.T) {
 
 		// Create expected response
 		expectedResp := &nclient.IPRange{
-			Id:           ipRangeId,
-			StartAddress: startAddress,
-			EndAddress:   endAddress,
-			Comments:     &comment,
-			Description:  &description,
-			Tenant:       *nclient.NewNullableBriefTenant(expectedTenant),
+			Id:            ipRangeId,
+			StartAddress:  startAddress,
+			EndAddress:    endAddress,
+			Comments:      &comment,
+			Description:   &description,
+			Tenant:        *nclient.NewNullableBriefTenant(expectedTenant),
+			MarkPopulated: &markPopulatedTrue,
 		}
 
 		mockUpdateRequest.EXPECT().
@@ -352,13 +369,14 @@ func TestIpRange(t *testing.T) {
 		// Assert
 		AssertNil(t, err)
 		assert.Equal(t, ipRangeId, actual.Id)
-		assert.Equal(t, &comment, actual.Comments)
-		assert.Equal(t, &description, actual.Description)
-		assert.Equal(t, startAddress, actual.StartAddress)
-		assert.Equal(t, endAddress, actual.EndAddress)
-		assert.Equal(t, expectedTenant.Id, actual.Tenant.Get().Id)
-		assert.Equal(t, expectedTenant.Name, actual.Tenant.Get().Name)
-		assert.Equal(t, expectedTenant.Slug, actual.Tenant.Get().Slug)
+		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
+		assert.Equal(t, expectedIPRange().Description, actual.Description)
+		assert.Equal(t, expectedIPRange().StartAddress, actual.StartAddress)
+		assert.Equal(t, expectedIPRange().EndAddress, actual.EndAddress)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Id, actual.Tenant.Get().Id)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Name, actual.Tenant.Get().Name)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Slug, actual.Tenant.Get().Slug)
+		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
 	t.Run("Delete ip range", func(t *testing.T) {
