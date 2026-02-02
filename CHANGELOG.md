@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.36] - 2026-02-02
+
+<!-- Release notes generated using configuration in .github/release.yml at 4b9307191ed2f58c555ba48d582c68305d64376f -->
+
+## What's Changed
+### Contributions
+* fix versions in e2e tests by @bruelea in https://github.com/netbox-community/netbox-operator/pull/508
+* only print app version for v3.7.8 by @bruelea in https://github.com/netbox-community/netbox-operator/pull/509
+* Build(deps): bump the go-dependencies group with 11 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/510
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.35...v0.2.36
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.36)
+
+---
+
 ## [v0.2.35] - 2026-01-26
 
 <!-- Release notes generated using configuration in .github/release.yml at 45cfbf1fdfc7873261183537b46cb40974bf28e8 -->
