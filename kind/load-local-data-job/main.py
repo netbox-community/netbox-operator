@@ -199,16 +199,22 @@ print("Custom fields loaded")
 class Prefix:
     prefix: str
     site: dict
+    scope_id: int
+    scope_type: str
     tenant: dict
     status: str
     custom_fields: dict
     description: str
+
+scopeId = nb.dcim.sites.get(name="MY_SITE").id
 
 prefixes = [
     Prefix(
         prefix="2.0.0.0/16",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "Dunder-Mifflin, Inc.",
             "slug": "dunder-mifflin",
@@ -225,6 +231,8 @@ prefixes = [
         prefix="2.0.1.0/24",
         description="chainsaw test prefixclaim-ipv4-prefixexhausted",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -236,6 +244,8 @@ prefixes = [
         prefix="2.0.2.0/24",
         description="chainsaw test prefixclaim-ipv4-apply",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -247,6 +257,8 @@ prefixes = [
         prefix="2.0.3.0/24",
         description="chainsaw test prefixclaim-ipv4-parentprefixselector-restore",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -258,6 +270,8 @@ prefixes = [
         prefix="3.0.0.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -281,6 +295,8 @@ prefixes = [
                 "slug": "my_tenant",
             },
         },
+        scope_id=scopeId,
+        scope_type="dcim.site",
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -297,6 +313,8 @@ prefixes = [
         prefix="3.0.2.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -313,6 +331,8 @@ prefixes = [
         prefix="3.0.3.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -336,6 +356,8 @@ prefixes = [
                 "slug": "my_tenant",
             },
         },
+        scope_id=scopeId,
+        scope_type="dcim.site",
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -352,6 +374,8 @@ prefixes = [
         prefix="3.0.5.0/24",
         description="chainsaw test prefixclaim-ipv4-update-ownerreference",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -368,6 +392,8 @@ prefixes = [
         prefix="3.0.6.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -391,6 +417,8 @@ prefixes = [
                 "slug": "my_tenant",
             },
         },
+        scope_id=scopeId,
+        scope_type="dcim.site",
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -407,6 +435,8 @@ prefixes = [
         prefix="3.0.8.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -423,6 +453,8 @@ prefixes = [
         prefix="2::/64",
         description="chainsaw test prefixclaim-ipv6-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -446,6 +478,8 @@ prefixes = [
                 "slug": "my_tenant",
             },
         },
+        scope_id=scopeId,
+        scope_type="dcim.site",
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -462,6 +496,8 @@ prefixes = [
         prefix="2:0:0:2::/64",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -479,6 +515,8 @@ prefixes = [
         prefix="3.1.0.0/24",
         description="chainsaw test ipaddressclaim-ipv4-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -495,6 +533,8 @@ prefixes = [
         prefix="3.1.1.0/30",
         description="chainsaw test ipaddressclaim-ipv4-prefixexhausted",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -511,6 +551,8 @@ prefixes = [
         prefix="3.1.2.0/24",
         description="chainsaw test ipaddressclaim-ipv4-restore",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -527,6 +569,8 @@ prefixes = [
         prefix="3.1.3.0/24",
         description="chainsaw test ipaddressclaim-ipv4-update-ownerreference",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -543,6 +587,8 @@ prefixes = [
         prefix="3.1.4.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -559,6 +605,8 @@ prefixes = [
         prefix="3.1.5.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -575,6 +623,8 @@ prefixes = [
         prefix="3.1.6.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -591,6 +641,8 @@ prefixes = [
         prefix="3.1.7.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -607,6 +659,8 @@ prefixes = [
         prefix="3.1.8.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -623,6 +677,8 @@ prefixes = [
         prefix="3.1.9.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -639,6 +695,8 @@ prefixes = [
         prefix="3:1:0::/64",
         description="chainsaw test ipaddressclaim-ipv6-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -655,6 +713,8 @@ prefixes = [
         prefix="3:1:1::/127",
         description="chainsaw test ipaddressclaim-ipv6-prefixexhausted",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -671,6 +731,8 @@ prefixes = [
         prefix="3:1:2::/64",
         description="chainsaw test ipaddressclaim-ipv6-restore",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -687,6 +749,8 @@ prefixes = [
         prefix="3:1:3::/64",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -704,6 +768,8 @@ prefixes = [
         prefix="3.2.0.0/24",
         description="chainsaw test iprangeclaim-ipv4-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -720,6 +786,8 @@ prefixes = [
         prefix="3.2.1.0/26",
         description="chainsaw test iprangeclaim-ipv4-prefixexhausted",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -736,6 +804,8 @@ prefixes = [
         prefix="3.2.2.0/24",
         description="chainsaw test iprangeclaim-ipv4-restore",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -752,6 +822,8 @@ prefixes = [
         prefix="3.2.3.0/24",
         description="chainsaw test iprangeclaim-ipv4-invalid-*",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -768,6 +840,8 @@ prefixes = [
         prefix="3.2.4.0/24",
         description="chainsaw test iprangeclaim-ipv4-update-ownerreference",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -784,6 +858,8 @@ prefixes = [
         prefix="3.2.5.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -800,6 +876,8 @@ prefixes = [
         prefix="3.2.6.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -816,6 +894,8 @@ prefixes = [
         prefix="3.2.7.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -832,6 +912,8 @@ prefixes = [
         prefix="3.2.8.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -848,6 +930,8 @@ prefixes = [
         prefix="3.2.9.0/24",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -864,6 +948,8 @@ prefixes = [
         prefix="3:2:0::/64",
         description="chainsaw test iprangeclaim-ipv6-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -880,6 +966,8 @@ prefixes = [
         prefix="3:2:1::/122",
         description="chainsaw test iprangeclaim-ipv6-prefixexhausted",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -896,6 +984,8 @@ prefixes = [
         prefix="3:2:2::/64",
         description="chainsaw test iprangeclaim-ipv6-restore",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -912,6 +1002,8 @@ prefixes = [
         prefix="3:2:3::/64",
         description="",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -934,6 +1026,8 @@ for prefix in prefixes:
         nb.ipam.prefixes.create(
             prefix=prefix.prefix,
             site=prefix.site,
+            scope_type=prefix.scope_type,
+            scope_id=prefix.scope_id,
             description=prefix.description,
             tenant=prefix.tenant,
             status=prefix.status,
