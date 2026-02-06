@@ -23,6 +23,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	nclient "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,11 +46,14 @@ var ipAddressFamily = int64(api.IPv4Family)
 var parentPrefix = "1.0.0.0/28"
 
 var siteId = int64(2)
+var scopeType = "dcim.site"
 var site = "Mars"
 
-var tenantId = int64(1)
+var tenantId = int32(1)
 var tenant = "test-tenant"
 var tenantSlug = "test-tenant-slug"
+
+var expectedTenant = nclient.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
 
 var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
 
@@ -121,18 +125,19 @@ func defaultIpAddressClaimCR() *netboxv1.IpAddressClaim {
 // netbox mock responses
 // -----------------------------
 
-func mockedResponseNestedSite() *netboxModels.NestedSite {
-	return &netboxModels.NestedSite{
-		ID:   siteId,
-		Name: &site,
-		Slug: &siteSlug,
-	}
+var int32SiteId = int32(siteId)
+
+func mockedResponseScopeId() nclient.NullableInt32 {
+	return *nclient.NewNullableInt32(&int32SiteId)
+}
+func mockedResponseScopeType() nclient.NullableString {
+	return *nclient.NewNullableString(&scopeType)
 }
 
 func mockedResponseNestedTenant() *netboxModels.NestedTenant {
 	return &netboxModels.NestedTenant{
 		Name: &tenant,
-		ID:   tenantId,
+		ID:   int64(tenantId),
 		Slug: &siteSlug,
 	}
 }
@@ -163,17 +168,18 @@ func mockedResponseIPAddress() *netboxModels.IPAddress {
 		}}
 }
 
-func mockedResponsePrefixList() *ipam.IpamPrefixesListOKBody {
-	return &ipam.IpamPrefixesListOKBody{
-		Results: []*netboxModels.Prefix{
+func mockedResponsePrefixList() *nclient.PaginatedPrefixList {
+	return &nclient.PaginatedPrefixList{
+		Results: []nclient.Prefix{
 			{
-				ID:          prefixID,
-				Comments:    comments,
-				Description: description,
+				Id:          prefixID,
+				Comments:    &comments,
+				Description: &description,
 				Display:     parentPrefix,
-				Prefix:      &parentPrefix,
-				Site:        mockedResponseNestedSite(),
-				Tenant:      mockedResponseNestedTenant(),
+				Prefix:      parentPrefix,
+				ScopeId:     mockedResponseScopeId(),
+				ScopeType:   mockedResponseScopeType(),
+				Tenant:      *nclient.NewNullableBriefTenant(expectedTenant),
 			},
 		},
 	}
@@ -239,7 +245,7 @@ var nsn = namespace + "/" + name + " // "
 var warningComment = " // managed by netbox-operator, please don't edit it in Netbox unless you know what you're doing"
 var expectedIpAddressID = int64(1)
 var expectedIpAddressFailID = int64(0)
-
+var int64TenantId = int64(tenantId)
 var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
 	Comments: comments + warningComment,
@@ -248,7 +254,8 @@ var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
-	Tenant:      &tenantId}
+	Tenant:      &int64TenantId,
+}
 
 var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
@@ -259,7 +266,7 @@ var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
-	Tenant:      &tenantId}
+	Tenant:      &int64TenantId}
 
 var ExpectedIpAddressUpdateParams = ipam.NewIpamIPAddressesUpdateParams().WithDefaults().
 	WithData(expectedIpToUpdate).WithID(expectedIpAddressID)
@@ -270,12 +277,12 @@ var ExpectedIpAddressUpdateWithHashParams = ipam.NewIpamIPAddressesUpdateParams(
 var ExpectedTenantsListParams = tenancy.NewTenancyTenantsListParams().WithName(&tenant)
 
 // expected inputs for ipam.IpamPrefixesList method
-var ExpectedPrefixListParams = ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
+var ExpectedPrefixListParams = []string{parentPrefix}
 
 // expected inputs for ipam.IpamPrefixesAvailableIpsList method
-var prefixID = int64(4)
+var prefixID = int32(4)
 
-var ExpectedPrefixesAvailableIpsListParams = ipam.NewIpamPrefixesAvailableIpsListParams().WithID(prefixID)
+var ExpectedPrefixesAvailableIpsListParams = ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(prefixID))
 
 // expected inputs for ipam.IpamIPAddressesList method
 var ExpectedIpAddressListParamsWithIpAddressData = ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
