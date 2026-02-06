@@ -102,3 +102,70 @@ func (a *ipamV4APIAdapter) IpamIpRangesUpdate(ctx context.Context, id int32) int
 func (a *ipamV4APIAdapter) IpamIpRangesDestroy(ctx context.Context, id int32) interfaces.IpamIpRangesDestroyRequest {
 	return &ipamIpRangesDestroyRequestAdapter{req: a.api.IpamIpRangesDestroy(ctx, id)}
 }
+
+// ipamPrefixesListRequestAdapter adapts the v4 list request to the interface
+type ipamPrefixesListRequestAdapter struct {
+	req nclient.ApiIpamPrefixesListRequest
+}
+
+func (a *ipamPrefixesListRequestAdapter) Prefix(prefix []string) interfaces.IpamPrefixesListRequest {
+	a.req = a.req.Prefix(prefix)
+	return a
+}
+
+func (a *ipamPrefixesListRequestAdapter) Execute() (*nclient.PaginatedPrefixList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamPrefixesCreateRequestAdapter adapts the v4 create request to the interface
+type ipamPrefixesCreateRequestAdapter struct {
+	req nclient.ApiIpamPrefixesCreateRequest
+}
+
+func (a *ipamPrefixesCreateRequestAdapter) WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) interfaces.IpamPrefixesCreateRequest {
+	a.req = a.req.WritablePrefixRequest(writablePrefixRequest)
+	return a
+}
+
+func (a *ipamPrefixesCreateRequestAdapter) Execute() (*nclient.Prefix, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamPrefixesUpdateRequestAdapter adapts the v4 update request to the interface
+type ipamPrefixesUpdateRequestAdapter struct {
+	req nclient.ApiIpamPrefixesUpdateRequest
+}
+
+func (a *ipamPrefixesUpdateRequestAdapter) WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) interfaces.IpamPrefixesUpdateRequest {
+	a.req = a.req.WritablePrefixRequest(writablePrefixRequest)
+	return a
+}
+
+func (a *ipamPrefixesUpdateRequestAdapter) Execute() (*nclient.Prefix, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamPrefixesDestroyRequestAdapter adapts the v4 destroy request to the interface
+type ipamPrefixesDestroyRequestAdapter struct {
+	req nclient.ApiIpamPrefixesDestroyRequest
+}
+
+func (a *ipamPrefixesDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+func (a *ipamV4APIAdapter) IpamPrefixesList(ctx context.Context) interfaces.IpamPrefixesListRequest {
+	return &ipamPrefixesListRequestAdapter{req: a.api.IpamPrefixesList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamPrefixesCreate(ctx context.Context) interfaces.IpamPrefixesCreateRequest {
+	return &ipamPrefixesCreateRequestAdapter{req: a.api.IpamPrefixesCreate(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamPrefixesUpdate(ctx context.Context, id int32) interfaces.IpamPrefixesUpdateRequest {
+	return &ipamPrefixesUpdateRequestAdapter{req: a.api.IpamPrefixesUpdate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamPrefixesDestroy(ctx context.Context, id int32) interfaces.IpamPrefixesDestroyRequest {
+	return &ipamPrefixesDestroyRequestAdapter{req: a.api.IpamPrefixesDestroy(ctx, id)}
+}

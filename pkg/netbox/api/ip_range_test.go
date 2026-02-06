@@ -70,7 +70,7 @@ func TestIpRange(t *testing.T) {
 	}
 
 	t.Run("Retrieve Existing IP Range.", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		// Setup expectations
 		mockIpamAPI.EXPECT().
@@ -85,14 +85,14 @@ func TestIpRange(t *testing.T) {
 			EndAddress([]string{endAddress}).
 			Return(mockListRequest)
 
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 		// init client
 		client := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
-
-		mockListRequest.EXPECT().
-			Execute().
-			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		actual, err := client.getIpRange(context.TODO(), &models.IpRange{
 			StartAddress: startAddress,
@@ -116,7 +116,7 @@ func TestIpRange(t *testing.T) {
 	})
 
 	t.Run("ReserveOrUpdate, reserve new ip range", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockCreateRequest := mock_interfaces.NewMockIpamIpRangesCreateRequest(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
@@ -215,7 +215,7 @@ func TestIpRange(t *testing.T) {
 	})
 
 	t.Run("ReserveOrUpdate, restoration hash mismatch", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 
@@ -276,7 +276,7 @@ func TestIpRange(t *testing.T) {
 	})
 
 	t.Run("ReserveOrUpdate, update existing ip range", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
@@ -380,7 +380,7 @@ func TestIpRange(t *testing.T) {
 	})
 
 	t.Run("Delete ip range", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
 		ipRangeId := int32(1)
@@ -406,7 +406,7 @@ func TestIpRange(t *testing.T) {
 	})
 
 	t.Run("Delete ip range, ignore 404 error", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
 		ipRangeId := int32(1)
@@ -432,7 +432,7 @@ func TestIpRange(t *testing.T) {
 	})
 
 	t.Run("Delete ip range, return non 404 errors", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamV4API(ctrl)
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
 		ipRangeId := int32(1)

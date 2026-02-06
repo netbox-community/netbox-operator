@@ -695,32 +695,233 @@ func (mr *MockIpamIpRangesDestroyRequestMockRecorder) Execute() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamIpRangesDestroyRequest)(nil).Execute))
 }
 
-// MockIpamV4API is a mock of IpamV4API interface.
-type MockIpamV4API struct {
+// MockIpamPrefixesListRequest is a mock of IpamPrefixesListRequest interface.
+type MockIpamPrefixesListRequest struct {
 	ctrl     *gomock.Controller
-	recorder *MockIpamV4APIMockRecorder
+	recorder *MockIpamPrefixesListRequestMockRecorder
 	isgomock struct{}
 }
 
-// MockIpamV4APIMockRecorder is the mock recorder for MockIpamV4API.
-type MockIpamV4APIMockRecorder struct {
-	mock *MockIpamV4API
+// MockIpamPrefixesListRequestMockRecorder is the mock recorder for MockIpamPrefixesListRequest.
+type MockIpamPrefixesListRequestMockRecorder struct {
+	mock *MockIpamPrefixesListRequest
 }
 
-// NewMockIpamV4API creates a new mock instance.
-func NewMockIpamV4API(ctrl *gomock.Controller) *MockIpamV4API {
-	mock := &MockIpamV4API{ctrl: ctrl}
-	mock.recorder = &MockIpamV4APIMockRecorder{mock}
+// NewMockIpamPrefixesListRequest creates a new mock instance.
+func NewMockIpamPrefixesListRequest(ctrl *gomock.Controller) *MockIpamPrefixesListRequest {
+	mock := &MockIpamPrefixesListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamPrefixesListRequestMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockIpamV4API) EXPECT() *MockIpamV4APIMockRecorder {
+func (m *MockIpamPrefixesListRequest) EXPECT() *MockIpamPrefixesListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamPrefixesListRequest) Execute() (*netbox.PaginatedPrefixList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedPrefixList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamPrefixesListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamPrefixesListRequest)(nil).Execute))
+}
+
+// Prefix mocks base method.
+func (m *MockIpamPrefixesListRequest) Prefix(prefix []string) interfaces.IpamPrefixesListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Prefix", prefix)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesListRequest)
+	return ret0
+}
+
+// Prefix indicates an expected call of Prefix.
+func (mr *MockIpamPrefixesListRequestMockRecorder) Prefix(prefix any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Prefix", reflect.TypeOf((*MockIpamPrefixesListRequest)(nil).Prefix), prefix)
+}
+
+// MockIpamPrefixesCreateRequest is a mock of IpamPrefixesCreateRequest interface.
+type MockIpamPrefixesCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamPrefixesCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamPrefixesCreateRequestMockRecorder is the mock recorder for MockIpamPrefixesCreateRequest.
+type MockIpamPrefixesCreateRequestMockRecorder struct {
+	mock *MockIpamPrefixesCreateRequest
+}
+
+// NewMockIpamPrefixesCreateRequest creates a new mock instance.
+func NewMockIpamPrefixesCreateRequest(ctrl *gomock.Controller) *MockIpamPrefixesCreateRequest {
+	mock := &MockIpamPrefixesCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamPrefixesCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamPrefixesCreateRequest) EXPECT() *MockIpamPrefixesCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamPrefixesCreateRequest) Execute() (*netbox.Prefix, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.Prefix)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamPrefixesCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamPrefixesCreateRequest)(nil).Execute))
+}
+
+// WritablePrefixRequest mocks base method.
+func (m *MockIpamPrefixesCreateRequest) WritablePrefixRequest(writablePrefixRequest netbox.WritablePrefixRequest) interfaces.IpamPrefixesCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WritablePrefixRequest", writablePrefixRequest)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesCreateRequest)
+	return ret0
+}
+
+// WritablePrefixRequest indicates an expected call of WritablePrefixRequest.
+func (mr *MockIpamPrefixesCreateRequestMockRecorder) WritablePrefixRequest(writablePrefixRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WritablePrefixRequest", reflect.TypeOf((*MockIpamPrefixesCreateRequest)(nil).WritablePrefixRequest), writablePrefixRequest)
+}
+
+// MockIpamPrefixesUpdateRequest is a mock of IpamPrefixesUpdateRequest interface.
+type MockIpamPrefixesUpdateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamPrefixesUpdateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamPrefixesUpdateRequestMockRecorder is the mock recorder for MockIpamPrefixesUpdateRequest.
+type MockIpamPrefixesUpdateRequestMockRecorder struct {
+	mock *MockIpamPrefixesUpdateRequest
+}
+
+// NewMockIpamPrefixesUpdateRequest creates a new mock instance.
+func NewMockIpamPrefixesUpdateRequest(ctrl *gomock.Controller) *MockIpamPrefixesUpdateRequest {
+	mock := &MockIpamPrefixesUpdateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamPrefixesUpdateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamPrefixesUpdateRequest) EXPECT() *MockIpamPrefixesUpdateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamPrefixesUpdateRequest) Execute() (*netbox.Prefix, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.Prefix)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamPrefixesUpdateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamPrefixesUpdateRequest)(nil).Execute))
+}
+
+// WritablePrefixRequest mocks base method.
+func (m *MockIpamPrefixesUpdateRequest) WritablePrefixRequest(writablePrefixRequest netbox.WritablePrefixRequest) interfaces.IpamPrefixesUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WritablePrefixRequest", writablePrefixRequest)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesUpdateRequest)
+	return ret0
+}
+
+// WritablePrefixRequest indicates an expected call of WritablePrefixRequest.
+func (mr *MockIpamPrefixesUpdateRequestMockRecorder) WritablePrefixRequest(writablePrefixRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WritablePrefixRequest", reflect.TypeOf((*MockIpamPrefixesUpdateRequest)(nil).WritablePrefixRequest), writablePrefixRequest)
+}
+
+// MockIpamPrefixesDestroyRequest is a mock of IpamPrefixesDestroyRequest interface.
+type MockIpamPrefixesDestroyRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamPrefixesDestroyRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamPrefixesDestroyRequestMockRecorder is the mock recorder for MockIpamPrefixesDestroyRequest.
+type MockIpamPrefixesDestroyRequestMockRecorder struct {
+	mock *MockIpamPrefixesDestroyRequest
+}
+
+// NewMockIpamPrefixesDestroyRequest creates a new mock instance.
+func NewMockIpamPrefixesDestroyRequest(ctrl *gomock.Controller) *MockIpamPrefixesDestroyRequest {
+	mock := &MockIpamPrefixesDestroyRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamPrefixesDestroyRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamPrefixesDestroyRequest) EXPECT() *MockIpamPrefixesDestroyRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamPrefixesDestroyRequest) Execute() (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamPrefixesDestroyRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamPrefixesDestroyRequest)(nil).Execute))
+}
+
+// MockIpamAPI is a mock of IpamAPI interface.
+type MockIpamAPI struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAPIMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAPIMockRecorder is the mock recorder for MockIpamAPI.
+type MockIpamAPIMockRecorder struct {
+	mock *MockIpamAPI
+}
+
+// NewMockIpamAPI creates a new mock instance.
+func NewMockIpamAPI(ctrl *gomock.Controller) *MockIpamAPI {
+	mock := &MockIpamAPI{ctrl: ctrl}
+	mock.recorder = &MockIpamAPIMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAPI) EXPECT() *MockIpamAPIMockRecorder {
 	return m.recorder
 }
 
 // IpamIpRangesCreate mocks base method.
-func (m *MockIpamV4API) IpamIpRangesCreate(ctx context.Context) interfaces.IpamIpRangesCreateRequest {
+func (m *MockIpamAPI) IpamIpRangesCreate(ctx context.Context) interfaces.IpamIpRangesCreateRequest {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IpamIpRangesCreate", ctx)
 	ret0, _ := ret[0].(interfaces.IpamIpRangesCreateRequest)
@@ -728,13 +929,13 @@ func (m *MockIpamV4API) IpamIpRangesCreate(ctx context.Context) interfaces.IpamI
 }
 
 // IpamIpRangesCreate indicates an expected call of IpamIpRangesCreate.
-func (mr *MockIpamV4APIMockRecorder) IpamIpRangesCreate(ctx any) *gomock.Call {
+func (mr *MockIpamAPIMockRecorder) IpamIpRangesCreate(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesCreate", reflect.TypeOf((*MockIpamV4API)(nil).IpamIpRangesCreate), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamIpRangesCreate), ctx)
 }
 
 // IpamIpRangesDestroy mocks base method.
-func (m *MockIpamV4API) IpamIpRangesDestroy(ctx context.Context, id int32) interfaces.IpamIpRangesDestroyRequest {
+func (m *MockIpamAPI) IpamIpRangesDestroy(ctx context.Context, id int32) interfaces.IpamIpRangesDestroyRequest {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IpamIpRangesDestroy", ctx, id)
 	ret0, _ := ret[0].(interfaces.IpamIpRangesDestroyRequest)
@@ -742,13 +943,13 @@ func (m *MockIpamV4API) IpamIpRangesDestroy(ctx context.Context, id int32) inter
 }
 
 // IpamIpRangesDestroy indicates an expected call of IpamIpRangesDestroy.
-func (mr *MockIpamV4APIMockRecorder) IpamIpRangesDestroy(ctx, id any) *gomock.Call {
+func (mr *MockIpamAPIMockRecorder) IpamIpRangesDestroy(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesDestroy", reflect.TypeOf((*MockIpamV4API)(nil).IpamIpRangesDestroy), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesDestroy", reflect.TypeOf((*MockIpamAPI)(nil).IpamIpRangesDestroy), ctx, id)
 }
 
 // IpamIpRangesList mocks base method.
-func (m *MockIpamV4API) IpamIpRangesList(ctx context.Context) interfaces.IpamIpRangesListRequest {
+func (m *MockIpamAPI) IpamIpRangesList(ctx context.Context) interfaces.IpamIpRangesListRequest {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IpamIpRangesList", ctx)
 	ret0, _ := ret[0].(interfaces.IpamIpRangesListRequest)
@@ -756,13 +957,13 @@ func (m *MockIpamV4API) IpamIpRangesList(ctx context.Context) interfaces.IpamIpR
 }
 
 // IpamIpRangesList indicates an expected call of IpamIpRangesList.
-func (mr *MockIpamV4APIMockRecorder) IpamIpRangesList(ctx any) *gomock.Call {
+func (mr *MockIpamAPIMockRecorder) IpamIpRangesList(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesList", reflect.TypeOf((*MockIpamV4API)(nil).IpamIpRangesList), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesList", reflect.TypeOf((*MockIpamAPI)(nil).IpamIpRangesList), ctx)
 }
 
 // IpamIpRangesUpdate mocks base method.
-func (m *MockIpamV4API) IpamIpRangesUpdate(ctx context.Context, id int32) interfaces.IpamIpRangesUpdateRequest {
+func (m *MockIpamAPI) IpamIpRangesUpdate(ctx context.Context, id int32) interfaces.IpamIpRangesUpdateRequest {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IpamIpRangesUpdate", ctx, id)
 	ret0, _ := ret[0].(interfaces.IpamIpRangesUpdateRequest)
@@ -770,7 +971,63 @@ func (m *MockIpamV4API) IpamIpRangesUpdate(ctx context.Context, id int32) interf
 }
 
 // IpamIpRangesUpdate indicates an expected call of IpamIpRangesUpdate.
-func (mr *MockIpamV4APIMockRecorder) IpamIpRangesUpdate(ctx, id any) *gomock.Call {
+func (mr *MockIpamAPIMockRecorder) IpamIpRangesUpdate(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesUpdate", reflect.TypeOf((*MockIpamV4API)(nil).IpamIpRangesUpdate), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamIpRangesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamIpRangesUpdate), ctx, id)
+}
+
+// IpamPrefixesCreate mocks base method.
+func (m *MockIpamAPI) IpamPrefixesCreate(ctx context.Context) interfaces.IpamPrefixesCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamPrefixesCreate", ctx)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesCreateRequest)
+	return ret0
+}
+
+// IpamPrefixesCreate indicates an expected call of IpamPrefixesCreate.
+func (mr *MockIpamAPIMockRecorder) IpamPrefixesCreate(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesCreate), ctx)
+}
+
+// IpamPrefixesDestroy mocks base method.
+func (m *MockIpamAPI) IpamPrefixesDestroy(ctx context.Context, id int32) interfaces.IpamPrefixesDestroyRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamPrefixesDestroy", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesDestroyRequest)
+	return ret0
+}
+
+// IpamPrefixesDestroy indicates an expected call of IpamPrefixesDestroy.
+func (mr *MockIpamAPIMockRecorder) IpamPrefixesDestroy(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesDestroy", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesDestroy), ctx, id)
+}
+
+// IpamPrefixesList mocks base method.
+func (m *MockIpamAPI) IpamPrefixesList(ctx context.Context) interfaces.IpamPrefixesListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamPrefixesList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesListRequest)
+	return ret0
+}
+
+// IpamPrefixesList indicates an expected call of IpamPrefixesList.
+func (mr *MockIpamAPIMockRecorder) IpamPrefixesList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesList", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesList), ctx)
+}
+
+// IpamPrefixesUpdate mocks base method.
+func (m *MockIpamAPI) IpamPrefixesUpdate(ctx context.Context, id int32) interfaces.IpamPrefixesUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamPrefixesUpdate", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamPrefixesUpdateRequest)
+	return ret0
+}
+
+// IpamPrefixesUpdate indicates an expected call of IpamPrefixesUpdate.
+func (mr *MockIpamAPIMockRecorder) IpamPrefixesUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesUpdate), ctx, id)
 }

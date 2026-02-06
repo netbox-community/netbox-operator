@@ -43,6 +43,7 @@ type IpAddressClaimReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
+	NetboxClientV4      *api.NetboxClientV4
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -138,6 +139,8 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			// ip address cannot be restored from netbox
 			// 5.a assign new available ip address
 			ipAddressModel, err = r.NetboxClient.GetAvailableIpAddressByClaim(
+				ctx,
+				r.NetboxClientV4,
 				&models.IPAddressClaim{
 					ParentPrefix: o.Spec.ParentPrefix,
 					Metadata: &models.NetboxMetadata{

@@ -18,6 +18,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -65,24 +66,26 @@ func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRang
 }
 
 // GetAvailableIpRangeByClaim searches an available IpRange in Netbox matching IpRangeClaim requirements
-func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeClaim) (*models.IpRange, error) {
+func (r *NetboxClient) GetAvailableIpRangeByClaim(ctx context.Context, cV4 *NetboxClientV4, ipRangeClaim *models.IpRangeClaim) (*models.IpRange, error) {
 	_, err := r.GetTenantDetails(ipRangeClaim.Metadata.Tenant)
 	if err != nil {
 		return nil, err
 	}
 
-	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
-		Prefix:   ipRangeClaim.ParentPrefix,
-		Metadata: ipRangeClaim.Metadata,
-	})
+	responseParentPrefix, err := cV4.GetPrefix(
+		ctx,
+		&models.Prefix{
+			Prefix:   ipRangeClaim.ParentPrefix,
+			Metadata: ipRangeClaim.Metadata,
+		})
 	if err != nil {
 		return nil, err
 	}
-	if len(responseParentPrefix.Payload.Results) == 0 {
+	if len(responseParentPrefix.Results) == 0 {
 		return nil, utils.NetboxNotFoundError("parent prefix")
 	}
 
-	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
+	parentPrefixId := responseParentPrefix.Results[0].Id
 	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err

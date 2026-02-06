@@ -76,7 +76,7 @@ type PrefixSpec struct {
 // PrefixStatus defines the observed state of Prefix
 type PrefixStatus struct {
 	// The ID of the resource in NetBox
-	PrefixId int64 `json:"id,omitempty"`
+	PrefixId int32 `json:"id,omitempty"`
 
 	// The URL to the resource in the NetBox UI. Note that the base of this
 	// URL depends on the runtime config of NetBox Operator

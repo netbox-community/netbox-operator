@@ -45,6 +45,7 @@ type IpRangeClaimReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
+	NetboxClientV4      *api.NetboxClientV4
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -285,6 +286,8 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 		// ip range cannot be restored from netbox
 		// assign new available ip range
 		ipRangeModel, err = r.NetboxClient.GetAvailableIpRangeByClaim(
+			ctx,
+			r.NetboxClientV4,
 			&models.IpRangeClaim{
 				ParentPrefix: o.Spec.ParentPrefix,
 				Size:         o.Spec.Size,

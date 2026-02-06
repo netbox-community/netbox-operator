@@ -202,6 +202,7 @@ func main() {
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxClient,
+		NetboxClientV4:      netboxClientV4,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
@@ -213,6 +214,7 @@ func main() {
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxClient,
+		NetboxClientV4:      netboxClientV4,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {

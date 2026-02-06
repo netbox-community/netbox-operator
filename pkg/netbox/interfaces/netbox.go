@@ -86,10 +86,36 @@ type IpamIpRangesDestroyRequest interface {
 	Execute() (*http.Response, error)
 }
 
+type IpamPrefixesListRequest interface {
+	Prefix(prefix []string) IpamPrefixesListRequest
+	Execute() (*nclient.PaginatedPrefixList, *http.Response, error)
+}
+
+// IpamPrefixesCreateRequest represents the fluent API for creating IP ranges
+type IpamPrefixesCreateRequest interface {
+	WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) IpamPrefixesCreateRequest
+	Execute() (*nclient.Prefix, *http.Response, error)
+}
+
+// IpamPrefixesUpdateRequest represents the fluent API for updating IP ranges
+type IpamPrefixesUpdateRequest interface {
+	WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) IpamPrefixesUpdateRequest
+	Execute() (*nclient.Prefix, *http.Response, error)
+}
+
+// IpamPrefixesDestroyRequest represents the fluent API for deleting IP ranges
+type IpamPrefixesDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
 // IpamV4API represents the v4 API interface for IPAM operations
 type IpamAPI interface {
 	IpamIpRangesList(ctx context.Context) IpamIpRangesListRequest
 	IpamIpRangesCreate(ctx context.Context) IpamIpRangesCreateRequest
 	IpamIpRangesUpdate(ctx context.Context, id int32) IpamIpRangesUpdateRequest
 	IpamIpRangesDestroy(ctx context.Context, id int32) IpamIpRangesDestroyRequest
+	IpamPrefixesList(ctx context.Context) IpamPrefixesListRequest
+	IpamPrefixesCreate(ctx context.Context) IpamPrefixesCreateRequest
+	IpamPrefixesUpdate(ctx context.Context, id int32) IpamPrefixesUpdateRequest
+	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
 }

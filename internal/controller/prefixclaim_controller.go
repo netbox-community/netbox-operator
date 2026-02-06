@@ -48,6 +48,7 @@ type PrefixClaimReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
+	NetboxClientV4      *api.NetboxClientV4
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -154,7 +155,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// The existing algorithm for prefix allocation within a ParentPrefix remains unchanged
 
 				// fetch available prefixes from netbox
-				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(&o.Spec)
+				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(ctx, r.NetboxClientV4, &o.Spec)
 				if err != nil {
 					r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+err.Error())
 					if err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err); err != nil {
@@ -253,6 +254,8 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			// get available Prefix under parent prefix in netbox with equal mask length
 			prefixModel, err = r.NetboxClient.GetAvailablePrefixByClaim(
+				ctx,
+				r.NetboxClientV4,
 				&models.PrefixClaim{
 					ParentPrefix: o.Status.SelectedParentPrefix,
 					PrefixLength: o.Spec.PrefixLength,

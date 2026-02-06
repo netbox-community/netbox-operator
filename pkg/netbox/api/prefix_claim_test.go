@@ -17,7 +17,9 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"errors"
+	"net/http"
 	"strconv"
 	"testing"
 
@@ -26,6 +28,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	nclient "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -39,8 +42,8 @@ func TestPrefixClaim_GetAvailablePrefixesByParentPrefix(t *testing.T) {
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 
 	//prefix mock input
-	parentPrefixId := int64(3)
-	availablePrefixListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	parentPrefixId := int32(3)
+	availablePrefixListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 
 	//prefix mock output
 	childPrefix1 := "10.112.140.0/24"
@@ -60,11 +63,11 @@ func TestPrefixClaim_GetAvailablePrefixesByParentPrefix(t *testing.T) {
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(availablePrefixListInput, nil).Return(availablePrefixListOutput, nil)
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, err := netboxClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
+	actual, err := legacyClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
 	assert.Nil(t, err)
 	assert.Equal(t, childPrefix1, actual.Payload[0].Prefix)
 	assert.Equal(t, childPrefix2, actual.Payload[1].Prefix)
@@ -76,8 +79,8 @@ func TestPrefixClaim_GetNoAvailablePrefixesByParentPrefix(t *testing.T) {
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 
 	//prefix mock input
-	parentPrefixId := int64(3)
-	availablePrefixListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	parentPrefixId := int32(3)
+	availablePrefixListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	//prefix mock output
 	availablePrefixListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{},
@@ -85,11 +88,11 @@ func TestPrefixClaim_GetNoAvailablePrefixesByParentPrefix(t *testing.T) {
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(availablePrefixListInput, nil).Return(availablePrefixListOutput, nil)
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, err := netboxClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
+	actual, err := legacyClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
 	assert.Nil(t, actual)
 	assert.ErrorIs(t, err, ErrParentPrefixExhausted)
 }
@@ -97,6 +100,9 @@ func TestPrefixClaim_GetNoAvailablePrefixesByParentPrefix(t *testing.T) {
 func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -117,33 +123,41 @@ func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
 	}
 
 	prefix := "10.112.140.0/24"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&prefix)
-
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{},
-		},
-	}
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{prefix}).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: prefix,
-		PrefixLength: "/28",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: prefix,
+			PrefixLength: "/28",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "parent prefix not found")
 }
@@ -151,6 +165,9 @@ func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
 func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
@@ -190,27 +207,10 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	inputSite := dcim.NewDcimSitesListParams().WithName(&siteName)
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix := "10.112.140.14/28"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
-
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -219,25 +219,51 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	expectedPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
-		Ipam:    mockPrefixIpam,
+	legacyClient := &NetboxClient{
 		Tenancy: mockTenancy,
 		Dcim:    mockDcim,
+		Ipam:    mockPrefixIpam,
+	}
+	clientV4 := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
 	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-			Site:   siteName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		clientV4,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+				Site:   siteName,
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.Equal(t, prefix, actual.Prefix)
@@ -246,6 +272,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -266,42 +295,50 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
+	parentPrefixId := int32(1)
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/33",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client, &models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/33",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	var expectedPrefix *models.Prefix
 
@@ -312,6 +349,9 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -332,42 +372,50 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
+	parentPrefixId := int32(1)
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/24",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client, &models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/24",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	var expectedPrefix *models.Prefix
 
@@ -378,6 +426,9 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -398,42 +449,51 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
+	parentPrefixId := int32(1)
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/20",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/20",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	var expectedPrefix *models.Prefix
 
@@ -444,6 +504,9 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -464,29 +527,12 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 	}
 
 	parentPrefix := "2001:db8:85a3:8d3::/30"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix := "2001:db8:85a3:8d3::/33"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv6Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV6
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -495,22 +541,48 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv6Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/33",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/33",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.Equal(t, prefix, actual.Prefix)
@@ -519,6 +591,9 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -539,31 +614,14 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 	}
 
 	parentPrefix := "10.112.140.0/22"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix := "10.112.140.0/23"
 	prefix1 := "10.112.142.32/27"
 	prefix2 := "10.112.142.64/26"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -578,22 +636,47 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client, &models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "10.112.142.32/28", actual.Prefix)
@@ -602,6 +685,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -622,29 +708,12 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix := "10.112.140.14/30"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -653,22 +722,48 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	_, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	_, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	assert.True(t, errors.Is(err, ErrNoPrefixMatchsSizeCriteria))
 }
@@ -676,6 +771,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -696,31 +794,14 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 	}
 
 	parentPrefix := "10.112.140.0/22"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix1 := "10.112.140.0"
 	prefix2 := "10.112.142.32/27"
 	prefix3 := "10.112.142.64/26."
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -735,22 +816,47 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client, &models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "10.112.142.32/28", actual.Prefix)
@@ -759,6 +865,9 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -779,29 +888,33 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix1 := "10.112.140.14/25"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
 
 	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -810,22 +923,26 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	_, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28.",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	_, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client, &models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28.",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	assert.True(t, errors.Is(err, strconv.ErrSyntax))
 }
@@ -855,17 +972,21 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingTenant(t *testing.T) {
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(emptyTenantList, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{}
 
-	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28.",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	prefix, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28.",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
 	assert.Equal(t, prefix, (*models.Prefix)(nil))
@@ -890,17 +1011,21 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithErrorWhenGettingTenantList(t *tes
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(nil, errors.New(tenancyTenantsListErrorMsg)).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{}
 
-	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28.",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-		},
-	})
+	prefix, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28.",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+			},
+		})
 
 	// assert 1st level error - GetTenantDetails()
 	assert.Containsf(t, err.Error(), getTenantDetailsErrorMsg, "expected error containing %q, got %s", getTenantDetailsErrorMsg, err)
@@ -916,6 +1041,7 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingSite(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
@@ -955,19 +1081,25 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingSite(t *testing.T) {
 
 	parentPrefix := "10.112.140.0/24"
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Dcim:    mockDcim,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28.",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-			Site:   siteName,
-		},
-	})
+	prefix, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28.",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+				Site:   siteName,
+			},
+		})
 
 	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
 	assert.Equal(t, prefix, (*models.Prefix)(nil))
@@ -977,6 +1109,8 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 
@@ -999,27 +1133,10 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
+	parentPrefixId := int32(1)
 	prefix := "10.112.140.14/28"
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&parentPrefix)
 
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
-
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
 		Payload: []*netboxModels.AvailablePrefix{
 			{
@@ -1028,23 +1145,49 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil).Return(prefixListOutput, nil).AnyTimes()
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: parentPrefix,
-		PrefixLength: "/28",
-		Metadata: &models.NetboxMetadata{
-			Tenant: tenantName,
-			Site:   "",
-		},
-	})
+	actual, err := legacyClient.GetAvailablePrefixByClaim(
+		context.TODO(),
+		client,
+		&models.PrefixClaim{
+			ParentPrefix: parentPrefix,
+			PrefixLength: "/28",
+			Metadata: &models.NetboxMetadata{
+				Tenant: tenantName,
+				Site:   "",
+			},
+		})
 
 	assert.Nil(t, err)
 	assert.Equal(t, prefix, actual.Prefix)
@@ -1053,6 +1196,13 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
+	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
 	pxcSpec := netboxv1.PrefixClaimSpec{
 		ParentPrefixSelector: map[string]string{
@@ -1063,11 +1213,6 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 		},
 		PrefixLength: "/32",
 	}
-
-	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
-	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
-	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
-	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
 	// example of site
 	siteId := int64(3)
@@ -1104,46 +1249,7 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 	}
 
 	parentPrefix := "10.112.140.0/24"
-	parentPrefixId := int64(1)
-	prefixListInput := ipam.
-		NewIpamPrefixesListParams()
-
-	prefixFamily := int64(IPv4Family)
-	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
-	prefixListOutput := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					ID:     parentPrefixId,
-					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
-
-	prefixListInputWithParam := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
-	prefixListOutputWithParam := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					Prefix: &parentPrefix,
-					ID:     parentPrefixId,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
-
-	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
-	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
-		Payload: []*netboxModels.AvailablePrefix{
-			{
-				Family: prefixFamily,
-				Prefix: parentPrefix,
-			},
-		},
-	}
+	parentPrefixId := int32(1)
 
 	// get prefix to check if it's a candidate
 	expectedCustomFieldName := "environment"
@@ -1157,21 +1263,68 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 		},
 	}
 
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil, gomock.Any()).Return(prefixListOutput, nil).Times(1)
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInputWithParam, nil).Return(prefixListOutputWithParam, nil).Times(1)
+	prefixFamily := int64(IPv4Family)
+	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
+	prefixListInputWithParam := ipam.NewIpamPrefixesListParams()
+	prefixListOutputWithParam := &ipam.IpamPrefixesListOK{
+		Payload: &ipam.IpamPrefixesListOKBody{
+			Results: []*netboxModels.Prefix{
+				{
+					Prefix: &parentPrefix,
+					ID:     int64(parentPrefixId),
+					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
+				},
+			},
+		},
+	}
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
+	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
+		Payload: []*netboxModels.AvailablePrefix{
+			{
+				Family: prefixFamily,
+				Prefix: parentPrefix,
+			},
+		},
+	}
+
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest)
+
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest)
+
+	aggregateFamily := nclient.NewAggregateFamily()
+	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+
+	outputPrefix := nclient.Prefix{
+		Id:     parentPrefixId,
+		Prefix: parentPrefix,
+		Family: *aggregateFamily,
+	}
+
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInputWithParam, nil, gomock.Any()).Return(prefixListOutputWithParam, nil).Times(1)
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(gomock.Any(), nil).Return(expectedTenant, nil).AnyTimes()
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 		Extras:  mockExtras,
 		Dcim:    mockDcim,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixesByParentPrefixSelector(&pxcSpec)
+	actual, err := legacyClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), client, &pxcSpec)
 
 	assert.Nil(t, err)
 	assert.Equal(t, parentPrefix, actual[0].Prefix)
@@ -1180,6 +1333,12 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFieldInParentPrefixSelector(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
+	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
 	pxcSpec := netboxv1.PrefixClaimSpec{
 		ParentPrefixSelector: map[string]string{
@@ -1191,11 +1350,6 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 		},
 		PrefixLength: "/32",
 	}
-
-	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
-	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
-	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
-	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 
 	// example of site
 	siteId := int64(3)
@@ -1247,14 +1401,17 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
 
-	netboxClient := &NetboxClient{
+	legacyClient := &NetboxClient{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 		Extras:  mockExtras,
 		Dcim:    mockDcim,
 	}
+	client := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 
-	actual, err := netboxClient.GetAvailablePrefixesByParentPrefixSelector(&pxcSpec)
+	actual, err := legacyClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), client, &pxcSpec)
 
 	assert.Nil(t, actual)
 	AssertError(t, err, "invalid parentPrefixSelector, netbox custom fields non-existing do not exist")

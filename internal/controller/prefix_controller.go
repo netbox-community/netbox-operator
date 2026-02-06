@@ -51,6 +51,7 @@ type PrefixReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxClient
+	NetboxClientV4      *api.NetboxClientV4
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -78,7 +79,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				if err := r.NetboxClient.DeletePrefix(o.Status.PrefixId); err != nil {
+				if err := r.NetboxClientV4.DeletePrefix(ctx, o.Status.PrefixId); err != nil {
 					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
 						return ctrl.Result{}, errReport
 					}
@@ -188,7 +189,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(prefixModel)
+	netboxPrefixModel, err := r.NetboxClientV4.ReserveOrUpdatePrefix(ctx, r.NetboxClient, prefixModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
 			// if there is a restoration hash mismatch and the PrefixId status field is not set,
@@ -221,8 +222,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	/* 4. update status fields */
-	o.Status.PrefixId = netboxPrefixModel.ID
-	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(netboxPrefixModel.ID, 10)
+	o.Status.PrefixId = netboxPrefixModel.Id
+	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
 	err = r.Client.Status().Update(ctx, o)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -249,7 +250,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// check if the created prefix contains the entire description from spec
-	if _, found := strings.CutPrefix(netboxPrefixModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description); !found {
+	if _, found := strings.CutPrefix(*netboxPrefixModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description); !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 

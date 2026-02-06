@@ -53,8 +53,8 @@ func (c *NetboxClientV4) ReserveOrUpdateIpRange(ctx context.Context, cLegacy *Ne
 			if err != nil {
 				return nil, err
 			}
-			tenantID := int32(tenantDetails.Id)
-			desiredIpRange.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantID))
+			tenantId := int32(tenantDetails.Id)
+			desiredIpRange.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
 		}
 	}
 
@@ -94,17 +94,17 @@ func (c *NetboxClientV4) getIpRange(ctx context.Context, ipRange *models.IpRange
 	}
 
 	if err != nil {
-		return nil, utils.NetboxError("failed to fetch IpRange details", err)
+		return nil, utils.NetboxError("failed to fetch ip range details", err)
 	}
 	if httpResp.StatusCode != http.StatusOK {
 		body, err := io.ReadAll(httpResp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+			return nil, fmt.Errorf("failed to fetch ip range details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
 		}
-		return nil, fmt.Errorf("failed to fetch IpRange details: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+		return nil, fmt.Errorf("failed to fetch ip range details: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 func (c *NetboxClientV4) createIpRange(ctx context.Context, ipRange *nclient.WritableIPRangeRequest) (*nclient.IPRange, error) {
@@ -116,15 +116,15 @@ func (c *NetboxClientV4) createIpRange(ctx context.Context, ipRange *nclient.Wri
 	}
 
 	if err != nil {
-		return nil, utils.NetboxError("failed to reserve IP Range", err)
+		return nil, utils.NetboxError("failed to reserve ip range", err)
 	}
 
 	if httpResp.StatusCode != http.StatusCreated {
 		body, err := io.ReadAll(httpResp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+			return nil, fmt.Errorf("failed to fetch ip range details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
 		}
-		return nil, fmt.Errorf("failed to reserve IP Range: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+		return nil, fmt.Errorf("failed to reserve ip range: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return resp, nil

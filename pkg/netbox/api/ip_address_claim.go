@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -71,24 +72,27 @@ func (r *NetboxClient) RestoreExistingIpByHash(hash string) (*models.IPAddress, 
 }
 
 // GetAvailableIpAddressByClaim searches an available IpAddress in Netbox matching IpAddressClaim requirements
-func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAddressClaim) (*models.IPAddress, error) {
+func (r *NetboxClient) GetAvailableIpAddressByClaim(ctx context.Context, cV4 *NetboxClientV4, ipAddressClaim *models.IPAddressClaim) (*models.IPAddress, error) {
+	// fail early if tenant requested in the spec does not exists
 	_, err := r.GetTenantDetails(ipAddressClaim.Metadata.Tenant)
 	if err != nil {
 		return nil, err
 	}
 
-	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
-		Prefix:   ipAddressClaim.ParentPrefix,
-		Metadata: ipAddressClaim.Metadata,
-	})
+	responseParentPrefix, err := cV4.GetPrefix(
+		ctx,
+		&models.Prefix{
+			Prefix:   ipAddressClaim.ParentPrefix,
+			Metadata: ipAddressClaim.Metadata,
+		})
 	if err != nil {
 		return nil, err
 	}
-	if len(responseParentPrefix.Payload.Results) == 0 {
+	if len(responseParentPrefix.Results) == 0 {
 		return nil, utils.NetboxNotFoundError("parent prefix")
 	}
 
-	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
+	parentPrefixId := responseParentPrefix.Results[0].Id
 	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
@@ -104,8 +108,8 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 	}, nil
 }
 
-func (r *NetboxClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int64) (*ipam.IpamPrefixesAvailableIpsListOK, error) {
-	requestAvailableIPs := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
+func (r *NetboxClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int32) (*ipam.IpamPrefixesAvailableIpsListOK, error) {
+	requestAvailableIPs := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(parentPrefixId))
 	responseAvailableIPs, err := r.Ipam.IpamPrefixesAvailableIpsList(requestAvailableIPs, nil)
 	if err != nil {
 		return nil, err
