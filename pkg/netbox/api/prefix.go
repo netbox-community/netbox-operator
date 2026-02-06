@@ -16,133 +16,186 @@ limitations under the License.
 
 package api
 
-// import (
-// 	"fmt"
-// 	"net/http"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
 
-// 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
-// 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-// 	"github.com/netbox-community/netbox-operator/pkg/config"
+	nclient "github.com/netbox-community/go-netbox/v4"
+	"github.com/netbox-community/netbox-operator/pkg/config"
 
-// 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
-// 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
-// )
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
+)
 
-// /*
-// ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
-// */
-// func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxModels.Prefix, error) {
-// 	responsePrefix, err := r.GetPrefix(prefix)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+/*
+ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
+*/
+func (c *NetboxClientV4) ReserveOrUpdatePrefix(ctx context.Context, cLegacy *NetboxClient, prefix *models.Prefix) (*nclient.Prefix, error) {
+	responsePrefix, err := c.GetPrefix(ctx, prefix)
+	if err != nil {
+		return nil, err
+	}
 
-// 	desiredPrefix := &netboxModels.WritablePrefix{
-// 		Prefix:       &prefix.Prefix,
-// 		Comments:     prefix.Metadata.Comments + warningComment,
-// 		CustomFields: prefix.Metadata.Custom,
-// 		Description:  prefix.Metadata.Description + warningComment,
-// 		Status:       "active",
-// 	}
+	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
 
-// 	if prefix.Metadata != nil {
-// 		desiredPrefix.CustomFields = prefix.Metadata.Custom
-// 		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
-// 		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-// 	}
+	if prefix.Metadata != nil {
+		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
+		// Convert map[string]string to map[string]interface{}
+		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
+		for k, v := range prefix.Metadata.Custom {
+			customFields[k] = v
+		}
+		desiredPrefix.SetCustomFields(customFields)
+		desiredPrefix.SetDescription(prefix.Metadata.Description)
 
-// 	if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
-// 		tenantDetails, err := r.GetTenantDetails(prefix.Metadata.Tenant)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		desiredPrefix.Tenant = &tenantDetails.Id
-// 	}
+		if prefix.Metadata.Tenant != "" {
+			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+			if err != nil {
+				return nil, err
+			}
+			tenantId := int32(tenantDetails.Id)
+			desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
+		}
 
-// 	if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-// 		siteDetails, err := r.GetSiteDetails(prefix.Metadata.Site)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		desiredPrefix.Site = &siteDetails.Id
-// 	}
+		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
+			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.SetScopeType("dcim.site")
+			desiredPrefix.SetScopeId(int32(siteDetails.Id))
+		}
+	}
 
-// 	// create prefix since it doesn't exist
-// 	if len(responsePrefix.Payload.Results) == 0 {
-// 		return r.CreatePrefix(desiredPrefix)
-// 	}
+	// create prefix since it doesn't exist
+	if len(responsePrefix.Results) == 0 {
+		return c.createPrefix(ctx, desiredPrefix)
+	}
 
-// 	prefixToUpdate := responsePrefix.Payload.Results[0]
+	prefixToUpdate := responsePrefix.Results[0]
 
-// 	// if the desired ip address has a restoration hash
-// 	// check that the ip address to update has the same restoration hash
-// 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
-// 	if prefix.Metadata != nil {
-// 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
-// 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
-// 				//update ip address since it does exist and the restoration hash matches
-// 				return r.UpdatePrefix(prefixToUpdate.ID, desiredPrefix)
-// 			}
-// 			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
-// 		}
-// 	}
+	// if the desired ip address has a restoration hash
+	// check that the ip address to update has the same restoration hash
+	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
+	if prefix.Metadata != nil {
+		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
+			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
+				//update ip address since it does exist and the restoration hash matches
+				return c.updatePrefix(ctx, prefixToUpdate.Id, desiredPrefix)
+			}
+			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
+		}
+	}
 
-// 	//update ip address since it does exist
-// 	prefixId := responsePrefix.Payload.Results[0].ID
-// 	return r.UpdatePrefix(prefixId, desiredPrefix)
-// }
+	//update ip address since it does exist
+	prefixId := responsePrefix.Results[0].Id
+	return c.updatePrefix(ctx, prefixId, desiredPrefix)
+}
 
-// func (r *NetboxClient) GetPrefix(prefix *models.Prefix) (*ipam.IpamPrefixesListOK, error) {
+func (c *NetboxClientV4) GetPrefix(ctx context.Context, prefix *models.Prefix) (resp *nclient.PaginatedPrefixList, err error) {
+	req := c.IpamAPI.IpamPrefixesList(ctx).
+		Prefix([]string{prefix.Prefix})
+	resp, httpResp, err := req.Execute()
 
-// 	requestPrefix := ipam.
-// 		NewIpamPrefixesListParams().
-// 		WithPrefix(&prefix.Prefix)
-// 	responsePrefix, err := r.Ipam.IpamPrefixesList(requestPrefix, nil)
-// 	if err != nil {
-// 		return nil, utils.NetboxError("failed to fetch Prefix details", err)
-// 	}
+	if httpResp != nil {
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
+	}
 
-// 	return responsePrefix, err
-// }
+	if err != nil {
+		return nil, utils.NetboxError("failed to fetch prefix details", err)
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(httpResp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		}
+		return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+	}
 
-// func (r *NetboxClient) CreatePrefix(prefix *netboxModels.WritablePrefix) (*netboxModels.Prefix, error) {
-// 	requestCreatePrefix := ipam.
-// 		NewIpamPrefixesCreateParams().
-// 		WithDefaults().
-// 		WithData(prefix)
-// 	responseCreatePrefix, err := r.Ipam.
-// 		IpamPrefixesCreate(requestCreatePrefix, nil)
-// 	if err != nil {
-// 		return nil, utils.NetboxError("failed to create Prefix", err)
-// 	}
-// 	return responseCreatePrefix.Payload, nil
-// }
+	return resp, nil
+}
 
-// func (r *NetboxClient) UpdatePrefix(prefixId int64, prefix *netboxModels.WritablePrefix) (*netboxModels.Prefix, error) {
-// 	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
-// 		WithDefaults().
-// 		WithData(prefix).
-// 		WithID(prefixId)
-// 	responseUpdatePrefix, err := r.Ipam.IpamPrefixesUpdate(requestUpdatePrefix, nil)
-// 	if err != nil {
-// 		return nil, utils.NetboxError("failed to update Prefix", err)
-// 	}
-// 	return responseUpdatePrefix.Payload, nil
-// }
+func (c *NetboxClientV4) createPrefix(ctx context.Context, prefix *nclient.WritablePrefixRequest) (resp *nclient.Prefix, err error) {
+	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
+	resp, httpResp, err := req.Execute()
 
-// func (r *NetboxClient) DeletePrefix(prefixId int64) error {
-// 	requestDeletePrefix := ipam.NewIpamPrefixesDeleteParams().WithID(prefixId)
-// 	_, err := r.Ipam.IpamPrefixesDelete(requestDeletePrefix, nil)
-// 	if err != nil {
-// 		switch typedErr := err.(type) {
-// 		case *ipam.IpamPrefixesDeleteDefault:
-// 			if typedErr.IsCode(http.StatusNotFound) {
-// 				return nil
-// 			}
-// 			return utils.NetboxError("Failed to delete prefix from Netbox", err)
-// 		default:
-// 			return utils.NetboxError("Failed to delete prefix from Netbox", err)
-// 		}
-// 	}
-// 	return nil
-// }
+	if httpResp != nil {
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
+	}
+
+	if err != nil {
+		return nil, utils.NetboxError("failed to reserve prefix", err)
+	}
+
+	if httpResp.StatusCode != http.StatusCreated {
+		body, err := io.ReadAll(httpResp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		}
+		return nil, fmt.Errorf("failed to reserve prefix: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+	}
+
+	return resp, nil
+}
+
+func (c *NetboxClientV4) updatePrefix(ctx context.Context, prefixId int32, prefix *nclient.WritablePrefixRequest) (resp *nclient.Prefix, err error) {
+	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
+	resp, httpResp, err := req.Execute()
+
+	if httpResp != nil {
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
+	}
+
+	if err != nil {
+		return nil, utils.NetboxError("failed to update prefix", err)
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(httpResp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		}
+		return nil, fmt.Errorf("failed to update prefix: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+	}
+
+	return resp, nil
+}
+
+func (c *NetboxClientV4) DeletePrefix(ctx context.Context, prefixId int32) (err error) {
+	req := c.IpamAPI.IpamPrefixesDestroy(ctx, prefixId)
+	httpResp, err := req.Execute()
+
+	if httpResp != nil {
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
+	}
+
+	if err != nil {
+		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+			return nil
+		}
+		return utils.NetboxError("failed to delete ip range from Netbox", err)
+	}
+	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusNotFound {
+		body, err := io.ReadAll(httpResp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		}
+		return fmt.Errorf("failed to delete ip range from Netbox: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+	}
+
+	return nil
+}

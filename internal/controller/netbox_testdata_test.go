@@ -47,7 +47,6 @@ var parentPrefix = "1.0.0.0/28"
 
 var siteId = int64(2)
 var scopeType = "dcim.site"
-var site = "Mars"
 
 var tenantId = int32(1)
 var tenant = "test-tenant"

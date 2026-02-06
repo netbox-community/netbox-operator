@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -83,14 +84,17 @@ func (c *NetboxClientV4) ReserveOrUpdateIpRange(ctx context.Context, cLegacy *Ne
 	return c.updateIpRange(ctx, ipRangeId, desiredIpRange)
 }
 
-func (c *NetboxClientV4) getIpRange(ctx context.Context, ipRange *models.IpRange) (*nclient.PaginatedIPRangeList, error) {
+func (c *NetboxClientV4) getIpRange(ctx context.Context, ipRange *models.IpRange) (resp *nclient.PaginatedIPRangeList, err error) {
 	req := c.IpamAPI.IpamIpRangesList(ctx).
 		StartAddress([]string{ipRange.StartAddress}).
 		EndAddress([]string{ipRange.EndAddress})
 	resp, httpResp, err := req.Execute()
 
 	if httpResp != nil {
-		defer httpResp.Body.Close()
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
 	}
 
 	if err != nil {
@@ -107,12 +111,15 @@ func (c *NetboxClientV4) getIpRange(ctx context.Context, ipRange *models.IpRange
 	return resp, nil
 }
 
-func (c *NetboxClientV4) createIpRange(ctx context.Context, ipRange *nclient.WritableIPRangeRequest) (*nclient.IPRange, error) {
+func (c *NetboxClientV4) createIpRange(ctx context.Context, ipRange *nclient.WritableIPRangeRequest) (resp *nclient.IPRange, err error) {
 	req := c.IpamAPI.IpamIpRangesCreate(ctx).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, err := req.Execute()
 
 	if httpResp != nil {
-		defer httpResp.Body.Close()
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
 	}
 
 	if err != nil {
@@ -130,12 +137,15 @@ func (c *NetboxClientV4) createIpRange(ctx context.Context, ipRange *nclient.Wri
 	return resp, nil
 }
 
-func (c *NetboxClientV4) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *nclient.WritableIPRangeRequest) (*nclient.IPRange, error) {
+func (c *NetboxClientV4) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *nclient.WritableIPRangeRequest) (resp *nclient.IPRange, err error) {
 	req := c.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, err := req.Execute()
 
 	if httpResp != nil {
-		defer httpResp.Body.Close()
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
 	}
 
 	if err != nil {
@@ -152,12 +162,15 @@ func (c *NetboxClientV4) updateIpRange(ctx context.Context, ipRangeId int32, ipR
 	return resp, nil
 }
 
-func (c *NetboxClientV4) DeleteIpRange(ctx context.Context, ipRangeId int64) error {
+func (c *NetboxClientV4) DeleteIpRange(ctx context.Context, ipRangeId int64) (err error) {
 	req := c.IpamAPI.IpamIpRangesDestroy(ctx, int32(ipRangeId))
 	httpResp, err := req.Execute()
 
 	if httpResp != nil {
-		defer httpResp.Body.Close()
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
 	}
 
 	if err != nil {
