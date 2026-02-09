@@ -78,7 +78,8 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 	client := nclient.NewAPIClient(cfg)
 
 	return &NetboxClientV4{
-		client:  client,
-		IpamAPI: &ipamV4APIAdapter{api: client.IpamAPI},
+		client:    client,
+		IpamAPI:   &ipamV4APIAdapter{api: client.IpamAPI},
+		StatusAPI: &statusV4APIAdapter{api: client.StatusAPI},
 	}, nil
 }

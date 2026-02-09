@@ -169,3 +169,20 @@ func (a *ipamV4APIAdapter) IpamPrefixesUpdate(ctx context.Context, id int32) int
 func (a *ipamV4APIAdapter) IpamPrefixesDestroy(ctx context.Context, id int32) interfaces.IpamPrefixesDestroyRequest {
 	return &ipamPrefixesDestroyRequestAdapter{req: a.api.IpamPrefixesDestroy(ctx, id)}
 }
+
+type statusRetrieveRequestAdapter struct {
+	req nclient.ApiStatusRetrieveRequest
+}
+
+func (a *statusRetrieveRequestAdapter) Execute() (map[string]any, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// statusV4APIAdapter adapts the v4 StatusAPI to the interface
+type statusV4APIAdapter struct {
+	api nclient.StatusAPI
+}
+
+func (a *statusV4APIAdapter) StatusRetrieve(ctx context.Context) interfaces.APIStatusRetrieveRequest {
+	return &statusRetrieveRequestAdapter{req: a.api.StatusRetrieve(ctx)}
+}
