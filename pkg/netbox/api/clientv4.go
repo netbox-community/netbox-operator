@@ -30,8 +30,9 @@ import (
 )
 
 type NetboxClientV4 struct {
-	client  *nclient.APIClient
-	IpamAPI interfaces.IpamAPI
+	client    *nclient.APIClient
+	IpamAPI   interfaces.IpamAPI
+	StatusAPI interfaces.StatusAPI
 }
 
 func GetNetboxClientV4() (*NetboxClientV4, error) {

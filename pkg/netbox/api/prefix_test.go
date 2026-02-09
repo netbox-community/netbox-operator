@@ -235,7 +235,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		Results: []nclient.Prefix{},
 	}
 
-	t.Run("reserve with tenant and site", func(t *testing.T) {
+	t.Run("reserve with tenant and site (v4 NetBox client)", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -244,6 +244,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockCreateRequest := mock_interfaces.NewMockIpamPrefixesCreateRequest(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.4.10")
+		_ = mockStatusRequest
 
 		completeComment := comments + warningComment
 		completeDescription := description + warningComment
@@ -297,7 +299,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Dcim:    mockDcim,
 		}
 		client := &NetboxClientV4{
-			IpamAPI: mockIpamAPI,
+			IpamAPI:   mockIpamAPI,
+			StatusAPI: mockStatusAPI,
 		}
 
 		prefixModel := models.Prefix{
@@ -320,7 +323,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("update without tenant and site", func(t *testing.T) {
+	t.Run("update without tenant and site (v4 netbox client)", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -329,6 +332,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
 		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
 
 		prefixOutput := nclient.Prefix{
 			Id:          int32(4),
@@ -371,7 +376,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Tenancy: mockTenancy,
 		}
 		client := &NetboxClientV4{
-			IpamAPI: mockIpamAPI,
+			IpamAPI:   mockIpamAPI,
+			StatusAPI: mockStatusAPI,
 		}
 
 		prefixModel := models.Prefix{

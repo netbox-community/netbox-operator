@@ -72,15 +72,12 @@ func TestPrefix_CreatePrefix(t *testing.T) {
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, err := netboxClient.CreatePrefixV3(prefixToCreate)
+	actual, err := netboxClient.createPrefixV3(prefixToCreate)
 	assert.Nil(t, err)
-	assert.Greater(t, actual.ID, int64(0))
-	assert.Equal(t, prefix, *actual.Prefix)
-	assert.Equal(t, comment, actual.Comments)
-	assert.Equal(t, description, actual.Description)
-	assert.Equal(t, prefix, actual.Display)
-	assert.Equal(t, siteId, actual.Site.ID)
-	assert.Equal(t, tenantId, actual.Tenant.ID)
+	assert.Greater(t, actual.Id, int32(0))
+	assert.Equal(t, prefix, actual.Prefix)
+	assert.Equal(t, description, *actual.Description)
+	assert.Equal(t, prefix, actual.Prefix)
 }
 
 func TestPrefix_UpdatePrefix(t *testing.T) {
@@ -131,13 +128,9 @@ func TestPrefix_UpdatePrefix(t *testing.T) {
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, err := netboxClient.UpdatePrefixV3(prefixId, prefixToUpdate)
+	actual, err := netboxClient.updatePrefixV3(prefixId, prefixToUpdate)
 	assert.Nil(t, err)
-	assert.Greater(t, actual.ID, int64(0))
-	assert.Equal(t, prefix, *actual.Prefix)
-	assert.Equal(t, comment, actual.Comments)
-	assert.Equal(t, updatedDescription, actual.Description)
-	assert.Equal(t, prefix, actual.Display)
-	assert.Equal(t, siteId, actual.Site.ID)
-	assert.Equal(t, tenantId, actual.Tenant.ID)
+	assert.Greater(t, actual.Id, int32(0))
+	assert.Equal(t, prefix, actual.Prefix)
+	assert.Equal(t, updatedDescription, *actual.Description)
 }

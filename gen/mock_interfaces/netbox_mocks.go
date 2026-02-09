@@ -1031,3 +1031,81 @@ func (mr *MockIpamAPIMockRecorder) IpamPrefixesUpdate(ctx, id any) *gomock.Call 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesUpdate), ctx, id)
 }
+
+// MockApiStatusRetrieveRequest is a mock of ApiStatusRetrieveRequest interface.
+type MockApiStatusRetrieveRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockApiStatusRetrieveRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockApiStatusRetrieveRequestMockRecorder is the mock recorder for MockApiStatusRetrieveRequest.
+type MockApiStatusRetrieveRequestMockRecorder struct {
+	mock *MockApiStatusRetrieveRequest
+}
+
+// NewMockApiStatusRetrieveRequest creates a new mock instance.
+func NewMockApiStatusRetrieveRequest(ctrl *gomock.Controller) *MockApiStatusRetrieveRequest {
+	mock := &MockApiStatusRetrieveRequest{ctrl: ctrl}
+	mock.recorder = &MockApiStatusRetrieveRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockApiStatusRetrieveRequest) EXPECT() *MockApiStatusRetrieveRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockApiStatusRetrieveRequest) Execute() (map[string]any, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(map[string]any)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockApiStatusRetrieveRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockApiStatusRetrieveRequest)(nil).Execute))
+}
+
+// MockStatusAPI is a mock of StatusAPI interface.
+type MockStatusAPI struct {
+	ctrl     *gomock.Controller
+	recorder *MockStatusAPIMockRecorder
+	isgomock struct{}
+}
+
+// MockStatusAPIMockRecorder is the mock recorder for MockStatusAPI.
+type MockStatusAPIMockRecorder struct {
+	mock *MockStatusAPI
+}
+
+// NewMockStatusAPI creates a new mock instance.
+func NewMockStatusAPI(ctrl *gomock.Controller) *MockStatusAPI {
+	mock := &MockStatusAPI{ctrl: ctrl}
+	mock.recorder = &MockStatusAPIMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStatusAPI) EXPECT() *MockStatusAPIMockRecorder {
+	return m.recorder
+}
+
+// StatusRetrieve mocks base method.
+func (m *MockStatusAPI) StatusRetrieve(ctx context.Context) interfaces.ApiStatusRetrieveRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StatusRetrieve", ctx)
+	ret0, _ := ret[0].(interfaces.ApiStatusRetrieveRequest)
+	return ret0
+}
+
+// StatusRetrieve indicates an expected call of StatusRetrieve.
+func (mr *MockStatusAPIMockRecorder) StatusRetrieve(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusRetrieve", reflect.TypeOf((*MockStatusAPI)(nil).StatusRetrieve), ctx)
+}

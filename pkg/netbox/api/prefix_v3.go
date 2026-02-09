@@ -19,13 +19,14 @@ package api
 import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	nclient "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
 // to ensure compatibility with older NetBox versions the CreatePrefix and UpdatePrefix
 // functions for the v3 client are still required
 
-func (r *NetboxClient) CreatePrefixV3(prefix *netboxModels.WritablePrefix) (*netboxModels.Prefix, error) {
+func (r *NetboxClient) createPrefixV3(prefix *netboxModels.WritablePrefix) (*nclient.Prefix, error) {
 	requestCreatePrefix := ipam.
 		NewIpamPrefixesCreateParams().
 		WithDefaults().
@@ -35,10 +36,18 @@ func (r *NetboxClient) CreatePrefixV3(prefix *netboxModels.WritablePrefix) (*net
 	if err != nil {
 		return nil, utils.NetboxError("failed to create Prefix", err)
 	}
-	return responseCreatePrefix.Payload, nil
+	prefixPayload := responseCreatePrefix.Payload
+
+	nclientPrefix := &nclient.Prefix{
+		Id:          int32(prefixPayload.ID),
+		Prefix:      *prefixPayload.Prefix,
+		Description: &prefix.Description,
+	}
+
+	return nclientPrefix, nil
 }
 
-func (r *NetboxClient) UpdatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (*netboxModels.Prefix, error) {
+func (r *NetboxClient) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (*nclient.Prefix, error) {
 	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
 		WithDefaults().
 		WithData(prefix).
@@ -47,5 +56,13 @@ func (r *NetboxClient) UpdatePrefixV3(prefixId int64, prefix *netboxModels.Writa
 	if err != nil {
 		return nil, utils.NetboxError("failed to update Prefix", err)
 	}
-	return responseUpdatePrefix.Payload, nil
+	prefixPayload := responseUpdatePrefix.Payload
+
+	nclientPrefix := &nclient.Prefix{
+		Id:          int32(prefixPayload.ID),
+		Prefix:      *prefixPayload.Prefix,
+		Description: &prefix.Description,
+	}
+
+	return nclientPrefix, nil
 }
