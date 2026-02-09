@@ -97,7 +97,7 @@ func TestIPAddressClaim(t *testing.T) {
 			Ipam: mockIPAddress,
 		}
 
-		actual, err := client.GetAvailableIpAddressesByParentPrefix(int32(parentPrefixIdV4))
+		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error return
 		AssertNil(t, err)
@@ -350,7 +350,7 @@ func TestIPAddressClaim(t *testing.T) {
 			Ipam: mockIPAddress,
 		}
 
-		actual, err := client.GetAvailableIpAddressesByParentPrefix(int32(parentPrefixIdV4))
+		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error
 		AssertError(t, err, ErrParentPrefixExhausted.Error())

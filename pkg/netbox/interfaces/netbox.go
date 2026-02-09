@@ -121,10 +121,10 @@ type IpamAPI interface {
 }
 
 // IpamPrefixesDestroyRequest represents the fluent API for deleting IP ranges
-type ApiStatusRetrieveRequest interface {
+type APIStatusRetrieveRequest interface {
 	Execute() (map[string]interface{}, *http.Response, error)
 }
 
 type StatusAPI interface {
-	StatusRetrieve(ctx context.Context) ApiStatusRetrieveRequest
+	StatusRetrieve(ctx context.Context) APIStatusRetrieveRequest
 }

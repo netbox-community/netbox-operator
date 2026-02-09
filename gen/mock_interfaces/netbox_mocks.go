@@ -1032,32 +1032,32 @@ func (mr *MockIpamAPIMockRecorder) IpamPrefixesUpdate(ctx, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesUpdate), ctx, id)
 }
 
-// MockApiStatusRetrieveRequest is a mock of ApiStatusRetrieveRequest interface.
-type MockApiStatusRetrieveRequest struct {
+// MockAPIStatusRetrieveRequest is a mock of APIStatusRetrieveRequest interface.
+type MockAPIStatusRetrieveRequest struct {
 	ctrl     *gomock.Controller
-	recorder *MockApiStatusRetrieveRequestMockRecorder
+	recorder *MockAPIStatusRetrieveRequestMockRecorder
 	isgomock struct{}
 }
 
-// MockApiStatusRetrieveRequestMockRecorder is the mock recorder for MockApiStatusRetrieveRequest.
-type MockApiStatusRetrieveRequestMockRecorder struct {
-	mock *MockApiStatusRetrieveRequest
+// MockAPIStatusRetrieveRequestMockRecorder is the mock recorder for MockAPIStatusRetrieveRequest.
+type MockAPIStatusRetrieveRequestMockRecorder struct {
+	mock *MockAPIStatusRetrieveRequest
 }
 
-// NewMockApiStatusRetrieveRequest creates a new mock instance.
-func NewMockApiStatusRetrieveRequest(ctrl *gomock.Controller) *MockApiStatusRetrieveRequest {
-	mock := &MockApiStatusRetrieveRequest{ctrl: ctrl}
-	mock.recorder = &MockApiStatusRetrieveRequestMockRecorder{mock}
+// NewMockAPIStatusRetrieveRequest creates a new mock instance.
+func NewMockAPIStatusRetrieveRequest(ctrl *gomock.Controller) *MockAPIStatusRetrieveRequest {
+	mock := &MockAPIStatusRetrieveRequest{ctrl: ctrl}
+	mock.recorder = &MockAPIStatusRetrieveRequestMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockApiStatusRetrieveRequest) EXPECT() *MockApiStatusRetrieveRequestMockRecorder {
+func (m *MockAPIStatusRetrieveRequest) EXPECT() *MockAPIStatusRetrieveRequestMockRecorder {
 	return m.recorder
 }
 
 // Execute mocks base method.
-func (m *MockApiStatusRetrieveRequest) Execute() (map[string]any, *http.Response, error) {
+func (m *MockAPIStatusRetrieveRequest) Execute() (map[string]any, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Execute")
 	ret0, _ := ret[0].(map[string]any)
@@ -1067,9 +1067,9 @@ func (m *MockApiStatusRetrieveRequest) Execute() (map[string]any, *http.Response
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockApiStatusRetrieveRequestMockRecorder) Execute() *gomock.Call {
+func (mr *MockAPIStatusRetrieveRequestMockRecorder) Execute() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockApiStatusRetrieveRequest)(nil).Execute))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockAPIStatusRetrieveRequest)(nil).Execute))
 }
 
 // MockStatusAPI is a mock of StatusAPI interface.
@@ -1097,10 +1097,10 @@ func (m *MockStatusAPI) EXPECT() *MockStatusAPIMockRecorder {
 }
 
 // StatusRetrieve mocks base method.
-func (m *MockStatusAPI) StatusRetrieve(ctx context.Context) interfaces.ApiStatusRetrieveRequest {
+func (m *MockStatusAPI) StatusRetrieve(ctx context.Context) interfaces.APIStatusRetrieveRequest {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StatusRetrieve", ctx)
-	ret0, _ := ret[0].(interfaces.ApiStatusRetrieveRequest)
+	ret0, _ := ret[0].(interfaces.APIStatusRetrieveRequest)
 	return ret0
 }
 

@@ -23,9 +23,9 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func GetNetBoxVersionMock(ctrl *gomock.Controller, version string) (*mock_interfaces.MockStatusAPI, *mock_interfaces.MockApiStatusRetrieveRequest) {
+func GetNetBoxVersionMock(ctrl *gomock.Controller, version string) (*mock_interfaces.MockStatusAPI, *mock_interfaces.MockAPIStatusRetrieveRequest) {
 	mockStatusAPI := mock_interfaces.NewMockStatusAPI(ctrl)
-	mockStatusRequest := mock_interfaces.NewMockApiStatusRetrieveRequest(ctrl)
+	mockStatusRequest := mock_interfaces.NewMockAPIStatusRetrieveRequest(ctrl)
 
 	mockStatusAPI.EXPECT().
 		StatusRetrieve(gomock.Any()).

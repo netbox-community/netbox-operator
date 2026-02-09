@@ -129,40 +129,40 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.Site = &siteDetails.Id
 		}
 		return cLegacy.createPrefixV3(desiredPrefix)
-	} else {
-
-		desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
-
-		if prefix.Metadata != nil {
-			desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
-			// Convert map[string]string to map[string]interface{}
-			customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
-			for k, v := range prefix.Metadata.Custom {
-				customFields[k] = v
-			}
-			desiredPrefix.SetCustomFields(customFields)
-			desiredPrefix.SetDescription(prefix.Metadata.Description)
-
-			if prefix.Metadata.Tenant != "" {
-				tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
-				if err != nil {
-					return nil, err
-				}
-				tenantId := int32(tenantDetails.Id)
-				desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
-			}
-
-			if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-				siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
-				if err != nil {
-					return nil, err
-				}
-				desiredPrefix.SetScopeType("dcim.site")
-				desiredPrefix.SetScopeId(int32(siteDetails.Id))
-			}
-		}
-		return c.createPrefixV4(ctx, desiredPrefix)
 	}
+
+	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
+
+	if prefix.Metadata != nil {
+		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
+		// Convert map[string]string to map[string]interface{}
+		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
+		for k, v := range prefix.Metadata.Custom {
+			customFields[k] = v
+		}
+		desiredPrefix.SetCustomFields(customFields)
+		desiredPrefix.SetDescription(prefix.Metadata.Description)
+
+		if prefix.Metadata.Tenant != "" {
+			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+			if err != nil {
+				return nil, err
+			}
+			tenantId := int32(tenantDetails.Id)
+			desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
+		}
+
+		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
+			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.SetScopeType("dcim.site")
+			desiredPrefix.SetScopeId(int32(siteDetails.Id))
+		}
+	}
+	return c.createPrefixV4(ctx, desiredPrefix)
+
 }
 
 func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *nclient.WritablePrefixRequest) (resp *nclient.Prefix, err error) {
@@ -229,40 +229,40 @@ func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.Site = &siteDetails.Id
 		}
 		return cLegacy.updatePrefixV3(int64(prefixId), desiredPrefix)
-	} else {
-
-		desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
-
-		if prefix.Metadata != nil {
-			desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
-			// Convert map[string]string to map[string]interface{}
-			customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
-			for k, v := range prefix.Metadata.Custom {
-				customFields[k] = v
-			}
-			desiredPrefix.SetCustomFields(customFields)
-			desiredPrefix.SetDescription(prefix.Metadata.Description)
-
-			if prefix.Metadata.Tenant != "" {
-				tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
-				if err != nil {
-					return nil, err
-				}
-				tenantId := int32(tenantDetails.Id)
-				desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
-			}
-
-			if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-				siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
-				if err != nil {
-					return nil, err
-				}
-				desiredPrefix.SetScopeType("dcim.site")
-				desiredPrefix.SetScopeId(int32(siteDetails.Id))
-			}
-		}
-		return c.updatePrefixV4(ctx, prefixId, desiredPrefix)
 	}
+
+	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
+
+	if prefix.Metadata != nil {
+		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
+		// Convert map[string]string to map[string]interface{}
+		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
+		for k, v := range prefix.Metadata.Custom {
+			customFields[k] = v
+		}
+		desiredPrefix.SetCustomFields(customFields)
+		desiredPrefix.SetDescription(prefix.Metadata.Description)
+
+		if prefix.Metadata.Tenant != "" {
+			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+			if err != nil {
+				return nil, err
+			}
+			tenantId := int32(tenantDetails.Id)
+			desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
+		}
+
+		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
+			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.SetScopeType("dcim.site")
+			desiredPrefix.SetScopeId(int32(siteDetails.Id))
+		}
+	}
+	return c.updatePrefixV4(ctx, prefixId, desiredPrefix)
+
 }
 
 func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *nclient.WritablePrefixRequest) (resp *nclient.Prefix, err error) {
