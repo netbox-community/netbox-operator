@@ -35,5 +35,5 @@ func GetNetBoxVersionMock(ctrl *gomock.Controller, version string) (*mock_interf
 		Execute().
 		Return(map[string]interface{}{"netbox-version": version}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
-	return mockStatusAPI, nil
+	return mockStatusAPI, mockStatusRequest
 }

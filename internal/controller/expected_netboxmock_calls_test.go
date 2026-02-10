@@ -125,10 +125,10 @@ func mockPrefixesListRequestSetPrefix(mockprefixesListRequest *mock_interfaces.M
 			diff := deep.Equal(got, ExpectedPrefixListParams)
 			// skip check for the 3rd input parameter as it is a method, method is a non comparable type
 			if len(diff) > 0 {
-				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamPrefixesAvailableIpsList, diff to expected params diff: %+v", diff)
+				err := fmt.Errorf("netboxmock: unexpected call to PrefixesListRequest.Prefix, diff to expected params diff: %+v", diff)
 				catchUnexpectedParams <- err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamPrefixesAvailableIpsList was called with expected input,\n")
+			fmt.Printf("NETBOXMOCK\t PrefixesListRequest.Prefix was called with expected input,\n")
 			return mockIpamPrefixesListRequest
 		}).MinTimes(1)
 }
@@ -136,7 +136,7 @@ func mockPrefixesListRequestSetPrefix(mockprefixesListRequest *mock_interfaces.M
 func mockPrefixesListRequestExecute(mockprefixesListRequest *mock_interfaces.MockIpamPrefixesListRequest, catchUnexpectedParams chan error) {
 	mockprefixesListRequest.EXPECT().Execute().
 		DoAndReturn(func() (*nclient.PaginatedPrefixList, *http.Response, error) {
-			fmt.Printf("NETBOXMOCK\t ipam.IpamPrefixesAvailableIpsList was called with expected input,\n")
+			fmt.Printf("NETBOXMOCK\t PrefixesListRequest.Execute was called with expected input,\n")
 			return mockedResponsePrefixList(), &http.Response{StatusCode: 200, Body: http.NoBody}, nil
 		}).MinTimes(1)
 }

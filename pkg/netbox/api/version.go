@@ -27,29 +27,41 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-func (c *NetboxClientV4) GetNetBoxVersion(ctx context.Context) (version string, err error) {
+func (c *NetboxClientV4) getNetBoxVersion(ctx context.Context) (version string, err error) {
 
 	req := c.StatusAPI.StatusRetrieve(ctx)
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
 	}
 
-	version = resp["netbox-version"].(string)
+	if httpResp == nil {
+		// no response at all: transport error
+		return "", fmt.Errorf("failed to fetch netbox version, %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		if readErr != nil {
+			return "", fmt.Errorf("failed to fetch netbox version: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return "", fmt.Errorf("failed to fetch netbox version: status %d, body: %s", httpResp.StatusCode, string(body))
+	}
 
 	if err != nil {
+		// unexpected: status OK but error set
 		return "", utils.NetboxError("failed to fetch netbox version", err)
 	}
-	if httpResp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(httpResp.Body)
-		if err != nil {
-			return "", fmt.Errorf("failed to fetch netbox version: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
-		}
-		return "", fmt.Errorf("failed to fetch netbox version: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+
+	version, ok := resp["netbox-version"].(string)
+	if !ok || version == "" {
+		return "", fmt.Errorf("failed to fetch netbox version: field 'netbox-version' is missing in response")
 	}
 
 	return version, nil
@@ -65,7 +77,7 @@ func isLegacyVersion(version string) bool {
 }
 
 func (c *NetboxClientV4) isLegacyNetBox(ctx context.Context) (bool, error) {
-	version, err := c.GetNetBoxVersion(ctx)
+	version, err := c.getNetBoxVersion(ctx)
 	if err != nil {
 		return false, err
 	}

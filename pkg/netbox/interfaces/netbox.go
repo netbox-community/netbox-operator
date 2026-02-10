@@ -62,26 +62,22 @@ type DcimInterface interface {
 
 // V4 API Interfaces - Request Objects
 
-// IpamIpRangesListRequest represents the fluent API for listing IP ranges
 type IpamIpRangesListRequest interface {
 	StartAddress(startAddress []string) IpamIpRangesListRequest
 	EndAddress(endAddress []string) IpamIpRangesListRequest
 	Execute() (*nclient.PaginatedIPRangeList, *http.Response, error)
 }
 
-// IpamIpRangesCreateRequest represents the fluent API for creating IP ranges
 type IpamIpRangesCreateRequest interface {
 	WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) IpamIpRangesCreateRequest
 	Execute() (*nclient.IPRange, *http.Response, error)
 }
 
-// IpamIpRangesUpdateRequest represents the fluent API for updating IP ranges
 type IpamIpRangesUpdateRequest interface {
 	WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) IpamIpRangesUpdateRequest
 	Execute() (*nclient.IPRange, *http.Response, error)
 }
 
-// IpamIpRangesDestroyRequest represents the fluent API for deleting IP ranges
 type IpamIpRangesDestroyRequest interface {
 	Execute() (*http.Response, error)
 }
@@ -91,24 +87,20 @@ type IpamPrefixesListRequest interface {
 	Execute() (*nclient.PaginatedPrefixList, *http.Response, error)
 }
 
-// IpamPrefixesCreateRequest represents the fluent API for creating IP ranges
 type IpamPrefixesCreateRequest interface {
 	WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) IpamPrefixesCreateRequest
 	Execute() (*nclient.Prefix, *http.Response, error)
 }
 
-// IpamPrefixesUpdateRequest represents the fluent API for updating IP ranges
 type IpamPrefixesUpdateRequest interface {
 	WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) IpamPrefixesUpdateRequest
 	Execute() (*nclient.Prefix, *http.Response, error)
 }
 
-// IpamPrefixesDestroyRequest represents the fluent API for deleting IP ranges
 type IpamPrefixesDestroyRequest interface {
 	Execute() (*http.Response, error)
 }
 
-// IpamV4API represents the v4 API interface for IPAM operations
 type IpamAPI interface {
 	IpamIpRangesList(ctx context.Context) IpamIpRangesListRequest
 	IpamIpRangesCreate(ctx context.Context) IpamIpRangesCreateRequest
@@ -120,7 +112,6 @@ type IpamAPI interface {
 	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
 }
 
-// IpamPrefixesDestroyRequest represents the fluent API for deleting IP ranges
 type APIStatusRetrieveRequest interface {
 	Execute() (map[string]interface{}, *http.Response, error)
 }

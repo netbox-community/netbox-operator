@@ -64,8 +64,7 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 		Timeout: time.Second * time.Duration(RequestTimeout),
 	}
 
-	var desiredRuntimeClientScheme string
-	desiredRuntimeClientScheme = "http"
+	desiredRuntimeClientScheme := "http"
 	if config.GetOperatorConfig().HttpsEnable {
 		desiredRuntimeClientScheme = "https"
 	}

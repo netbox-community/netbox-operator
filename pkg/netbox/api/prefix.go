@@ -81,9 +81,9 @@ func (c *NetboxClientV4) GetPrefix(ctx context.Context, prefix *models.Prefix) (
 		return nil, utils.NetboxError("failed to fetch prefix details", err)
 	}
 	if httpResp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(httpResp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		body, readErr := io.ReadAll(httpResp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
 		}
 		return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
@@ -111,22 +111,21 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.CustomFields = prefix.Metadata.Custom
 			desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
 			desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-		}
 
-		if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
-			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
-			if err != nil {
-				return nil, err
+			if prefix.Metadata.Tenant != "" {
+				tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+				if err != nil {
+					return nil, err
+				}
+				desiredPrefix.Tenant = &tenantDetails.Id
 			}
-			desiredPrefix.Tenant = &tenantDetails.Id
-		}
-
-		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
-			if err != nil {
-				return nil, err
+			if prefix.Metadata.Site != "" {
+				siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+				if err != nil {
+					return nil, err
+				}
+				desiredPrefix.Site = &siteDetails.Id
 			}
-			desiredPrefix.Site = &siteDetails.Id
 		}
 		return cLegacy.createPrefixV3(desiredPrefix)
 	}
@@ -141,7 +140,7 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 			customFields[k] = v
 		}
 		desiredPrefix.SetCustomFields(customFields)
-		desiredPrefix.SetDescription(prefix.Metadata.Description)
+		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
 
 		if prefix.Metadata.Tenant != "" {
 			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
@@ -152,7 +151,7 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
 		}
 
-		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
+		if prefix.Metadata.Site != "" {
 			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
 			if err != nil {
 				return nil, err
@@ -161,6 +160,12 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.SetScopeId(int32(siteDetails.Id))
 		}
 	}
+
+	status, err := nclient.NewPatchedWritablePrefixRequestStatusFromValue("active")
+	if err != nil {
+		return nil, err
+	}
+	desiredPrefix.SetStatus(*status)
 	return c.createPrefixV4(ctx, desiredPrefix)
 
 }
@@ -181,9 +186,9 @@ func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *nclient.Wri
 	}
 
 	if httpResp.StatusCode != http.StatusCreated {
-		body, err := io.ReadAll(httpResp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		body, readErr := io.ReadAll(httpResp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
 		}
 		return nil, fmt.Errorf("failed to reserve prefix: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
@@ -280,9 +285,9 @@ func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, pre
 		return nil, utils.NetboxError("failed to update prefix", err)
 	}
 	if httpResp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(httpResp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		body, readErr := io.ReadAll(httpResp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
 		}
 		return nil, fmt.Errorf("failed to update prefix: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
@@ -305,14 +310,14 @@ func (c *NetboxClientV4) DeletePrefix(ctx context.Context, prefixId int32) (err 
 		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 			return nil
 		}
-		return utils.NetboxError("failed to delete ip range from Netbox", err)
+		return utils.NetboxError("failed to delete prefix from Netbox", err)
 	}
 	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusNotFound {
-		body, err := io.ReadAll(httpResp.Body)
-		if err != nil {
-			return fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, err)
+		body, readErr := io.ReadAll(httpResp.Body)
+		if readErr != nil {
+			return fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
 		}
-		return fmt.Errorf("failed to delete ip range from Netbox: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+		return fmt.Errorf("failed to delete prefix from Netbox: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return nil

@@ -250,6 +250,10 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// check if the created prefix contains the entire description from spec
+	if netboxPrefixModel.Description == nil {
+		logger.Error(fmt.Errorf("prefix in netbox is missing a description"), "")
+		return ctrl.Result{Requeue: true}, nil
+	}
 	if _, found := strings.CutPrefix(*netboxPrefixModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description); !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
