@@ -179,7 +179,7 @@ func (c *NetboxClientV4) DeleteIpRange(ctx context.Context, ipRangeId int64) (er
 		}
 		return utils.NetboxError("failed to delete ip range from Netbox", err)
 	}
-	if httpResp.StatusCode != http.StatusOK && httpResp.StatusCode != http.StatusNotFound {
+	if httpResp.StatusCode != http.StatusNoContent && httpResp.StatusCode != http.StatusNotFound {
 		body, readErr := io.ReadAll(httpResp.Body)
 		if readErr != nil {
 			return fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)

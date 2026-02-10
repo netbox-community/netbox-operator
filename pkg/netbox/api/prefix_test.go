@@ -174,7 +174,7 @@ func TestPrefix_DeletePrefix(t *testing.T) {
 
 	mockDestroyRequest.EXPECT().
 		Execute().
-		Return(&http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&http.Response{StatusCode: 204, Body: http.NoBody}, nil)
 
 	client := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
