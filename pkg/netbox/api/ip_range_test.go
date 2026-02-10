@@ -454,6 +454,6 @@ func TestIpRange(t *testing.T) {
 		err := client.DeleteIpRange(context.TODO(), int64(ipRangeId))
 
 		// assert error return
-		AssertError(t, err, "failed to delete ip range from Netbox: unexpected status 400, body: ")
+		AssertError(t, err, "failed to delete ip range from Netbox: status 400, body: ")
 	})
 }
