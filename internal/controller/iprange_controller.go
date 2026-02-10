@@ -49,8 +49,7 @@ const IPRManagedCustomFieldsAnnotationName = "iprange.netbox.dev/managed-custom-
 type IpRangeReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
-	NetboxClient        *api.NetboxClient
-	NetboxClientV4      *api.NetboxClientV4
+	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -69,16 +68,16 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	logger.Info("reconcile loop started")
 
 	o := &netboxv1.IpRange{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err := r.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				err := r.NetboxClientV4.DeleteIpRange(ctx, o.Status.IpRangeId)
+				err := r.NetboxClient.DeleteIpRange(ctx, o.Status.IpRangeId)
 				if err != nil {
 					err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
 						corev1.EventTypeWarning, err)
@@ -111,7 +110,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// 1. try to lock lease of parent prefix if IpRange status condition is not true
 	// and IpRange is owned by an IpRangeClaim
-	or := o.ObjectMeta.OwnerReferences
+	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 
@@ -152,14 +151,14 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	netboxIpRangeModel, err := r.NetboxClientV4.ReserveOrUpdateIpRange(ctx, r.NetboxClient, ipRangeModel)
+	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
 			// if there is a restoration hash mismatch and the IpRangeId status field is not set,
 			// delete the ip range so it can be recreated by the ip range claim controller
 			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
-			err = r.Client.Delete(ctx, o)
+			err = r.Delete(ctx, o)
 			if err != nil {
 				if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
 					corev1.EventTypeWarning, err); err != nil {
@@ -253,10 +252,10 @@ func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv
 		}
 	}
 
-	description := api.TruncateDescription(req.NamespacedName.String() + " // " + o.Spec.Description)
+	description := api.TruncateDescription(req.String() + " // " + o.Spec.Description)
 
 	// check if created ip range contains entire description from spec
-	_, found := strings.CutPrefix(description, req.NamespacedName.String()+" // "+o.Spec.Description)
+	_, found := strings.CutPrefix(description, req.String()+" // "+o.Spec.Description)
 	if !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpRangeDescriptionTruncated", "ip range was created with truncated description")
 	}
@@ -281,7 +280,7 @@ func (r *IpRangeReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *ne
 	}
 
 	ipRangeClaim := &netboxv1.IpRangeClaim{}
-	err := r.Client.Get(ctx, orLookupKey, ipRangeClaim)
+	err := r.Get(ctx, orLookupKey, ipRangeClaim)
 	if err != nil {
 		return types.NamespacedName{}, "", "", err
 	}

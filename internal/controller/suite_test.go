@@ -125,11 +125,14 @@ var _ = BeforeSuite(func() {
 		Client:              k8sManager.GetClient(),
 		Scheme:              k8sManager.GetScheme(),
 		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient: &api.NetboxClient{
-			Ipam:    ipamMockIpAddress,
-			Tenancy: tenancyMock,
-			Dcim:    dcimMock,
-		},
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClient{
+				Ipam:    ipamMockIpAddress,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
 	}).SetupWithManager(k8sManager)
@@ -139,12 +142,14 @@ var _ = BeforeSuite(func() {
 		Client:              k8sManager.GetClient(),
 		Scheme:              k8sManager.GetScheme(),
 		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient: &api.NetboxClient{
-			Ipam:    ipamMockIpAddressClaim,
-			Tenancy: tenancyMock,
-			Dcim:    dcimMock,
-		},
-		NetboxClientV4:    &api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClient{
+				Ipam:    ipamMockIpAddressClaim,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
 	}).SetupWithManager(k8sManager)

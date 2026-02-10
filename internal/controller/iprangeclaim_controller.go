@@ -44,8 +44,7 @@ const IpRangeClaimFinalizerName = "iprangeclaim.netbox.dev/finalizer"
 type IpRangeClaimReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
-	NetboxClient        *api.NetboxClient
-	NetboxClientV4      *api.NetboxClientV4
+	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -64,7 +63,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	logger.Info("reconcile loop started")
 
 	o := &netboxv1.IpRangeClaim{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err := r.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -77,8 +76,8 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
-		err = r.Client.Get(ctx, ipRangeLookupKey, ipRange)
+	if !o.DeletionTimestamp.IsZero() {
+		err = r.Get(ctx, ipRangeLookupKey, ipRange)
 		if err != nil {
 			if !apierrors.IsNotFound(err) {
 				return ctrl.Result{}, err
@@ -86,7 +85,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeClaimFinalizerName)
 		}
 
-		err = r.Client.Delete(ctx, ipRange)
+		err = r.Delete(ctx, ipRange)
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
@@ -103,7 +102,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
-	err = r.Client.Get(ctx, ipRangeLookupKey, ipRange)
+	err = r.Get(ctx, ipRangeLookupKey, ipRange)
 	if err != nil {
 		// return error if not a notfound error
 		if !apierrors.IsNotFound(err) {
@@ -129,7 +128,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Create(ctx, ipRangeResource)
+		err = r.Create(ctx, ipRangeResource)
 		if err != nil {
 			errSetCondition := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
 			if errSetCondition != nil {
@@ -153,7 +152,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Update(ctx, ipRange)
+		err = r.Update(ctx, ipRange)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -209,7 +208,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	}
 
 	claimNSN := types.NamespacedName{
-		Name:      o.ObjectMeta.Name,
+		Name:      o.Name,
 		Namespace: o.Namespace,
 	}
 
@@ -287,7 +286,6 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 		// assign new available ip range
 		ipRangeModel, err = r.NetboxClient.GetAvailableIpRangeByClaim(
 			ctx,
-			r.NetboxClientV4,
 			&models.IpRangeClaim{
 				ParentPrefix: o.Spec.ParentPrefix,
 				Size:         o.Spec.Size,

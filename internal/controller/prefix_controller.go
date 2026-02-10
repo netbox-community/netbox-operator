@@ -50,8 +50,7 @@ const PXManagedCustomFieldsAnnotationName = "prefix.netbox.dev/managed-custom-fi
 type PrefixReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
-	NetboxClient        *api.NetboxClient
-	NetboxClientV4      *api.NetboxClientV4
+	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -71,15 +70,15 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	/* 0. check if the matching Prefix object exists */
 	o := &netboxv1.Prefix{}
-	if err := r.Client.Get(ctx, req.NamespacedName, o); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				if err := r.NetboxClientV4.DeletePrefix(ctx, o.Status.PrefixId); err != nil {
+				if err := r.NetboxClient.DeletePrefix(ctx, o.Status.PrefixId); err != nil {
 					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
 						return ctrl.Result{}, errReport
 					}
@@ -124,7 +123,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			- the prefix is owned by at least 1 prefixClaim
 			- the prefix status condition is not ready
 	*/
-	ownerReferences := o.ObjectMeta.OwnerReferences
+	ownerReferences := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	var err error
 	if len(ownerReferences) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
@@ -134,7 +133,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			Namespace: req.Namespace,
 		}
 		prefixClaim := &netboxv1.PrefixClaim{}
-		if err := r.Client.Get(ctx, ownerReferencesLookupKey, prefixClaim); err != nil {
+		if err := r.Get(ctx, ownerReferencesLookupKey, prefixClaim); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -156,7 +155,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				Name:      convertCIDRToLeaseLockName(prefixClaim.Status.SelectedParentPrefix),
 				Namespace: r.OperatorNamespace,
 			}
-			ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
+			ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.String())
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -189,14 +188,14 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	netboxPrefixModel, err := r.NetboxClientV4.ReserveOrUpdatePrefix(ctx, r.NetboxClient, prefixModel)
+	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
 			// if there is a restoration hash mismatch and the PrefixId status field is not set,
 			// delete the prefix so it can be recreated by the prefix claim controller
 			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
-			err = r.Client.Delete(ctx, o)
+			err = r.Delete(ctx, o)
 			if err != nil {
 				if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
 					corev1.EventTypeWarning, err); updateStatusErr != nil {
@@ -254,7 +253,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		logger.Error(fmt.Errorf("prefix in netbox is missing a description"), "")
 		return ctrl.Result{Requeue: true}, nil
 	}
-	if _, found := strings.CutPrefix(*netboxPrefixModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description); !found {
+	if _, found := strings.CutPrefix(*netboxPrefixModel.Description, req.String()+" // "+o.Spec.Description); !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 
@@ -302,7 +301,7 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 		Metadata: &models.NetboxMetadata{
 			Comments:    spec.Comments,
 			Custom:      netboxCustomFields,
-			Description: req.NamespacedName.String() + " // " + spec.Description,
+			Description: req.String() + " // " + spec.Description,
 			Site:        spec.Site,
 			Tenant:      spec.Tenant,
 		},
