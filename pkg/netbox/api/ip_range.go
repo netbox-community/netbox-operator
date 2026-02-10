@@ -90,22 +90,29 @@ func (c *NetboxClientV4) getIpRange(ctx context.Context, ipRange *models.IpRange
 		EndAddress([]string{ipRange.EndAddress})
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to fetch ip range details: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to fetch ip range details: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to fetch ip range details: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch ip range details", err)
-	}
-	if httpResp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to fetch ip range details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to fetch ip range details: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return resp, nil
@@ -115,23 +122,29 @@ func (c *NetboxClientV4) createIpRange(ctx context.Context, ipRange *nclient.Wri
 	req := c.IpamAPI.IpamIpRangesCreate(ctx).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to reserve ip range: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusCreated {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to reserve ip range: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to reserve ip range: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
 		return nil, utils.NetboxError("failed to reserve ip range", err)
-	}
-
-	if httpResp.StatusCode != http.StatusCreated {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to fetch ip range details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to reserve ip range: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return resp, nil
@@ -141,22 +154,29 @@ func (c *NetboxClientV4) updateIpRange(ctx context.Context, ipRangeId int32, ipR
 	req := c.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to update ip range: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to update ip range: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to update ip range: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
-		return nil, utils.NetboxError("failed to update IP Range", err)
-	}
-	if httpResp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to update IP Range: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
+		return nil, utils.NetboxError("failed to update ip range", err)
 	}
 
 	return resp, nil
@@ -166,25 +186,33 @@ func (c *NetboxClientV4) DeleteIpRange(ctx context.Context, ipRangeId int64) (er
 	req := c.IpamAPI.IpamIpRangesDestroy(ctx, int32(ipRangeId))
 	httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return fmt.Errorf("failed to delete ip range from Netbox: %w", err)
+	}
+
+	if httpResp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
+	if httpResp.StatusCode != http.StatusNoContent {
+		if readErr != nil {
+			return fmt.Errorf("failed to delete ip range from Netbox: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return fmt.Errorf("failed to delete ip range from Netbox: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-			return nil
-		}
 		return utils.NetboxError("failed to delete ip range from Netbox", err)
-	}
-	if httpResp.StatusCode != http.StatusNoContent && httpResp.StatusCode != http.StatusNotFound {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return fmt.Errorf("failed to fetch IpRange details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return fmt.Errorf("failed to delete ip range from Netbox: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return nil

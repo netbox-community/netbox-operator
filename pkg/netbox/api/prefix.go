@@ -70,22 +70,29 @@ func (c *NetboxClientV4) GetPrefix(ctx context.Context, prefix *models.Prefix) (
 		Prefix([]string{prefix.Prefix})
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to fetch prefix details: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to fetch prefix details: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch prefix details", err)
-	}
-	if httpResp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return resp, nil
@@ -174,23 +181,29 @@ func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *nclient.Wri
 	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to reserve prefix: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusCreated {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to reserve prefix: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to reserve prefix: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
 		return nil, utils.NetboxError("failed to reserve prefix", err)
-	}
-
-	if httpResp.StatusCode != http.StatusCreated {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to reserve prefix: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return resp, nil
@@ -274,22 +287,29 @@ func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, pre
 	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
 	resp, httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to update prefix: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to update prefix: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to update prefix: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
 		return nil, utils.NetboxError("failed to update prefix", err)
-	}
-	if httpResp.StatusCode != http.StatusOK {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to update prefix: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return resp, nil
@@ -299,25 +319,33 @@ func (c *NetboxClientV4) DeletePrefix(ctx context.Context, prefixId int32) (err 
 	req := c.IpamAPI.IpamPrefixesDestroy(ctx, prefixId)
 	httpResp, err := req.Execute()
 
-	if httpResp != nil {
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
 		defer func() {
 			errClose := httpResp.Body.Close()
 			err = errors.Join(err, errClose)
 		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return fmt.Errorf("failed to delete prefix from Netbox: %w", err)
+	}
+
+	if httpResp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
+	if httpResp.StatusCode != http.StatusNoContent {
+		if readErr != nil {
+			return fmt.Errorf("failed to delete prefix from Netbox: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return fmt.Errorf("failed to delete prefix from Netbox: status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	if err != nil {
-		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-			return nil
-		}
 		return utils.NetboxError("failed to delete prefix from Netbox", err)
-	}
-	if httpResp.StatusCode != http.StatusNoContent && httpResp.StatusCode != http.StatusNotFound {
-		body, readErr := io.ReadAll(httpResp.Body)
-		if readErr != nil {
-			return fmt.Errorf("failed to fetch prefix details: unexpected status %d, and failed to read body %w", httpResp.StatusCode, readErr)
-		}
-		return fmt.Errorf("failed to delete prefix from Netbox: unexpected status %d, body: %s", httpResp.StatusCode, string(body))
 	}
 
 	return nil

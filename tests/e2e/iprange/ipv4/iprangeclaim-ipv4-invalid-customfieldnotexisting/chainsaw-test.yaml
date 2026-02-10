@@ -55,7 +55,7 @@ spec:
               reason: FailedToReserveIPRangeInNetbox
               source:
                 component: ip-range-controller
-              message: "Failed to reserve IP Range in NetBox: failed to reserve ip range: 400 Bad Request, range: 3.2.3.1/32-3.2.3.30/32"
+              message: "Failed to reserve IP Range in NetBox: failed to reserve ip range: status 400, body: {\"__all__\":[\"Unknown field name 'justmade' in custom field data.\"]}, range: 3.2.3.1/32-3.2.3.30/32"
               involvedObject:
                 apiVersion: netbox.dev/v1
                 kind: IpRange
