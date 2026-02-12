@@ -351,6 +351,7 @@ func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl
 			Description: req.String() + " // " + spec.Description,
 			Site:        spec.Site,
 			Tenant:      spec.Tenant,
+			Vrf:         spec.Vrf,
 		},
 	}, nil
 }
