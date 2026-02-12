@@ -19,6 +19,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
@@ -67,6 +68,14 @@ func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxMode
 		desiredPrefix.Site = &siteDetails.Id
 	}
 
+	if prefix.Metadata != nil && prefix.Metadata.Vrf != "" {
+		vrfDetails, err := r.GetVrfDetails(prefix.Metadata.Vrf)
+		if err != nil {
+			return nil, err
+		}
+		desiredPrefix.Vrf = &vrfDetails.Id
+	}
+
 	// create prefix since it doesn't exist
 	if len(responsePrefix.Payload.Results) == 0 {
 		return r.CreatePrefix(desiredPrefix)
@@ -97,6 +106,16 @@ func (r *NetboxClient) GetPrefix(prefix *models.Prefix) (*ipam.IpamPrefixesListO
 	requestPrefix := ipam.
 		NewIpamPrefixesListParams().
 		WithPrefix(&prefix.Prefix)
+
+	if prefix.Metadata != nil && prefix.Metadata.Vrf != "" {
+		vrfDetails, err := r.GetVrfDetails(prefix.Metadata.Vrf)
+		if err != nil {
+			return nil, err
+		}
+		vrfIdStr := strconv.FormatInt(vrfDetails.Id, 10)
+		requestPrefix = requestPrefix.WithVrfID(&vrfIdStr)
+	}
+
 	responsePrefix, err := r.Ipam.IpamPrefixesList(requestPrefix, nil)
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch Prefix details", err)

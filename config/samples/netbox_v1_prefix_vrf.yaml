@@ -1,0 +1,16 @@
+---
+apiVersion: netbox.dev/v1
+kind: Prefix
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: prefix-vrf-sample
+spec:
+  tenant: "MY_TENANT"
+#  vrf: "MY_VRF"
+  vrf: "xxx"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  prefix: "4.2.0.0/28"

@@ -96,6 +96,35 @@ for site in sites:
 
 print("Sites loaded")
 
+# insert VRFs
+@dataclass
+class Vrf:
+    name: str
+    rd: str
+
+vrfs = [
+    Vrf(
+        name="MY_VRF",
+        rd="65000:1000",
+    ),
+]
+
+for vrf in vrfs:
+    try:
+        nb.ipam.vrfs.create(
+            name=vrf.name,
+            rd=vrf.rd,
+        )
+    except pynetbox.RequestError as e:
+        pprint(e.error)
+
+# Build a lookup map of VRF name -> ID for use when creating prefixes
+vrf_id_map = {}
+for v in nb.ipam.vrfs.all():
+    vrf_id_map[v.name] = v.id
+
+print(f"VRFs loaded (resolved IDs: {vrf_id_map})")
+
 # create custom fields and associate custom fields with IP/IPRange/Prefix
 @dataclass
 class CustomField:
@@ -203,6 +232,7 @@ class Prefix:
     status: str
     custom_fields: dict
     description: str
+    vrf: int = None
 
 prefixes = [
     Prefix(
@@ -924,6 +954,60 @@ prefixes = [
             "cfDataTypeInteger": 7,
         },
     ),
+    # Resources used by VRF e2e tests (4.x.x.x range, assigned to MY_VRF)
+    Prefix(
+        prefix="4.0.0.0/24",
+        description="chainsaw test ipaddressclaim-ipv4-vrf-apply-update",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+        vrf=vrf_id_map["MY_VRF"],
+    ),
+    Prefix(
+        prefix="4.1.0.0/24",
+        description="chainsaw test iprangeclaim-ipv4-vrf-apply-update",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+        vrf=vrf_id_map["MY_VRF"],
+    ),
+    Prefix(
+        prefix="4.2.0.0/24",
+        description="chainsaw test prefixclaim-ipv4-vrf-apply-update",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={},
+        vrf=vrf_id_map["MY_VRF"],
+    ),
+    Prefix(
+        prefix="4.3.0.0/24",
+        description="chainsaw test prefixclaim-ipv4-parentprefixselector-vrf",
+        site=None,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        status="active",
+        custom_fields={
+            "environment": "Production",
+            "poolName": "Pool 1",
+            "cfDataTypeBool": True,
+            "cfDataTypeInteger": 1,
+        },
+        vrf=vrf_id_map["MY_VRF"],
+    ),
     ###                      END                    ###
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###
@@ -938,6 +1022,7 @@ for prefix in prefixes:
             tenant=prefix.tenant,
             status=prefix.status,
             custom_fields=prefix.custom_fields,
+            vrf=prefix.vrf,
         )
     except pynetbox.RequestError as e:
         pprint(e.error)

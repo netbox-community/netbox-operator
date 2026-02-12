@@ -54,6 +54,14 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 		desiredIPAddress.Tenant = &tenantDetails.Id
 	}
 
+	if ipAddress.Metadata != nil && ipAddress.Metadata.Vrf != "" {
+		vrfDetails, err := r.GetVrfDetails(ipAddress.Metadata.Vrf)
+		if err != nil {
+			return nil, err
+		}
+		desiredIPAddress.Vrf = &vrfDetails.Id
+	}
+
 	// create ip address since it doesn't exist
 	if len(responseIpAddress.Payload.Results) == 0 {
 		return r.CreateIpAddress(desiredIPAddress)

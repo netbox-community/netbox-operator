@@ -290,6 +290,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 				Size:         o.Spec.Size,
 				Metadata: &models.NetboxMetadata{
 					Tenant: o.Spec.Tenant,
+					Vrf:    o.Spec.Vrf,
 				},
 			},
 		)

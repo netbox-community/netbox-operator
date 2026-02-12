@@ -315,3 +315,65 @@ func TestIPRangeClaim(t *testing.T) {
 		AssertError(t, err, "invalid IP range")
 	})
 }
+
+func TestIPRangeClaim_GetNoAvailableIPRangeWithNonExistingVrf(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+	// tenant
+	tenantName := "tenant"
+	tenantId := int64(2)
+	tenantOutputSlug := "tenant1"
+
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
+	// non-existing vrf
+	vrfName := "non-existing-vrf"
+	inputVrf := ipam.NewIpamVrfsListParams().WithName(&vrfName)
+	// empty vrf list
+	emptyVrfList := &ipam.IpamVrfsListOK{
+		Payload: &ipam.IpamVrfsListOKBody{
+			Results: []*netboxModels.VRF{},
+		},
+	}
+
+	mockIpam.EXPECT().IpamVrfsList(inputVrf, nil).Return(emptyVrfList, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+
+	// expected error
+	expectedErrorMsg := "failed to fetch vrf 'non-existing-vrf': not found"
+
+	parentPrefix := "10.112.140.0/24"
+
+	// init client
+	client := &NetboxClient{
+		Ipam:    mockIpam,
+		Tenancy: mockTenancy,
+	}
+
+	actual, err := client.GetAvailableIpRangeByClaim(&models.IpRangeClaim{
+		ParentPrefix: parentPrefix,
+		Size:         3,
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+			Vrf:    vrfName,
+		},
+	})
+
+	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+	assert.Equal(t, actual, (*models.IpRange)(nil))
+}

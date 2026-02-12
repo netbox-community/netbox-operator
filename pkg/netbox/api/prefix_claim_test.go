@@ -912,6 +912,67 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithErrorWhenGettingTenantList(t *tes
 	assert.Equal(t, prefix, (*models.Prefix)(nil))
 }
 
+func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingVrf(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+
+	// tenant
+	tenantName := "tenant"
+	tenantId := int64(2)
+	tenantOutputSlug := "tenant1"
+
+	inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
+	// non-existing vrf
+	vrfName := "non-existing-vrf"
+	inputVrf := ipam.NewIpamVrfsListParams().WithName(&vrfName)
+	// empty vrf list
+	emptyVrfList := &ipam.IpamVrfsListOK{
+		Payload: &ipam.IpamVrfsListOKBody{
+			Results: []*netboxModels.VRF{},
+		},
+	}
+
+	mockIpam.EXPECT().IpamVrfsList(inputVrf, nil).Return(emptyVrfList, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
+
+	// expected error
+	expectedErrorMsg := "failed to fetch vrf 'non-existing-vrf': not found"
+
+	parentPrefix := "10.112.140.0/24"
+
+	netboxClient := &NetboxClient{
+		Ipam:    mockIpam,
+		Tenancy: mockTenancy,
+	}
+
+	prefix, err := netboxClient.GetAvailablePrefixByClaim(&models.PrefixClaim{
+		ParentPrefix: parentPrefix,
+		PrefixLength: "/28.",
+		Metadata: &models.NetboxMetadata{
+			Tenant: tenantName,
+			Vrf:    vrfName,
+		},
+	})
+
+	assert.EqualErrorf(t, err, expectedErrorMsg, "Error should be: %v, got: %v", expectedErrorMsg, err)
+	assert.Equal(t, prefix, (*models.Prefix)(nil))
+}
+
 func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingSite(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1258,4 +1319,148 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 
 	assert.Nil(t, actual)
 	AssertError(t, err, "invalid parentPrefixSelector, netbox custom fields non-existing do not exist")
+}
+
+func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	pxcSpec := netboxv1.PrefixClaimSpec{
+		ParentPrefixSelector: map[string]string{
+			"environment": "dev",
+			"family":      "IPv4",
+			"tenant":      "tenant",
+			"site":        "Site1",
+			"vrf":         "someVrf",
+		},
+		PrefixLength: "/32",
+	}
+
+	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
+	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+
+	// example of site
+	siteId := int64(3)
+	siteName := "Site1"
+	siteOutputSlug := "site1"
+	expectedSite := &dcim.DcimSitesListOK{
+		Payload: &dcim.DcimSitesListOKBody{
+			Results: []*netboxModels.Site{
+				{
+					ID:   siteId,
+					Name: &siteName,
+					Slug: &siteOutputSlug,
+				},
+			},
+		},
+	}
+	inputSite := dcim.NewDcimSitesListParams().WithName(&siteName)
+
+	// tenant
+	tenantName := "tenant"
+	tenantId := int64(2)
+	tenantOutputSlug := "tenant1"
+
+	expectedTenant := &tenancy.TenancyTenantsListOK{
+		Payload: &tenancy.TenancyTenantsListOKBody{
+			Results: []*netboxModels.Tenant{
+				{
+					ID:   tenantId,
+					Name: &tenantName,
+					Slug: &tenantOutputSlug,
+				},
+			},
+		},
+	}
+
+	// vrf
+	vrfName := "someVrf"
+	vrfId := int64(5)
+	inputVrf := ipam.NewIpamVrfsListParams().WithName(&vrfName)
+	expectedVrf := &ipam.IpamVrfsListOK{
+		Payload: &ipam.IpamVrfsListOKBody{
+			Results: []*netboxModels.VRF{
+				{
+					ID:   vrfId,
+					Name: &vrfName,
+				},
+			},
+		},
+	}
+
+	parentPrefix := "10.112.140.0/24"
+	parentPrefixId := int64(1)
+	prefixListInput := ipam.
+		NewIpamPrefixesListParams()
+
+	prefixFamily := int64(IPv4Family)
+	prefixFamilyLabel := netboxModels.PrefixFamilyLabelIPV4
+	prefixListOutput := &ipam.IpamPrefixesListOK{
+		Payload: &ipam.IpamPrefixesListOKBody{
+			Results: []*netboxModels.Prefix{
+				{
+					ID:     parentPrefixId,
+					Prefix: &parentPrefix,
+					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
+				},
+			},
+		},
+	}
+
+	prefixListInputWithParam := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
+	prefixListOutputWithParam := &ipam.IpamPrefixesListOK{
+		Payload: &ipam.IpamPrefixesListOKBody{
+			Results: []*netboxModels.Prefix{
+				{
+					Prefix: &parentPrefix,
+					ID:     parentPrefixId,
+					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
+				},
+			},
+		},
+	}
+
+	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
+	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
+		Payload: []*netboxModels.AvailablePrefix{
+			{
+				Family: prefixFamily,
+				Prefix: parentPrefix,
+			},
+		},
+	}
+
+	// get prefix to check if it's a candidate
+	expectedCustomFieldName := "environment"
+	expectedCustomFields := &extras.ExtrasCustomFieldsListOK{
+		Payload: &extras.ExtrasCustomFieldsListOKBody{
+			Results: []*netboxModels.CustomField{
+				{
+					Name: &expectedCustomFieldName,
+				},
+			},
+		},
+	}
+
+	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil, gomock.Any()).Return(prefixListOutput, nil).Times(1)
+	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInputWithParam, nil).Return(prefixListOutputWithParam, nil).Times(1)
+	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
+	mockPrefixIpam.EXPECT().IpamVrfsList(inputVrf, nil).Return(expectedVrf, nil).AnyTimes()
+	mockTenancy.EXPECT().TenancyTenantsList(gomock.Any(), nil).Return(expectedTenant, nil).AnyTimes()
+	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
+	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
+
+	netboxClient := &NetboxClient{
+		Ipam:    mockPrefixIpam,
+		Tenancy: mockTenancy,
+		Extras:  mockExtras,
+		Dcim:    mockDcim,
+	}
+
+	actual, err := netboxClient.GetAvailablePrefixesByParentPrefixSelector(&pxcSpec)
+
+	assert.Nil(t, err)
+	assert.Equal(t, parentPrefix, actual[0].Prefix)
 }

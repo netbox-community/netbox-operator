@@ -57,6 +57,14 @@ func (r *NetboxClient) ReserveOrUpdateIpRange(ipRange *models.IpRange) (*netboxM
 		desiredIpRange.Tenant = &tenantDetails.Id
 	}
 
+	if ipRange.Metadata != nil && ipRange.Metadata.Vrf != "" {
+		vrfDetails, err := r.GetVrfDetails(ipRange.Metadata.Vrf)
+		if err != nil {
+			return nil, err
+		}
+		desiredIpRange.Vrf = &vrfDetails.Id
+	}
+
 	// create ip range since it doesn't exist
 	if len(responseIpRange.Payload.Results) == 0 {
 		return r.CreateIpRange(desiredIpRange)

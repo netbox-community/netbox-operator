@@ -70,6 +70,14 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeCl
 		return nil, err
 	}
 
+	// Don't assign an IP range if the requested VRF doesn't exist in netbox
+	if ipRangeClaim.Metadata.Vrf != "" {
+		_, err := r.GetVrfDetails(ipRangeClaim.Metadata.Vrf)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
 		Prefix:   ipRangeClaim.ParentPrefix,
 		Metadata: ipRangeClaim.Metadata,
