@@ -55,6 +55,7 @@ func generatePrefixSpec(claim *netboxv1.PrefixClaim, prefix string, logger logr.
 	return netboxv1.PrefixSpec{
 		Prefix:           prefix,
 		Tenant:           claim.Spec.Tenant,
+		Vrf:              claim.Spec.Vrf,
 		Site:             claim.Spec.Site,
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,
@@ -90,6 +91,7 @@ func generatePrefixRestorationHash(claim *netboxv1.PrefixClaim) string {
 		ParentPrefix:         claim.Spec.ParentPrefix,
 		PrefixLength:         claim.Spec.PrefixLength,
 		Tenant:               claim.Spec.Tenant,
+		Vrf:                  claim.Spec.Vrf,
 		ParentPrefixSelector: parentPrefixSelectorStr,
 	}
 
@@ -103,6 +105,7 @@ type PrefixClaimRestorationData struct {
 	ParentPrefix         string
 	PrefixLength         string
 	Tenant               string
+	Vrf                  string
 	ParentPrefixSelector string
 }
 
@@ -110,5 +113,5 @@ func (rd *PrefixClaimRestorationData) ComputeHash() string {
 	if rd == nil {
 		return ""
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.PrefixLength+rd.Tenant+rd.ParentPrefixSelector)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.PrefixLength+rd.Tenant+rd.Vrf+rd.ParentPrefixSelector)))
 }
