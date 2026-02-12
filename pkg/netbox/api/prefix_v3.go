@@ -86,6 +86,14 @@ func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Pref
 			desiredPrefix.Tenant = &tenantDetails.Id
 		}
 
+		if prefix.Metadata.Vrf != "" {
+			vrfDetails, err := c.GetVrfDetails(prefix.Metadata.Vrf)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.Vrf = &vrfDetails.Id
+		}
+
 		if prefix.Metadata.Site != "" {
 			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 			if err != nil {
