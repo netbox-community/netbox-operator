@@ -1,0 +1,85 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-vrf-apply-update
+  annotations:
+    description: Tests if creation and update is successful with VRF using parentPrefix
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-vrf-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                parentPrefix: 4.2.0.0/24
+                prefixLength: /28
+                tenant: MY_TENANT
+                vrf: MY_VRF
+              status:
+                parentPrefix: 4.2.0.0/24
+                prefix: 4.2.0.0/28
+                prefixName: prefixclaim-ipv4-vrf-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-vrf-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                prefix: 4.2.0.0/28
+                tenant: MY_TENANT
+                vrf: MY_VRF
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-vrf-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                parentPrefix: 4.2.0.0/24
+                prefixLength: /28
+                tenant: MY_TENANT
+                vrf: MY_VRF
+              status:
+                parentPrefix: 4.2.0.0/24
+                prefix: 4.2.0.0/28
+                prefixName: prefixclaim-ipv4-vrf-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-vrf-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                prefix: 4.2.0.0/28
+                tenant: MY_TENANT
+                vrf: MY_VRF
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-vrf-apply-update -n $NAMESPACE
