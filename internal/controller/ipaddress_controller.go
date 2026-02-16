@@ -280,20 +280,19 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 }
 
 func (r *IpAddressReconciler) UpdateConditions(ctx context.Context, o *netboxv1.IpAddress, msg string) error {
-	if o.DeletionTimestamp.IsZero() {
-		if o.Status.IpAddressUrl == "" {
-			r.EventStatusRecorder.Report(ctx, o,
-				netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
-		} else if o.Status.SyncState == netboxv1.SyncStateFailed {
-			r.EventStatusRecorder.Report(ctx, o,
-				netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
-		} else {
-			r.EventStatusRecorder.Report(ctx, o,
-				netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil, msg)
-		}
-	} else {
+	switch {
+	case !o.DeletionTimestamp.IsZero():
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil, msg)
+	case o.Status.IpAddressUrl == "":
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
+	case o.Status.SyncState == netboxv1.SyncStateFailed:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
+	default:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil, msg)
 	}
 
 	err := r.Status().Update(ctx, o)
