@@ -63,7 +63,6 @@ type IpAddressReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
-	debugLogger := logger.V(4)
 
 	logger.Info("reconcile loop started")
 
@@ -94,7 +93,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				}
 			}
 
-			debugLogger.Info("removing the finalizer")
+			logger.V(4).Info("removing the finalizer")
 			removed := controllerutil.RemoveFinalizer(o, IpAddressFinalizerName)
 			if !removed {
 				return ctrl.Result{}, errors.New("failed to remove the finalizer")
@@ -114,7 +113,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
-		debugLogger.Info("adding the finalizer")
+		logger.V(4).Info("adding the finalizer")
 		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
 		if err := r.Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
@@ -158,7 +157,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", ipAddressClaim.Spec.ParentPrefix))
+		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", ipAddressClaim.Spec.ParentPrefix))
 	}
 
 	// 2. reserve or update ip address in netbox
@@ -234,7 +233,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if o.Status.SyncState == netboxv1.SyncStateSucceeded {
-		debugLogger.Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
+		logger.V(4).Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
 	}
 
 	return ctrl.Result{}, nil

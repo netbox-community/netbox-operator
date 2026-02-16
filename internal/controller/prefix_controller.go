@@ -64,7 +64,6 @@ type PrefixReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	debugLogger := logger.V(4)
 
 	logger.Info("reconcile loop started")
 
@@ -84,7 +83,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				}
 			}
 
-			debugLogger.Info("removing the finalizer")
+			logger.V(4).Info("removing the finalizer")
 			if removed := controllerutil.RemoveFinalizer(o, PrefixFinalizerName); !removed {
 				return ctrl.Result{}, errors.New("failed to remove the finalizer")
 			}
@@ -105,7 +104,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
-		debugLogger.Info("adding the finalizer")
+		logger.V(4).Info("adding the finalizer")
 		controllerutil.AddFinalizer(o, PrefixFinalizerName)
 		if err := r.Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
@@ -164,7 +163,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					RequeueAfter: 2 * time.Second,
 				}, nil
 			}
-			debugLogger.Info("successfully locked parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
+			logger.V(4).Info("successfully locked parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
 		}
 	}
 
@@ -239,7 +238,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 
-	debugLogger.Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", o.Spec.Prefix))
+	logger.V(4).Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", o.Spec.Prefix))
 	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, nil)
 
 	logger.Info("reconcile loop finished")

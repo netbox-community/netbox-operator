@@ -26,35 +26,43 @@ import (
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// StatusError wraps an error that should update status conditions.
+// DomainError wraps an error that should update status conditions.
 // Use NewStatusError to create errors that should be reflected in status.
-type StatusError struct {
+type DomainError struct {
 	err error
 }
 
-func (e *StatusError) Error() string {
+func (e *DomainError) Error() string {
 	return e.err.Error()
 }
 
-func (e *StatusError) Unwrap() error {
+func (e *DomainError) Unwrap() error {
 	return e.err
 }
 
-// NewStatusError creates an error that will update the resource status condition.
+// NewDomainError creates an error that will update the resource status condition.
 // Use this for errors that should be visible in kubectl describe output.
-func NewStatusError(format string, args ...interface{}) error {
-	return &StatusError{err: fmt.Errorf(format, args...)}
+func NewDomainError(format string, args ...interface{}) error {
+	return &DomainError{err: fmt.Errorf(format, args...)}
 }
 
-// IsStatusError checks if an error should update status conditions.
-func IsStatusError(err error) bool {
-	var statusErr *StatusError
-	return errors.As(err, &statusErr)
+// IgnoreDomainError checks if an error should update status conditions.
+func IgnoreDomainError(reconcileRes ctrl.Result, err error) (ctrl.Result, error) {
+	if err == nil {
+		return reconcileRes, nil
+	}
+
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return ctrl.Result{}, err
 }
 
 func convertCIDRToLeaseLockName(cidr string) string {
