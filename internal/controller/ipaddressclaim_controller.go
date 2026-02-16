@@ -142,6 +142,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					ParentPrefix: o.Spec.ParentPrefix,
 					Metadata: &models.NetboxMetadata{
 						Tenant: o.Spec.Tenant,
+						Vrf:    o.Spec.Vrf,
 					},
 				})
 			if err != nil {

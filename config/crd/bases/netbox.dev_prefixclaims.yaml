@@ -149,6 +149,15 @@ spec:
                 x-kubernetes-validations:
                 - message: Field 'tenant' is immutable
                   rule: self == oldSelf
+              vrf:
+                description: |-
+                  The NetBox VRF to be assigned to this resource in NetBox. Use the `name` value instead of the `id` value
+                  Field is immutable, not required
+                  Example: "blue" or "red"
+                type: string
+                x-kubernetes-validations:
+                - message: Field 'vrf' is immutable
+                  rule: self == oldSelf
             required:
             - prefixLength
             type: object
