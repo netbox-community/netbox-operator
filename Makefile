@@ -2,7 +2,7 @@
 IMG ?= your-image-registry:latest
 LOCAL_IMG = netbox-operator:build-local #Should not be changed without changing kind/kustomization.yaml too
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.0
+ENVTEST_K8S_VERSION = 1.33.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
