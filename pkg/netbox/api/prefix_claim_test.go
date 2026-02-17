@@ -28,7 +28,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -142,7 +142,7 @@ func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
@@ -236,10 +236,10 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	expectedPrefix := nclient.Prefix{
+	expectedPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -247,7 +247,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -319,10 +319,10 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -330,7 +330,7 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
@@ -400,10 +400,10 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -411,7 +411,7 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
@@ -481,10 +481,10 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -492,7 +492,7 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
@@ -572,10 +572,10 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv6Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv6Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -583,7 +583,7 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -670,10 +670,10 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -681,7 +681,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -760,10 +760,10 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -771,7 +771,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -857,10 +857,10 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -868,7 +868,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -938,10 +938,10 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -949,7 +949,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	prefixAvailableListInput := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
 	prefixAvailableListOutput := &ipam.IpamPrefixesAvailablePrefixesListOK{
@@ -1203,10 +1203,10 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -1214,7 +1214,7 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
@@ -1348,10 +1348,10 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 		Prefix([]string{parentPrefix}).
 		Return(mockListRequest)
 
-	aggregateFamily := nclient.NewAggregateFamily()
-	aggregateFamily.SetValue(nclient.AggregateFamilyValue(IPv4Family))
+	aggregateFamily := v4client.NewAggregateFamily()
+	aggregateFamily.SetValue(v4client.AggregateFamilyValue(IPv4Family))
 
-	outputPrefix := nclient.Prefix{
+	outputPrefix := v4client.Prefix{
 		Id:     parentPrefixId,
 		Prefix: parentPrefix,
 		Family: *aggregateFamily,
@@ -1359,7 +1359,7 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 
 	mockListRequest.EXPECT().
 		Execute().
-		Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{outputPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInputWithParam, nil, gomock.Any()).Return(prefixListOutputWithParam, nil).Times(1)
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()

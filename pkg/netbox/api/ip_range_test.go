@@ -23,7 +23,7 @@ import (
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -49,21 +49,21 @@ func TestIpRange(t *testing.T) {
 	description := Description
 	markPopulatedTrue := true
 
-	expectedTenant := nclient.NewBriefTenant(int32(tenantId), "", "", tenantName, "")
-	expectedStatus := nclient.NewIPRangeStatus()
-	expectedStatus.SetValue(nclient.IPRangeStatusValue(Value))
-	expectedStatus.SetLabel(nclient.IPRangeStatusLabel(Label))
+	expectedTenant := v4client.NewBriefTenant(int32(tenantId), "", "", tenantName, "")
+	expectedStatus := v4client.NewIPRangeStatus()
+	expectedStatus.SetValue(v4client.IPRangeStatusValue(Value))
+	expectedStatus.SetLabel(v4client.IPRangeStatusLabel(Label))
 
 	// Create expected response
-	expectedIPRange := func() nclient.IPRange {
-		return nclient.IPRange{
+	expectedIPRange := func() v4client.IPRange {
+		return v4client.IPRange{
 
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
 			Comments:      &comment,
 			Description:   &description,
-			Tenant:        *nclient.NewNullableBriefTenant(expectedTenant),
+			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
 			Status:        expectedStatus,
 			MarkPopulated: &markPopulatedTrue,
 		}
@@ -87,7 +87,7 @@ func TestIpRange(t *testing.T) {
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		// init client
 		clientV4 := &NetboxClientV4{
@@ -144,14 +144,14 @@ func TestIpRange(t *testing.T) {
 		// List should return empty results to trigger create path
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockCreateRequest.EXPECT().
 			WritableIPRangeRequest(gomock.Any()).
 			Return(mockCreateRequest)
 
 		// Create expected response
-		expectedResp := &nclient.IPRange{
+		expectedResp := &v4client.IPRange{
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
@@ -193,7 +193,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		// Create request
-		ipRangeRequest := nclient.NewWritableIPRangeRequest(startAddress, endAddress)
+		ipRangeRequest := v4client.NewWritableIPRangeRequest(startAddress, endAddress)
 		ipRangeRequest.SetStatus("active")
 
 		// Test
@@ -240,7 +240,7 @@ func TestIpRange(t *testing.T) {
 		// List should return empty results to trigger create path
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{
 				{
 					CustomFields: map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
 				},
@@ -262,7 +262,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		// Create request
-		ipRangeRequest := nclient.NewWritableIPRangeRequest(startAddress, endAddress)
+		ipRangeRequest := v4client.NewWritableIPRangeRequest(startAddress, endAddress)
 		ipRangeRequest.SetStatus("active")
 		ipRangeRequest.SetDescription("Updated range")
 
@@ -321,7 +321,7 @@ func TestIpRange(t *testing.T) {
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{
 				{
 					Id:            ipRangeId,
 					CustomFields:  map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
@@ -341,13 +341,13 @@ func TestIpRange(t *testing.T) {
 			Return(mockUpdateRequest)
 
 		// Create expected response
-		expectedResp := &nclient.IPRange{
+		expectedResp := &v4client.IPRange{
 			Id:            ipRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
 			Comments:      &comment,
 			Description:   &description,
-			Tenant:        *nclient.NewNullableBriefTenant(expectedTenant),
+			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
 			MarkPopulated: &markPopulatedTrue,
 		}
 
@@ -475,6 +475,6 @@ func TestIpRange(t *testing.T) {
 		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
 
 		// assert error return
-		AssertError(t, err, "failed to delete ip range from Netbox: status 400, body: ")
+		AssertError(t, err, "failed to delete ip range from netbox: status 400, body: ")
 	})
 }

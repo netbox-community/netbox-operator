@@ -23,7 +23,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"go.uber.org/mock/gomock"
 )
@@ -135,7 +135,7 @@ func mockPrefixesListRequestSetPrefix(mockprefixesListRequest *mock_interfaces.M
 
 func mockPrefixesListRequestExecute(mockprefixesListRequest *mock_interfaces.MockIpamPrefixesListRequest, catchUnexpectedParams chan error) {
 	mockprefixesListRequest.EXPECT().Execute().
-		DoAndReturn(func() (*nclient.PaginatedPrefixList, *http.Response, error) {
+		DoAndReturn(func() (*v4client.PaginatedPrefixList, *http.Response, error) {
 			fmt.Printf("NETBOXMOCK\t PrefixesListRequest.Execute was called with expected input,\n")
 			return mockedResponsePrefixList(), &http.Response{StatusCode: 200, Body: http.NoBody}, nil
 		}).MinTimes(1)

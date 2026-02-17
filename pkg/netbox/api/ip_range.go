@@ -23,20 +23,20 @@ import (
 	"io"
 	"net/http"
 
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange) (*nclient.IPRange, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange) (*v4client.IPRange, error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
 	if err != nil {
 		return nil, err
 	}
 
-	desiredIpRange := nclient.NewWritableIPRangeRequest(ipRange.StartAddress, ipRange.EndAddress)
+	desiredIpRange := v4client.NewWritableIPRangeRequest(ipRange.StartAddress, ipRange.EndAddress)
 	desiredIpRange.SetStatus("active")
 	desiredIpRange.SetMarkPopulated(true)
 
@@ -55,7 +55,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 				return nil, err
 			}
 			tenantId := int32(tenantDetails.Id)
-			desiredIpRange.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
+			desiredIpRange.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
 		}
 	}
 
@@ -84,7 +84,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	return c.updateIpRange(ctx, ipRangeId, desiredIpRange)
 }
 
-func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (resp *nclient.PaginatedIPRangeList, err error) {
+func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (resp *v4client.PaginatedIPRangeList, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesList(ctx).
 		StartAddress([]string{ipRange.StartAddress}).
 		EndAddress([]string{ipRange.EndAddress})
@@ -118,65 +118,31 @@ func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *nclient.WritableIPRangeRequest) (resp *nclient.IPRange, err error) {
+func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesCreate(ctx).WritableIPRangeRequest(*ipRange)
-	resp, httpResp, err := req.Execute()
+	resp, httpResp, execErr := req.Execute()
 
-	var body []byte
-	var readErr error
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() {
-			errClose := httpResp.Body.Close()
-			err = errors.Join(err, errClose)
-		}()
-		body, readErr = io.ReadAll(httpResp.Body)
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusCreated, "reserve ip range")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-
-	if httpResp == nil {
-		return nil, fmt.Errorf("failed to reserve ip range: %w", err)
-	}
-
-	if httpResp.StatusCode != http.StatusCreated {
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to reserve ip range: status %d; read body: %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to reserve ip range: status %d, body: %s", httpResp.StatusCode, string(body))
-	}
-
-	if err != nil {
-		return nil, utils.NetboxError("failed to reserve ip range", err)
+	if handleErr != nil {
+		return nil, handleErr
 	}
 
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *nclient.WritableIPRangeRequest) (resp *nclient.IPRange, err error) {
+func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
-	resp, httpResp, err := req.Execute()
+	resp, httpResp, execErr := req.Execute()
 
-	var body []byte
-	var readErr error
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() {
-			errClose := httpResp.Body.Close()
-			err = errors.Join(err, errClose)
-		}()
-		body, readErr = io.ReadAll(httpResp.Body)
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "update ip range")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-
-	if httpResp == nil {
-		return nil, fmt.Errorf("failed to update ip range: %w", err)
-	}
-
-	if httpResp.StatusCode != http.StatusOK {
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to update ip range: status %d; read body: %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to update ip range: status %d, body: %s", httpResp.StatusCode, string(body))
-	}
-
-	if err != nil {
-		return nil, utils.NetboxError("failed to update ip range", err)
+	if handleErr != nil {
+		return nil, handleErr
 	}
 
 	return resp, nil
@@ -184,35 +150,18 @@ func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int
 
 func (c *NetboxCompositeClient) DeleteIpRange(ctx context.Context, ipRangeId int64) (err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesDestroy(ctx, int32(ipRangeId))
-	httpResp, err := req.Execute()
+	httpResp, execErr := req.Execute()
 
-	var body []byte
-	var readErr error
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() {
-			errClose := httpResp.Body.Close()
-			err = errors.Join(err, errClose)
-		}()
-		body, readErr = io.ReadAll(httpResp.Body)
-	}
-
-	if httpResp == nil {
-		return fmt.Errorf("failed to delete ip range from Netbox: %w", err)
-	}
-
-	if httpResp.StatusCode == http.StatusNotFound {
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 		return nil
 	}
 
-	if httpResp.StatusCode != http.StatusNoContent {
-		if readErr != nil {
-			return fmt.Errorf("failed to delete ip range from Netbox: status %d; read body: %w", httpResp.StatusCode, readErr)
-		}
-		return fmt.Errorf("failed to delete ip range from Netbox: status %d, body: %s", httpResp.StatusCode, string(body))
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusNoContent, "delete ip range from netbox")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-
-	if err != nil {
-		return utils.NetboxError("failed to delete ip range from Netbox", err)
+	if handleErr != nil {
+		return handleErr
 	}
 
 	return nil

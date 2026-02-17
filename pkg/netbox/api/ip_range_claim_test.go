@@ -24,7 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -122,19 +122,18 @@ func TestIPRangeClaim(t *testing.T) {
 			Prefix([]string{parentPrefixV4}).
 			Return(mockListRequest)
 
-		expectedPrefix := nclient.Prefix{
+		expectedPrefix := v4client.Prefix{
 			Id:     parentPrefixId,
 			Prefix: parentPrefixV4,
 		}
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 		mockIPRange.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
-		// init legacyClient
 		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPRange,
@@ -189,14 +188,14 @@ func TestIPRangeClaim(t *testing.T) {
 			Prefix([]string{parentPrefixV6}).
 			Return(mockListRequest)
 
-		expectedPrefix := nclient.Prefix{
+		expectedPrefix := v4client.Prefix{
 			Id:     parentPrefixId,
 			Prefix: parentPrefixV6,
 		}
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 		mockIPRange.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)

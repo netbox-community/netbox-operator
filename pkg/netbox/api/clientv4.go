@@ -20,17 +20,18 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
 	log "github.com/sirupsen/logrus"
 )
 
 type NetboxClientV4 struct {
-	client    *nclient.APIClient
+	client    *v4client.APIClient
 	IpamAPI   interfaces.IpamAPI
 	StatusAPI interfaces.StatusAPI
 }
@@ -69,16 +70,40 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 		desiredRuntimeClientScheme = "https"
 	}
 
-	cfg := nclient.NewConfiguration()
+	cfg := v4client.NewConfiguration()
 	cfg.Scheme = desiredRuntimeClientScheme
 	cfg.Host = config.GetOperatorConfig().NetboxHost
 	cfg.DefaultHeader["Authorization"] = fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken)
 	cfg.HTTPClient = httpClient
-	client := nclient.NewAPIClient(cfg)
+	client := v4client.NewAPIClient(cfg)
 
 	return &NetboxClientV4{
 		client:    client,
 		IpamAPI:   &ipamV4APIAdapter{api: client.IpamAPI},
 		StatusAPI: &statusV4APIAdapter{api: client.StatusAPI},
 	}, nil
+}
+
+func handleHTTPResponse(httpResp *http.Response, err error, expectedStatus int, action string) (closeFunc func() error, retErr error) {
+	if httpResp != nil && httpResp.Body != nil {
+		closeFunc = httpResp.Body.Close
+	}
+
+	if httpResp == nil {
+		return closeFunc, fmt.Errorf("failed to %s: %w", action, err)
+	}
+
+	if httpResp.StatusCode != expectedStatus {
+		var body []byte
+		if httpResp.Body != nil {
+			body, _ = io.ReadAll(httpResp.Body)
+		}
+		return closeFunc, fmt.Errorf("failed to %s: status %d, body: %s", action, httpResp.StatusCode, string(body))
+	}
+
+	if err != nil {
+		return closeFunc, fmt.Errorf("failed to %s: %w", action, err)
+	}
+
+	return closeFunc, nil
 }

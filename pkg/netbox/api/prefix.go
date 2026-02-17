@@ -24,7 +24,7 @@ import (
 	"net/http"
 
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -34,7 +34,7 @@ import (
 /*
 ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 */
-func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix) (*nclient.Prefix, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix) (*v4client.Prefix, error) {
 	responsePrefix, err := c.getPrefix(ctx, prefix)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	return c.updatePrefix(ctx, prefixId, prefix)
 }
 
-func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (resp *nclient.PaginatedPrefixList, err error) {
+func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.PaginatedPrefixList, err error) {
 	req := c.clientV4.IpamAPI.IpamPrefixesList(ctx).
 		Prefix([]string{prefix.Prefix})
 	resp, httpResp, err := req.Execute()
@@ -98,7 +98,7 @@ func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Pr
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *nclient.Prefix, err error) {
+func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 		return c.clientV3.createPrefixV3(desiredPrefix)
 	}
 
-	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
+	desiredPrefix := v4client.NewWritablePrefixRequest(prefix.Prefix)
 
 	if prefix.Metadata != nil {
 		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
@@ -155,7 +155,7 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 				return nil, err
 			}
 			tenantId := int32(tenantDetails.Id)
-			desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
+			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
 		}
 
 		if prefix.Metadata.Site != "" {
@@ -168,7 +168,7 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 		}
 	}
 
-	status, err := nclient.NewPatchedWritablePrefixRequestStatusFromValue("active")
+	status, err := v4client.NewPatchedWritablePrefixRequestStatusFromValue("active")
 	if err != nil {
 		return nil, err
 	}
@@ -177,39 +177,22 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 
 }
 
-func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *nclient.WritablePrefixRequest) (resp *nclient.Prefix, err error) {
+func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
 	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
-	resp, httpResp, err := req.Execute()
+	resp, httpResp, execErr := req.Execute()
 
-	var body []byte
-	var readErr error
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() {
-			errClose := httpResp.Body.Close()
-			err = errors.Join(err, errClose)
-		}()
-		body, readErr = io.ReadAll(httpResp.Body)
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusCreated, "create prefix")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-
-	if httpResp == nil {
-		return nil, fmt.Errorf("failed to reserve prefix: %w", err)
-	}
-
-	if httpResp.StatusCode != http.StatusCreated {
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to reserve prefix: status %d; read body: %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to reserve prefix: status %d, body: %s", httpResp.StatusCode, string(body))
-	}
-
-	if err != nil {
-		return nil, utils.NetboxError("failed to reserve prefix", err)
+	if handleErr != nil {
+		return nil, handleErr
 	}
 
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *nclient.Prefix, err error) {
+func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
@@ -229,27 +212,27 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 			desiredPrefix.CustomFields = prefix.Metadata.Custom
 			desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
 			desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-		}
 
-		if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
-			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-			if err != nil {
-				return nil, err
+			if prefix.Metadata.Tenant != "" {
+				tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
+				if err != nil {
+					return nil, err
+				}
+				desiredPrefix.Tenant = &tenantDetails.Id
 			}
-			desiredPrefix.Tenant = &tenantDetails.Id
-		}
 
-		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-			if err != nil {
-				return nil, err
+			if prefix.Metadata.Site != "" {
+				siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
+				if err != nil {
+					return nil, err
+				}
+				desiredPrefix.Site = &siteDetails.Id
 			}
-			desiredPrefix.Site = &siteDetails.Id
 		}
 		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
 	}
 
-	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
+	desiredPrefix := v4client.NewWritablePrefixRequest(prefix.Prefix)
 
 	if prefix.Metadata != nil {
 		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
@@ -259,7 +242,7 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 			customFields[k] = v
 		}
 		desiredPrefix.SetCustomFields(customFields)
-		desiredPrefix.SetDescription(prefix.Metadata.Description)
+		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
 
 		if prefix.Metadata.Tenant != "" {
 			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
@@ -267,10 +250,10 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 				return nil, err
 			}
 			tenantId := int32(tenantDetails.Id)
-			desiredPrefix.SetTenant(nclient.Int32AsASNRangeRequestTenant(&tenantId))
+			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
 		}
 
-		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
+		if prefix.Metadata.Site != "" {
 			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 			if err != nil {
 				return nil, err
@@ -283,33 +266,16 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 
 }
 
-func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *nclient.WritablePrefixRequest) (resp *nclient.Prefix, err error) {
+func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
 	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
-	resp, httpResp, err := req.Execute()
+	resp, httpResp, execErr := req.Execute()
 
-	var body []byte
-	var readErr error
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() {
-			errClose := httpResp.Body.Close()
-			err = errors.Join(err, errClose)
-		}()
-		body, readErr = io.ReadAll(httpResp.Body)
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "update prefix")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-
-	if httpResp == nil {
-		return nil, fmt.Errorf("failed to update prefix: %w", err)
-	}
-
-	if httpResp.StatusCode != http.StatusOK {
-		if readErr != nil {
-			return nil, fmt.Errorf("failed to update prefix: status %d; read body: %w", httpResp.StatusCode, readErr)
-		}
-		return nil, fmt.Errorf("failed to update prefix: status %d, body: %s", httpResp.StatusCode, string(body))
-	}
-
-	if err != nil {
-		return nil, utils.NetboxError("failed to update prefix", err)
+	if handleErr != nil {
+		return nil, handleErr
 	}
 
 	return resp, nil
@@ -317,35 +283,18 @@ func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, pre
 
 func (c *NetboxCompositeClient) DeletePrefix(ctx context.Context, prefixId int32) (err error) {
 	req := c.clientV4.IpamAPI.IpamPrefixesDestroy(ctx, prefixId)
-	httpResp, err := req.Execute()
+	httpResp, execErr := req.Execute()
 
-	var body []byte
-	var readErr error
-	if httpResp != nil && httpResp.Body != nil {
-		defer func() {
-			errClose := httpResp.Body.Close()
-			err = errors.Join(err, errClose)
-		}()
-		body, readErr = io.ReadAll(httpResp.Body)
-	}
-
-	if httpResp == nil {
-		return fmt.Errorf("failed to delete prefix from Netbox: %w", err)
-	}
-
-	if httpResp.StatusCode == http.StatusNotFound {
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 		return nil
 	}
 
-	if httpResp.StatusCode != http.StatusNoContent {
-		if readErr != nil {
-			return fmt.Errorf("failed to delete prefix from Netbox: status %d; read body: %w", httpResp.StatusCode, readErr)
-		}
-		return fmt.Errorf("failed to delete prefix from Netbox: status %d, body: %s", httpResp.StatusCode, string(body))
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusNoContent, "delete prefix")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-
-	if err != nil {
-		return utils.NetboxError("failed to delete prefix from Netbox", err)
+	if handleErr != nil {
+		return handleErr
 	}
 
 	return nil

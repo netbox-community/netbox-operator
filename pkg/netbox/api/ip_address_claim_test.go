@@ -25,7 +25,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
@@ -122,14 +122,14 @@ func TestIPAddressClaim(t *testing.T) {
 			Prefix([]string{parentPrefixV4}).
 			Return(mockListRequest)
 
-		expectedPrefix := nclient.Prefix{
+		expectedPrefix := v4client.Prefix{
 			Id:     parentPrefixIdV4,
 			Prefix: parentPrefixV4,
 		}
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(parentPrefixIdV4))
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
@@ -194,14 +194,14 @@ func TestIPAddressClaim(t *testing.T) {
 			Prefix([]string{parentPrefixV6}).
 			Return(mockListRequest)
 
-		expectedPrefix := nclient.Prefix{
+		expectedPrefix := v4client.Prefix{
 			Id:     parentPrefixIdV6,
 			Prefix: parentPrefixV6,
 		}
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
@@ -257,14 +257,14 @@ func TestIPAddressClaim(t *testing.T) {
 			Prefix([]string{parentPrefixV6}).
 			Return(mockListRequest)
 
-		expectedPrefix := nclient.Prefix{
+		expectedPrefix := v4client.Prefix{
 			Id:     parentPrefixIdV6,
 			Prefix: parentPrefixV6,
 		}
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
@@ -315,7 +315,7 @@ func TestIPAddressClaim(t *testing.T) {
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 

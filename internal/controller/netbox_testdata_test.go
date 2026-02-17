@@ -23,7 +23,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +52,7 @@ var tenantId = int32(1)
 var tenant = "test-tenant"
 var tenantSlug = "test-tenant-slug"
 
-var expectedTenant = nclient.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+var expectedTenant = v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
 
 var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
 
@@ -126,11 +126,11 @@ func defaultIpAddressClaimCR() *netboxv1.IpAddressClaim {
 
 var int32SiteId = int32(siteId)
 
-func mockedResponseScopeId() nclient.NullableInt32 {
-	return *nclient.NewNullableInt32(&int32SiteId)
+func mockedResponseScopeId() v4client.NullableInt32 {
+	return *v4client.NewNullableInt32(&int32SiteId)
 }
-func mockedResponseScopeType() nclient.NullableString {
-	return *nclient.NewNullableString(&scopeType)
+func mockedResponseScopeType() v4client.NullableString {
+	return *v4client.NewNullableString(&scopeType)
 }
 
 func mockedResponseNestedTenant() *netboxModels.NestedTenant {
@@ -167,9 +167,9 @@ func mockedResponseIPAddress() *netboxModels.IPAddress {
 		}}
 }
 
-func mockedResponsePrefixList() *nclient.PaginatedPrefixList {
-	return &nclient.PaginatedPrefixList{
-		Results: []nclient.Prefix{
+func mockedResponsePrefixList() *v4client.PaginatedPrefixList {
+	return &v4client.PaginatedPrefixList{
+		Results: []v4client.Prefix{
 			{
 				Id:          prefixID,
 				Comments:    &comments,
@@ -178,7 +178,7 @@ func mockedResponsePrefixList() *nclient.PaginatedPrefixList {
 				Prefix:      parentPrefix,
 				ScopeId:     mockedResponseScopeId(),
 				ScopeType:   mockedResponseScopeType(),
-				Tenant:      *nclient.NewNullableBriefTenant(expectedTenant),
+				Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
 			},
 		},
 	}

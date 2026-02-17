@@ -20,7 +20,7 @@ import (
 	"context"
 	"net/http"
 
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
 )
 
@@ -28,7 +28,7 @@ import (
 
 // ipamIpRangesListRequestAdapter adapts the v4 list request to the interface
 type ipamIpRangesListRequestAdapter struct {
-	req nclient.ApiIpamIpRangesListRequest
+	req v4client.ApiIpamIpRangesListRequest
 }
 
 func (a *ipamIpRangesListRequestAdapter) StartAddress(startAddress []string) interfaces.IpamIpRangesListRequest {
@@ -41,41 +41,41 @@ func (a *ipamIpRangesListRequestAdapter) EndAddress(endAddress []string) interfa
 	return a
 }
 
-func (a *ipamIpRangesListRequestAdapter) Execute() (*nclient.PaginatedIPRangeList, *http.Response, error) {
+func (a *ipamIpRangesListRequestAdapter) Execute() (*v4client.PaginatedIPRangeList, *http.Response, error) {
 	return a.req.Execute()
 }
 
 // ipamIpRangesCreateRequestAdapter adapts the v4 create request to the interface
 type ipamIpRangesCreateRequestAdapter struct {
-	req nclient.ApiIpamIpRangesCreateRequest
+	req v4client.ApiIpamIpRangesCreateRequest
 }
 
-func (a *ipamIpRangesCreateRequestAdapter) WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) interfaces.IpamIpRangesCreateRequest {
+func (a *ipamIpRangesCreateRequestAdapter) WritableIPRangeRequest(writableIPRangeRequest v4client.WritableIPRangeRequest) interfaces.IpamIpRangesCreateRequest {
 	a.req = a.req.WritableIPRangeRequest(writableIPRangeRequest)
 	return a
 }
 
-func (a *ipamIpRangesCreateRequestAdapter) Execute() (*nclient.IPRange, *http.Response, error) {
+func (a *ipamIpRangesCreateRequestAdapter) Execute() (*v4client.IPRange, *http.Response, error) {
 	return a.req.Execute()
 }
 
 // ipamIpRangesUpdateRequestAdapter adapts the v4 update request to the interface
 type ipamIpRangesUpdateRequestAdapter struct {
-	req nclient.ApiIpamIpRangesUpdateRequest
+	req v4client.ApiIpamIpRangesUpdateRequest
 }
 
-func (a *ipamIpRangesUpdateRequestAdapter) WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) interfaces.IpamIpRangesUpdateRequest {
+func (a *ipamIpRangesUpdateRequestAdapter) WritableIPRangeRequest(writableIPRangeRequest v4client.WritableIPRangeRequest) interfaces.IpamIpRangesUpdateRequest {
 	a.req = a.req.WritableIPRangeRequest(writableIPRangeRequest)
 	return a
 }
 
-func (a *ipamIpRangesUpdateRequestAdapter) Execute() (*nclient.IPRange, *http.Response, error) {
+func (a *ipamIpRangesUpdateRequestAdapter) Execute() (*v4client.IPRange, *http.Response, error) {
 	return a.req.Execute()
 }
 
 // ipamIpRangesDestroyRequestAdapter adapts the v4 destroy request to the interface
 type ipamIpRangesDestroyRequestAdapter struct {
-	req nclient.ApiIpamIpRangesDestroyRequest
+	req v4client.ApiIpamIpRangesDestroyRequest
 }
 
 func (a *ipamIpRangesDestroyRequestAdapter) Execute() (*http.Response, error) {
@@ -84,7 +84,7 @@ func (a *ipamIpRangesDestroyRequestAdapter) Execute() (*http.Response, error) {
 
 // ipamV4APIAdapter adapts the v4 IpamAPI to the interface
 type ipamV4APIAdapter struct {
-	api nclient.IpamAPI
+	api v4client.IpamAPI
 }
 
 func (a *ipamV4APIAdapter) IpamIpRangesList(ctx context.Context) interfaces.IpamIpRangesListRequest {
@@ -105,7 +105,7 @@ func (a *ipamV4APIAdapter) IpamIpRangesDestroy(ctx context.Context, id int32) in
 
 // ipamPrefixesListRequestAdapter adapts the v4 list request to the interface
 type ipamPrefixesListRequestAdapter struct {
-	req nclient.ApiIpamPrefixesListRequest
+	req v4client.ApiIpamPrefixesListRequest
 }
 
 func (a *ipamPrefixesListRequestAdapter) Prefix(prefix []string) interfaces.IpamPrefixesListRequest {
@@ -113,41 +113,41 @@ func (a *ipamPrefixesListRequestAdapter) Prefix(prefix []string) interfaces.Ipam
 	return a
 }
 
-func (a *ipamPrefixesListRequestAdapter) Execute() (*nclient.PaginatedPrefixList, *http.Response, error) {
+func (a *ipamPrefixesListRequestAdapter) Execute() (*v4client.PaginatedPrefixList, *http.Response, error) {
 	return a.req.Execute()
 }
 
 // ipamPrefixesCreateRequestAdapter adapts the v4 create request to the interface
 type ipamPrefixesCreateRequestAdapter struct {
-	req nclient.ApiIpamPrefixesCreateRequest
+	req v4client.ApiIpamPrefixesCreateRequest
 }
 
-func (a *ipamPrefixesCreateRequestAdapter) WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) interfaces.IpamPrefixesCreateRequest {
+func (a *ipamPrefixesCreateRequestAdapter) WritablePrefixRequest(writablePrefixRequest v4client.WritablePrefixRequest) interfaces.IpamPrefixesCreateRequest {
 	a.req = a.req.WritablePrefixRequest(writablePrefixRequest)
 	return a
 }
 
-func (a *ipamPrefixesCreateRequestAdapter) Execute() (*nclient.Prefix, *http.Response, error) {
+func (a *ipamPrefixesCreateRequestAdapter) Execute() (*v4client.Prefix, *http.Response, error) {
 	return a.req.Execute()
 }
 
 // ipamPrefixesUpdateRequestAdapter adapts the v4 update request to the interface
 type ipamPrefixesUpdateRequestAdapter struct {
-	req nclient.ApiIpamPrefixesUpdateRequest
+	req v4client.ApiIpamPrefixesUpdateRequest
 }
 
-func (a *ipamPrefixesUpdateRequestAdapter) WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) interfaces.IpamPrefixesUpdateRequest {
+func (a *ipamPrefixesUpdateRequestAdapter) WritablePrefixRequest(writablePrefixRequest v4client.WritablePrefixRequest) interfaces.IpamPrefixesUpdateRequest {
 	a.req = a.req.WritablePrefixRequest(writablePrefixRequest)
 	return a
 }
 
-func (a *ipamPrefixesUpdateRequestAdapter) Execute() (*nclient.Prefix, *http.Response, error) {
+func (a *ipamPrefixesUpdateRequestAdapter) Execute() (*v4client.Prefix, *http.Response, error) {
 	return a.req.Execute()
 }
 
 // ipamPrefixesDestroyRequestAdapter adapts the v4 destroy request to the interface
 type ipamPrefixesDestroyRequestAdapter struct {
-	req nclient.ApiIpamPrefixesDestroyRequest
+	req v4client.ApiIpamPrefixesDestroyRequest
 }
 
 func (a *ipamPrefixesDestroyRequestAdapter) Execute() (*http.Response, error) {
@@ -171,7 +171,7 @@ func (a *ipamV4APIAdapter) IpamPrefixesDestroy(ctx context.Context, id int32) in
 }
 
 type statusRetrieveRequestAdapter struct {
-	req nclient.ApiStatusRetrieveRequest
+	req v4client.ApiStatusRetrieveRequest
 }
 
 func (a *statusRetrieveRequestAdapter) Execute() (map[string]any, *http.Response, error) {
@@ -180,7 +180,7 @@ func (a *statusRetrieveRequestAdapter) Execute() (map[string]any, *http.Response
 
 // statusV4APIAdapter adapts the v4 StatusAPI to the interface
 type statusV4APIAdapter struct {
-	api nclient.StatusAPI
+	api v4client.StatusAPI
 }
 
 func (a *statusV4APIAdapter) StatusRetrieve(ctx context.Context) interfaces.APIStatusRetrieveRequest {

@@ -26,7 +26,7 @@ import (
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
-	nclient "github.com/netbox-community/go-netbox/v3/netbox/client"
+	v3client "github.com/netbox-community/go-netbox/v3/netbox/client"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	log "github.com/sirupsen/logrus"
 
@@ -117,13 +117,13 @@ func GetNetboxClient() (*NetboxClientV3, error) {
 		Timeout: time.Second * time.Duration(RequestTimeout),
 	}
 
-	transport := httptransport.NewWithClient(config.GetOperatorConfig().NetboxHost, nclient.DefaultBasePath, desiredRuntimeClientSchemes, httpClient)
+	transport := httptransport.NewWithClient(config.GetOperatorConfig().NetboxHost, v3client.DefaultBasePath, desiredRuntimeClientSchemes, httpClient)
 	transport.DefaultAuthentication = httptransport.APIKeyAuth("Authorization",
 		"header",
 		fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken))
 	transport.SetLogger(log.StandardLogger())
 
-	auxNetboxClient := nclient.New(transport, nil)
+	auxNetboxClient := v3client.New(transport, nil)
 	netboxClient := &NetboxClientV3{
 		Ipam:    auxNetboxClient.Ipam,
 		Tenancy: auxNetboxClient.Tenancy,

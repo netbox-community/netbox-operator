@@ -24,7 +24,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -53,19 +53,19 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	scopeType := "dcim.site"
 	comments := "blabla"
 	description := "very useful prefix"
-	expectedTenant := nclient.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+	expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
 
-	prefixListOutput := nclient.PaginatedPrefixList{
-		Results: []nclient.Prefix{
+	prefixListOutput := v4client.PaginatedPrefixList{
+		Results: []v4client.Prefix{
 			{
 				Id:          prefixId,
 				Comments:    &comments,
 				Description: &description,
 				Display:     prefix,
 				Prefix:      prefix,
-				ScopeType:   *nclient.NewNullableString(&scopeType),
-				ScopeId:     *nclient.NewNullableInt32(&siteId),
-				Tenant:      *nclient.NewNullableBriefTenant(expectedTenant),
+				ScopeType:   *v4client.NewNullableString(&scopeType),
+				ScopeId:     *v4client.NewNullableInt32(&siteId),
+				Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
 			},
 		},
 	}
@@ -127,8 +127,8 @@ func TestPrefix_ListNonExistingPrefix(t *testing.T) {
 	tenant := "tenant1"
 
 	//prefix mock output
-	prefixListOutput := nclient.PaginatedPrefixList{
-		Results: []nclient.Prefix{},
+	prefixListOutput := v4client.PaginatedPrefixList{
+		Results: []v4client.Prefix{},
 	}
 
 	mockIpamAPI.EXPECT().
@@ -240,8 +240,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 	comments := "blabla"
 	description := "very useful prefix"
 
-	emptyPrefixListOutput := &nclient.PaginatedPrefixList{
-		Results: []nclient.Prefix{},
+	emptyPrefixListOutput := &v4client.PaginatedPrefixList{
+		Results: []v4client.Prefix{},
 	}
 
 	t.Run("reserve with tenant and site (v4 NetBox client)", func(t *testing.T) {
@@ -262,18 +262,18 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		scopeId := int32(siteOutputId)
 		tenantId := int32(1)
 		tenantSlug := "tenant1"
-		expectedTenant := nclient.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+		expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
 
 		//prefix mock output
-		createPrefixOutput := &nclient.Prefix{
+		createPrefixOutput := &v4client.Prefix{
 			Id:          int32(1),
 			Comments:    &completeComment,
 			Description: &completeDescription,
 			Display:     prefix,
 			Prefix:      prefix,
-			ScopeType:   *nclient.NewNullableString(&scopeType),
-			ScopeId:     *nclient.NewNullableInt32(&scopeId),
-			Tenant:      *nclient.NewNullableBriefTenant(expectedTenant),
+			ScopeType:   *v4client.NewNullableString(&scopeType),
+			ScopeId:     *v4client.NewNullableInt32(&scopeId),
+			Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
 		}
 
 		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
@@ -347,7 +347,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
 		_ = mockStatusRequest
 
-		prefixOutput := nclient.Prefix{
+		prefixOutput := v4client.Prefix{
 			Id:          int32(4),
 			Comments:    &comments,
 			Description: &description,
@@ -368,7 +368,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 
 		mockListRequest.EXPECT().
 			Execute().
-			Return(&nclient.PaginatedPrefixList{Results: []nclient.Prefix{prefixOutput}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{prefixOutput}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		// Setup expectations
 		mockIpamAPI.EXPECT().
@@ -418,8 +418,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
-		prefixListOutput := &nclient.PaginatedPrefixList{
-			Results: []nclient.Prefix{
+		prefixListOutput := &v4client.PaginatedPrefixList{
+			Results: []v4client.Prefix{
 				{
 					Id:          int32(5),
 					Comments:    &comments,

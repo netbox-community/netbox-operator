@@ -25,7 +25,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
-	nclient "github.com/netbox-community/go-netbox/v4"
+	v4client "github.com/netbox-community/go-netbox/v4"
 )
 
 type IpamInterface interface {
@@ -65,17 +65,17 @@ type DcimInterface interface {
 type IpamIpRangesListRequest interface {
 	StartAddress(startAddress []string) IpamIpRangesListRequest
 	EndAddress(endAddress []string) IpamIpRangesListRequest
-	Execute() (*nclient.PaginatedIPRangeList, *http.Response, error)
+	Execute() (*v4client.PaginatedIPRangeList, *http.Response, error)
 }
 
 type IpamIpRangesCreateRequest interface {
-	WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) IpamIpRangesCreateRequest
-	Execute() (*nclient.IPRange, *http.Response, error)
+	WritableIPRangeRequest(writableIPRangeRequest v4client.WritableIPRangeRequest) IpamIpRangesCreateRequest
+	Execute() (*v4client.IPRange, *http.Response, error)
 }
 
 type IpamIpRangesUpdateRequest interface {
-	WritableIPRangeRequest(writableIPRangeRequest nclient.WritableIPRangeRequest) IpamIpRangesUpdateRequest
-	Execute() (*nclient.IPRange, *http.Response, error)
+	WritableIPRangeRequest(writableIPRangeRequest v4client.WritableIPRangeRequest) IpamIpRangesUpdateRequest
+	Execute() (*v4client.IPRange, *http.Response, error)
 }
 
 type IpamIpRangesDestroyRequest interface {
@@ -84,17 +84,17 @@ type IpamIpRangesDestroyRequest interface {
 
 type IpamPrefixesListRequest interface {
 	Prefix(prefix []string) IpamPrefixesListRequest
-	Execute() (*nclient.PaginatedPrefixList, *http.Response, error)
+	Execute() (*v4client.PaginatedPrefixList, *http.Response, error)
 }
 
 type IpamPrefixesCreateRequest interface {
-	WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) IpamPrefixesCreateRequest
-	Execute() (*nclient.Prefix, *http.Response, error)
+	WritablePrefixRequest(writablePrefixRequest v4client.WritablePrefixRequest) IpamPrefixesCreateRequest
+	Execute() (*v4client.Prefix, *http.Response, error)
 }
 
 type IpamPrefixesUpdateRequest interface {
-	WritablePrefixRequest(writablePrefixRequest nclient.WritablePrefixRequest) IpamPrefixesUpdateRequest
-	Execute() (*nclient.Prefix, *http.Response, error)
+	WritablePrefixRequest(writablePrefixRequest v4client.WritablePrefixRequest) IpamPrefixesUpdateRequest
+	Execute() (*v4client.Prefix, *http.Response, error)
 }
 
 type IpamPrefixesDestroyRequest interface {
