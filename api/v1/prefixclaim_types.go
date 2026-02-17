@@ -61,6 +61,10 @@ type PrefixClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// A list of tags that will be assigned to the NetBox resource.
+	// Each tag must define exactly one of the `name` or `slug` fields.
+	Tags []Tag `json:"tags,omitempty"`
+
 	// Description that should be added to the resource in NetBox
 	// Field is mutable, not required
 	Description string `json:"description,omitempty"`

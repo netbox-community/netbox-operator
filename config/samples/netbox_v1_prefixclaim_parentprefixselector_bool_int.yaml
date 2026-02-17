@@ -12,6 +12,8 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
+  tags:
+    - name: selector-bool
   prefixLength: "/31"
   parentPrefixSelector:
     # should return a prefix in 3.0.0.0/24 with the sample data

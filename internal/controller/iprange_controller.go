@@ -268,6 +268,7 @@ func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv
 			Custom:      netboxCustomFields,
 			Description: description,
 			Tenant:      o.Spec.Tenant,
+			Tags:        convertAPITagsToModelTags(o.Spec.Tags),
 		},
 	}, nil
 }

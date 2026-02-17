@@ -22,6 +22,12 @@ type Tenant struct {
 	Slug string `json:"slug,omitempty"`
 }
 
+type Tag struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
 type Site struct {
 	Id   int64  `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
@@ -35,6 +41,7 @@ type NetboxMetadata struct {
 	Region      string            `json:"region,omitempty"`
 	Site        string            `json:"site,omitempty"`
 	Tenant      string            `json:"tenant,omitempty"`
+	Tags        []Tag             `json:"tags,omitempty"`
 }
 
 type IPAddress struct {

@@ -50,6 +50,7 @@ type TenancyInterface interface {
 
 type ExtrasInterface interface {
 	ExtrasCustomFieldsList(params *extras.ExtrasCustomFieldsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...extras.ClientOption) (*extras.ExtrasCustomFieldsListOK, error)
+	ExtrasTagsList(params *extras.ExtrasTagsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...extras.ClientOption) (*extras.ExtrasTagsListOK, error)
 }
 
 type DcimInterface interface {
