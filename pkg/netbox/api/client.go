@@ -48,8 +48,8 @@ type NetboxClientV3 struct {
 
 // Checks that the Netbox host is properly configured for the operator to function.
 // Currently only checks that the required custom fields for IP address handling have been added.
-func (r *NetboxCompositeClient) VerifyNetboxConfiguration() error {
-	customFields, err := r.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
+func (c *NetboxCompositeClient) VerifyNetboxConfiguration() error {
+	customFields, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
 	if err != nil {
 		return err
 	}
