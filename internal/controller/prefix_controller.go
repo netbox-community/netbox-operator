@@ -64,7 +64,6 @@ type PrefixReconciler struct {
 // move the current state of the cluster closer to the desired state.
 func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	debugLogger := logger.V(4)
 
 	logger.Info("reconcile loop started")
 
@@ -79,15 +78,12 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
 				if err := r.NetboxClient.DeletePrefix(o.Status.PrefixId); err != nil {
-					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
-						return ctrl.Result{}, errReport
-					}
-
+					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err)
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
 
-			debugLogger.Info("removing the finalizer")
+			logger.V(4).Info("removing the finalizer")
 			if removed := controllerutil.RemoveFinalizer(o, PrefixFinalizerName); !removed {
 				return ctrl.Result{}, errors.New("failed to remove the finalizer")
 			}
@@ -103,15 +99,12 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 	}
 
 	// register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
-		debugLogger.Info("adding the finalizer")
+		logger.V(4).Info("adding the finalizer")
 		controllerutil.AddFinalizer(o, PrefixFinalizerName)
 		if err := r.Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
@@ -139,9 +132,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if prefixClaim.Status.SelectedParentPrefix == "" {
 			// the parent prefix is not selected
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "the parent prefix is not selected")); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
+			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "the parent prefix is not selected"))
 			return ctrl.Result{
 				Requeue: true,
 			}, nil
@@ -172,7 +163,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 					RequeueAfter: 2 * time.Second,
 				}, nil
 			}
-			debugLogger.Info("successfully locked parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
+			logger.V(4).Info("successfully locked parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
 		}
 	}
 
@@ -197,21 +188,15 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
 			err = r.Client.Delete(ctx, o)
 			if err != nil {
-				if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
-					corev1.EventTypeWarning, err); updateStatusErr != nil {
-					return ctrl.Result{}, fmt.Errorf("failed to update prefix status: %w, "+
-						"after deletion of prefix cr failed: %w", updateStatusErr, err)
-				}
+				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
+					corev1.EventTypeWarning, err)
 				return ctrl.Result{Requeue: true}, nil
 			}
 			return ctrl.Result{}, nil
 		}
 
-		if updateStatusErr := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
-			corev1.EventTypeWarning, err); updateStatusErr != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update prefix status: %w, "+
-				"after reservation of prefix netbox failed: %w", updateStatusErr, err)
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
+			corev1.EventTypeWarning, err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -253,10 +238,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 
-	debugLogger.Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", o.Spec.Prefix))
-	if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, nil); err != nil {
-		return ctrl.Result{}, err
-	}
+	logger.V(4).Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", o.Spec.Prefix))
+	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, nil)
 
 	logger.Info("reconcile loop finished")
 

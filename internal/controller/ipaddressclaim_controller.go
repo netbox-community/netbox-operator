@@ -18,10 +18,12 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -55,16 +57,14 @@ type IpAddressClaimReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
-	debugLogger := logger.V(4)
 
 	logger.Info("reconcile loop started")
 
 	/* 0. check if the matching IpAddressClaim object exists */
 	o := &netboxv1.IpAddressClaim{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
-	if err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -74,13 +74,12 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	// Set ready to false initially
-	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
-		}
-	}
+	// Defer status update to ensure it happens regardless of how we exit
+	// This follows Kubernetes controller best practices
+	// The deferred function captures the return values to include error context in status
+	defer func() {
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, req.NamespacedName, reconcileResult, reconcileErr, logger)
+	}()
 
 	// 1. check if matching IpAddress object already exists
 	ipAddress := &netboxv1.IpAddress{}
@@ -90,14 +89,14 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Namespace: o.Namespace,
 	}
 
-	err = r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
-	if err != nil {
+	reconcileErr = r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
+	if reconcileErr != nil {
 		// return error if not a notfound error
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, err
+		if !apierrors.IsNotFound(reconcileErr) {
+			return ctrl.Result{}, fmt.Errorf("failed to get IpAddress: %w", reconcileErr)
 		}
 
-		debugLogger.Info("ipaddress object matching ipaddress claim was not found, creating new ipaddress object")
+		logger.V(4).Info("ipaddress object matching ipaddress claim was not found, creating new ipaddress object")
 
 		// 2. check if lease for parent prefix is available
 		leaseLockerNSN := types.NamespacedName{
@@ -106,7 +105,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.Namespace+"/"+ipAddressName)
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to create lease locker: %w", err)
 		}
 
 		lockCtx, cancel := context.WithCancel(ctx)
@@ -122,16 +121,13 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		debugLogger.Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
+		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 
 		// 4. try to reclaim ip address
 		h := generateIpAddressRestorationHash(o)
 		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(h)
 		if err != nil {
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing IP by hash: %w", err)
 		}
 
 		if ipAddressModel == nil {
@@ -145,83 +141,49 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					},
 				})
 			if err != nil {
-				if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
-					return ctrl.Result{}, errReport
-				}
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to get available IP address from NetBox: %w", err)
 			}
-			debugLogger.Info(fmt.Sprintf("ip address is not reserved in netbox, assigned new ip address: %s", ipAddressModel.IpAddress))
+			logger.V(4).Info(fmt.Sprintf("ip address is not reserved in netbox, assigned new ip address: %s", ipAddressModel.IpAddress))
 		} else {
 			// 5.b reassign reserved ip address from netbox
 			// do nothing, ip address restored
-			debugLogger.Info(fmt.Sprintf("reassign reserved ip address from netbox, ip: %s", ipAddressModel.IpAddress))
+			logger.V(4).Info(fmt.Sprintf("reassign reserved ip address from netbox, ip: %s", ipAddressModel.IpAddress))
 		}
 
 		// 6.a create the IPAddress object
 		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress, logger)
-		err = controllerutil.SetControllerReference(o, ipAddressResource, r.Scheme)
-		if err != nil {
-			return ctrl.Result{}, err
+		if err := controllerutil.SetControllerReference(o, ipAddressResource, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
 		}
 
-		err = r.Client.Create(ctx, ipAddressResource)
-		if err != nil {
-			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
-				return ctrl.Result{}, errReport
-			}
-			return ctrl.Result{}, err
+		if err := r.Client.Create(ctx, ipAddressResource); err != nil {
+			return ctrl.Result{}, NewDomainError("failed to create IpAddress: %w", err)
 		}
 
-		err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		logger.V(4).Info("successfully created IpAddress resource")
 
 	} else {
 		// 6.b update fields of IPAddress object
-		debugLogger.Info("update ipaddress resource")
-		err := r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
-		if err != nil {
-			return ctrl.Result{}, err
+		logger.V(4).Info("update ipaddress resource")
+		if err := r.Client.Get(ctx, ipAddressLookupKey, ipAddress); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to get IpAddress for update: %w", err)
 		}
 
 		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress, logger)
-		_, err = ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
+		_, err := ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
 			// only add the mutable fields here
 			ipAddress.Spec.CustomFields = updatedIpAddressSpec.CustomFields
 			ipAddress.Spec.Comments = updatedIpAddressSpec.Comments
 			ipAddress.Spec.Description = updatedIpAddressSpec.Description
 			ipAddress.Spec.PreserveInNetbox = updatedIpAddressSpec.PreserveInNetbox
-			err = controllerutil.SetControllerReference(o, ipAddress, r.Scheme)
-			if err != nil {
-				return err
+			if err := controllerutil.SetControllerReference(o, ipAddress, r.Scheme); err != nil {
+				return fmt.Errorf("failed to set controller reference: %w", err)
 			}
 			return nil
 		})
 		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, fmt.Errorf("failed to update IpAddress: %w", err)
 		}
-	}
-
-	// 7. update IPAddressClaim Ready status
-	debugLogger.Info("update ipaddressclaim status")
-
-	if apismeta.IsStatusConditionTrue(ipAddress.Status.Conditions, "Ready") {
-		debugLogger.Info("ipaddress status ready true")
-		o.Status.IpAddress = ipAddress.Spec.IpAddress
-		o.Status.IpAddressDotDecimal = strings.Split(ipAddress.Spec.IpAddress, "/")[0]
-		o.Status.IpAddressName = ipAddress.Name
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpClaimReadyTrue, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		debugLogger.Info("ipaddress status ready false")
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, nil)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
 	}
 
 	logger.Info("reconcile loop finished")
@@ -234,4 +196,65 @@ func (r *IpAddressClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&netboxv1.IpAddressClaim{}).
 		Owns(&netboxv1.IpAddress{}).
 		Complete(r)
+}
+
+// Status updates the IpAddressClaim status based on the current state of the owned IpAddress.
+// This function is called as a deferred function in Reconcile to ensure status is always updated.
+// It captures any reconcile errors to include them in the status condition message.
+func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpAddressClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error, logger logr.Logger) (result ctrl.Result, err error) {
+	// Set default return values
+	result = reconcileRes
+	err = reconcileErr
+
+	// Ensure status update is always called, even on early returns
+	defer func() {
+		updateErr := r.Status().Update(ctx, claim)
+		if updateErr != nil {
+			err = errors.Join(err, updateErr)
+		}
+		result, err = IgnoreDomainError(result, err)
+	}()
+
+	logger.V(4).Info("updating ipaddressclaim status")
+
+	// Initialize status conditions if this is a new resource
+	if apismeta.FindStatusCondition(claim.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
+	}
+
+	// Fetch the latest IpAddress object
+	ipAddress := &netboxv1.IpAddress{}
+	err = r.Client.Get(ctx, lookupKey, ipAddress)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// IpAddress doesn't exist yet
+			reportErr := errors.Join(err, reconcileErr)
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reportErr)
+			result = ctrl.Result{Requeue: true}
+			err = nil
+			return
+		}
+		err = fmt.Errorf("failed to get IpAddress for status update: %w", err)
+		return
+	}
+
+	// IpAddress exists - report successful IP assignment if not already reported
+	if apismeta.FindStatusCondition(claim.Status.Conditions, netboxv1.ConditionIpAssignedTrue.Type) == nil || apismeta.IsStatusConditionFalse(claim.Status.Conditions, netboxv1.ConditionIpAssignedTrue.Type) {
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, nil)
+	}
+	// Update status based on IpAddress readiness
+	if apismeta.IsStatusConditionTrue(ipAddress.Status.Conditions, "Ready") {
+		logger.V(4).Info("ipaddress status ready true")
+		claim.Status.IpAddress = ipAddress.Spec.IpAddress
+		claim.Status.IpAddressDotDecimal = strings.Split(ipAddress.Spec.IpAddress, "/")[0]
+		claim.Status.IpAddressName = ipAddress.Name
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyTrue, corev1.EventTypeNormal, nil)
+	} else {
+		logger.V(4).Info("ipaddress status ready false")
+		// Pass any reconcile error to the status condition
+		// StatusErrors are user-facing, regular errors indicate transient/system issues
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	}
+
+	return
 }

@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -53,7 +54,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
 		restorationHashMismatch bool, // To check for deletion if restoration hash does not match
-		expectedConditionReady bool, // Expected state of the ConditionReady condition
+		expectedConditionReady metav1.Condition, // Expected state of the ConditionReady condition
 		expectedCRStatus netboxv1.IpAddressStatus, // Expected status of the CR
 	) {
 		By("Setting up mocks")
@@ -99,11 +100,11 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			}, timeout, interval).Should(BeTrue())
 
 			// Now check if conditions are set as expected
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
-				return err == nil &&
-					apismeta.IsStatusConditionTrue(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) == expectedConditionReady
-			}, timeout, interval).Should(BeTrue())
+			Eventually(k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)).Should(Succeed())
+
+			Eventually(apismeta.IsStatusConditionPresentAndEqual(createdCR.Status.Conditions, expectedConditionReady.Type, expectedConditionReady.Status)).Should(BeTrue())
+
+			Eventually(apismeta.FindStatusCondition(createdCR.Status.Conditions, expectedConditionReady.Type).Reason).Should(Equal(expectedConditionReady.Reason))
 
 			// Check that the expected ip address is present in the status
 			Expect(createdCR.Status.IpAddressId).To(Equal(expectedCRStatus.IpAddressId))
@@ -130,7 +131,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			false, true, ExpectedIpAddressStatus),
+			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox, preserved in netbox, ",
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -140,7 +141,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			false, true, ExpectedIpAddressStatus),
+			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -151,7 +152,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			false, true, ExpectedIpAddressStatus),
+			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, reserve or update failure",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -162,7 +163,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			false, false, ExpectedIpAddressFailedStatus),
+			false, netboxv1.ConditionIpaddressReadyFalse, ExpectedIpAddressFailedStatus),
 		Entry("Create IpAddress CR, restoration hash mismatch",
 			defaultIpAddressCreatedByClaim(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -171,6 +172,6 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			true, false, nil),
+			true, nil, nil),
 	)
 })
