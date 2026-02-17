@@ -1,7 +1,7 @@
 # When updating to NetBox Version v4.3 or newer this script
 # can be used to patch the mark-populated field of the IP ranges in Netbox
 # which contain '// managed by netbox-operator' in the description
-# (v4.2 NetBox verisions are not compatible with the IP range claim controller)
+# (v4.2 NetBox versions are not compatible with the IP range claim controller)
 
 import argparse
 import os
