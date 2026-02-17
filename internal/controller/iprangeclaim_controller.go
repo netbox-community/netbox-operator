@@ -138,7 +138,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 
 		err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
-			nil, fmt.Sprintf(" , assigned ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
+			nil, fmt.Sprintf(" assigned ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 		if err != nil {
 			return ctrl.Result{}, err
 		}
