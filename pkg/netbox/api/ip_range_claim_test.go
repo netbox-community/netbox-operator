@@ -135,17 +135,20 @@ func TestIPRangeClaim(t *testing.T) {
 		mockIPRange.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
 		// init legacyClient
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPRange,
 		}
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := legacyClient.GetAvailableIpRangeByClaim(
+		actual, err := compositeClient.GetAvailableIpRangeByClaim(
 			context.TODO(),
-			client,
 			&models.IpRangeClaim{
 				ParentPrefix: parentPrefixV4,
 				Size:         requestedRangeSize,
@@ -199,17 +202,20 @@ func TestIPRangeClaim(t *testing.T) {
 		mockIPRange.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
 		// init client
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPRange,
 		}
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		_, err := legacyClient.GetAvailableIpRangeByClaim(
+		_, err := compositeClient.GetAvailableIpRangeByClaim(
 			context.TODO(),
-			client,
 			&models.IpRangeClaim{
 				ParentPrefix: parentPrefixV6,
 				Size:         requestedRangeSize,
@@ -254,8 +260,11 @@ func TestIPRangeClaim(t *testing.T) {
 		}
 
 		// init client
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPRange,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -264,7 +273,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		actual, err := legacyClient.RestoreExistingIpRangeByHash(input)
+		actual, err := compositeClient.RestoreExistingIpRangeByHash(input)
 
 		assert.Nil(t, err)
 		assert.Equal(t, expectedIpDot5, actual.StartAddress)
@@ -293,8 +302,11 @@ func TestIPRangeClaim(t *testing.T) {
 		}
 
 		// init client
-		legacyClien := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPRange,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -303,7 +315,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		_, err := legacyClien.RestoreExistingIpRangeByHash(input)
+		_, err := compositeClient.RestoreExistingIpRangeByHash(input)
 
 		AssertError(t, err, "incorrect number of restoration results, number of results: 2")
 	})
@@ -321,8 +333,11 @@ func TestIPRangeClaim(t *testing.T) {
 		}
 
 		// init client
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPRange,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -331,7 +346,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		_, err := legacyClient.RestoreExistingIpRangeByHash(input)
+		_, err := compositeClient.RestoreExistingIpRangeByHash(input)
 
 		AssertError(t, err, "invalid IP range")
 	})

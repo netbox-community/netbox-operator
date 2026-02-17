@@ -63,11 +63,14 @@ func TestPrefixClaim_GetAvailablePrefixesByParentPrefix(t *testing.T) {
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(availablePrefixListInput, nil).Return(availablePrefixListOutput, nil)
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam: mockPrefixIpam,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
+	actual, err := compositeClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
 	assert.Nil(t, err)
 	assert.Equal(t, childPrefix1, actual.Payload[0].Prefix)
 	assert.Equal(t, childPrefix2, actual.Payload[1].Prefix)
@@ -88,11 +91,14 @@ func TestPrefixClaim_GetNoAvailablePrefixesByParentPrefix(t *testing.T) {
 
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(availablePrefixListInput, nil).Return(availablePrefixListOutput, nil)
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam: mockPrefixIpam,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
+	actual, err := compositeClient.GetAvailablePrefixesByParentPrefix(parentPrefixId)
 	assert.Nil(t, actual)
 	assert.ErrorIs(t, err, ErrParentPrefixExhausted)
 }
@@ -140,17 +146,20 @@ func TestPrefixClaim_GetAvailablePrefixByClaim_WithWrongParent(t *testing.T) {
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: prefix,
 			PrefixLength: "/28",
@@ -244,7 +253,7 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Tenancy: mockTenancy,
 		Dcim:    mockDcim,
 		Ipam:    mockPrefixIpam,
@@ -252,10 +261,13 @@ func TestPrefixClaim_GetBestFitPrefixByClaim(t *testing.T) {
 	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		clientV4,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28",
@@ -322,17 +334,21 @@ func TestPrefixClaim_InvalidIPv4PrefixLength(t *testing.T) {
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client, &models.PrefixClaim{
+		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/33",
 			Metadata: &models.NetboxMetadata{
@@ -399,17 +415,21 @@ func TestPrefixClaim_FailWhenRequestingEntirePrefix(t *testing.T) {
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client, &models.PrefixClaim{
+		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/24",
 			Metadata: &models.NetboxMetadata{
@@ -476,17 +496,20 @@ func TestPrefixClaim_FailWhenPrefixLargerThanParent(t *testing.T) {
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/20",
@@ -565,17 +588,20 @@ func TestPrefixClaim_ValidIPv6PrefixLength(t *testing.T) {
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/33",
@@ -660,17 +686,21 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSize(t *test
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client, &models.PrefixClaim{
+		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28",
 			Metadata: &models.NetboxMetadata{
@@ -746,17 +776,20 @@ func TestPrefixClaim_GetBestFitPrefixByClaimNoAvailablePrefixMatchesSizeCriteria
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	_, err := legacyClient.GetAvailablePrefixByClaim(
+	_, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28",
@@ -840,17 +873,21 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidFormatFromNetbox(t *testing.T
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client, &models.PrefixClaim{
+		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28",
 			Metadata: &models.NetboxMetadata{
@@ -926,17 +963,21 @@ func TestPrefixClaim_GetBestFitPrefixByClaimInvalidPrefixClaim(t *testing.T) {
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	_, err := legacyClient.GetAvailablePrefixByClaim(
+	_, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client, &models.PrefixClaim{
+		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28.",
 			Metadata: &models.NetboxMetadata{
@@ -972,14 +1013,17 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingTenant(t *testing.T) {
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(emptyTenantList, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{}
+	clientV4 := &NetboxClientV4{}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	prefix, err := legacyClient.GetAvailablePrefixByClaim(
+	prefix, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28.",
@@ -1011,14 +1055,17 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithErrorWhenGettingTenantList(t *tes
 
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(nil, errors.New(tenancyTenantsListErrorMsg)).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{}
+	clientV4 := &NetboxClientV4{}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	prefix, err := legacyClient.GetAvailablePrefixByClaim(
+	prefix, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28.",
@@ -1081,17 +1128,20 @@ func TestPrefixClaim_GetNoAvailablePrefixesWithNonExistingSite(t *testing.T) {
 
 	parentPrefix := "10.112.140.0/24"
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Dcim:    mockDcim,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	prefix, err := legacyClient.GetAvailablePrefixByClaim(
+	prefix, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28.",
@@ -1169,17 +1219,20 @@ func TestPrefixClaim_GetAvailablePrefixIfNoSiteInSpec(t *testing.T) {
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixByClaim(
+	actual, err := compositeClient.GetAvailablePrefixByClaim(
 		context.TODO(),
-		client,
 		&models.PrefixClaim{
 			ParentPrefix: parentPrefix,
 			PrefixLength: "/28",
@@ -1314,17 +1367,21 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 		Extras:  mockExtras,
 		Dcim:    mockDcim,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), client, &pxcSpec)
+	actual, err := compositeClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), &pxcSpec)
 
 	assert.Nil(t, err)
 	assert.Equal(t, parentPrefix, actual[0].Prefix)
@@ -1401,17 +1458,21 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
 	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
 
-	legacyClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
 		Tenancy: mockTenancy,
 		Extras:  mockExtras,
 		Dcim:    mockDcim,
 	}
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+		clientV4: clientV4,
+	}
 
-	actual, err := legacyClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), client, &pxcSpec)
+	actual, err := compositeClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), &pxcSpec)
 
 	assert.Nil(t, actual)
 	AssertError(t, err, "invalid parentPrefixSelector, netbox custom fields non-existing do not exist")

@@ -23,9 +23,9 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) GetSiteDetails(name string) (*models.Site, error) {
+func (c *NetboxCompositeClient) getSiteDetails(name string) (*models.Site, error) {
 	request := dcim.NewDcimSitesListParams().WithName(&name)
-	response, err := r.Dcim.DcimSitesList(request, nil)
+	response, err := c.clientV3.Dcim.DcimSitesList(request, nil)
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch Site details", err)
 	}

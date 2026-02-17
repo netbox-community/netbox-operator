@@ -23,9 +23,9 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) GetTenantDetails(name string) (*models.Tenant, error) {
+func (c *NetboxCompositeClient) getTenantDetails(name string) (*models.Tenant, error) {
 	request := tenancy.NewTenancyTenantsListParams().WithName(&name)
-	response, err := r.Tenancy.TenancyTenantsList(request, nil)
+	response, err := c.clientV3.Tenancy.TenancyTenantsList(request, nil)
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch Tenant details", err)
 	}

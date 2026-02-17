@@ -82,11 +82,14 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 		Execute().
 		Return(&prefixListOutput, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV4: clientV4,
+	}
 
-	actual, err := client.GetPrefix(
+	actual, err := compositeClient.getPrefix(
 		context.TODO(),
 		&models.Prefix{
 			Prefix: prefix,
@@ -140,11 +143,14 @@ func TestPrefix_ListNonExistingPrefix(t *testing.T) {
 		Execute().
 		Return(&prefixListOutput, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	compositeClient := &NetboxCompositeClient{
+		clientV4: clientV4,
+	}
 
-	actual, err := client.GetPrefix(
+	actual, err := compositeClient.getPrefix(
 		context.TODO(),
 		&models.Prefix{
 			Prefix: prefix,
@@ -176,11 +182,14 @@ func TestPrefix_DeletePrefix(t *testing.T) {
 		Execute().
 		Return(&http.Response{StatusCode: 204, Body: http.NoBody}, nil)
 
-	client := &NetboxClientV4{
+	clientV4 := &NetboxClientV4{
 		IpamAPI: mockIpamAPI,
 	}
+	comositeClient := &NetboxCompositeClient{
+		clientV4: clientV4,
+	}
 
-	err := client.DeletePrefix(context.TODO(), prefixId)
+	err := comositeClient.DeletePrefix(context.TODO(), prefixId)
 	assert.Nil(t, err)
 }
 
@@ -294,13 +303,17 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Execute().
 			Return(createPrefixOutput, &http.Response{StatusCode: 201, Body: http.NoBody}, nil)
 
-		netboxClient := &NetboxClient{
+		netboxClientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Dcim:    mockDcim,
 		}
-		client := &NetboxClientV4{
+		netboxClientV4 := &NetboxClientV4{
 			IpamAPI:   mockIpamAPI,
 			StatusAPI: mockStatusAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: netboxClientV3,
+			clientV4: netboxClientV4,
 		}
 
 		prefixModel := models.Prefix{
@@ -314,9 +327,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := client.ReserveOrUpdatePrefix(
+		_, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			netboxClient,
 			&prefixModel)
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
@@ -371,13 +383,17 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Execute().
 			Return(&prefixOutput, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
-		legacyClient := &NetboxClient{
-			Ipam:    mockIpam,
+		netboxClientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
+			Ipam:    mockIpam,
 		}
-		client := &NetboxClientV4{
+		netboxClientV4 := &NetboxClientV4{
 			IpamAPI:   mockIpamAPI,
 			StatusAPI: mockStatusAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: netboxClientV3,
+			clientV4: netboxClientV4,
 		}
 
 		prefixModel := models.Prefix{
@@ -388,9 +404,8 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := client.ReserveOrUpdatePrefix(
+		_, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			legacyClient,
 			&prefixModel)
 		// skip assertion on returned values as the payload of IpamPrefixesUpdate() is returned
 		// without manipulation by the code
@@ -430,9 +445,13 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Execute().
 			Return(prefixListOutput, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
-		netboxClient := &NetboxClient{}
-		client := &NetboxClientV4{
+		netboxClientV3 := &NetboxClientV3{}
+		netboxClientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: netboxClientV3,
+			clientV4: netboxClientV4,
 		}
 
 		expectedHash := "jfioaw0e9gh"
@@ -443,7 +462,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := client.ReserveOrUpdatePrefix(context.TODO(), netboxClient, &prefixModel)
+		_, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel)
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")

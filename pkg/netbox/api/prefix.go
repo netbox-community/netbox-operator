@@ -34,15 +34,15 @@ import (
 /*
 ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 */
-func (c *NetboxClientV4) ReserveOrUpdatePrefix(ctx context.Context, cLegacy *NetboxClient, prefix *models.Prefix) (*nclient.Prefix, error) {
-	responsePrefix, err := c.GetPrefix(ctx, prefix)
+func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix) (*nclient.Prefix, error) {
+	responsePrefix, err := c.getPrefix(ctx, prefix)
 	if err != nil {
 		return nil, err
 	}
 
 	// create prefix since it doesn't exist
 	if len(responsePrefix.Results) == 0 {
-		return c.createPrefix(ctx, cLegacy, prefix)
+		return c.createPrefix(ctx, prefix)
 	}
 
 	prefixToUpdate := responsePrefix.Results[0]
@@ -54,7 +54,7 @@ func (c *NetboxClientV4) ReserveOrUpdatePrefix(ctx context.Context, cLegacy *Net
 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
 				//update ip address since it does exist and the restoration hash matches
-				return c.updatePrefix(ctx, cLegacy, prefixToUpdate.Id, prefix)
+				return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
 			}
 			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
 		}
@@ -62,11 +62,11 @@ func (c *NetboxClientV4) ReserveOrUpdatePrefix(ctx context.Context, cLegacy *Net
 
 	//update ip address since it does exist
 	prefixId := responsePrefix.Results[0].Id
-	return c.updatePrefix(ctx, cLegacy, prefixId, prefix)
+	return c.updatePrefix(ctx, prefixId, prefix)
 }
 
-func (c *NetboxClientV4) GetPrefix(ctx context.Context, prefix *models.Prefix) (resp *nclient.PaginatedPrefixList, err error) {
-	req := c.IpamAPI.IpamPrefixesList(ctx).
+func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (resp *nclient.PaginatedPrefixList, err error) {
+	req := c.clientV4.IpamAPI.IpamPrefixesList(ctx).
 		Prefix([]string{prefix.Prefix})
 	resp, httpResp, err := req.Execute()
 
@@ -98,8 +98,8 @@ func (c *NetboxClientV4) GetPrefix(ctx context.Context, prefix *models.Prefix) (
 	return resp, nil
 }
 
-func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient, prefix *models.Prefix) (resp *nclient.Prefix, err error) {
-	isLegacy, err := c.isLegacyNetBox(ctx)
+func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *nclient.Prefix, err error) {
+	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -120,21 +120,21 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
 
 			if prefix.Metadata.Tenant != "" {
-				tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+				tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
 				if err != nil {
 					return nil, err
 				}
 				desiredPrefix.Tenant = &tenantDetails.Id
 			}
 			if prefix.Metadata.Site != "" {
-				siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+				siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 				if err != nil {
 					return nil, err
 				}
 				desiredPrefix.Site = &siteDetails.Id
 			}
 		}
-		return cLegacy.createPrefixV3(desiredPrefix)
+		return c.clientV3.createPrefixV3(desiredPrefix)
 	}
 
 	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
@@ -150,7 +150,7 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
 
 		if prefix.Metadata.Tenant != "" {
-			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
 			if err != nil {
 				return nil, err
 			}
@@ -159,7 +159,7 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 		}
 
 		if prefix.Metadata.Site != "" {
-			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 			if err != nil {
 				return nil, err
 			}
@@ -173,7 +173,7 @@ func (c *NetboxClientV4) createPrefix(ctx context.Context, cLegacy *NetboxClient
 		return nil, err
 	}
 	desiredPrefix.SetStatus(*status)
-	return c.createPrefixV4(ctx, desiredPrefix)
+	return c.clientV4.createPrefixV4(ctx, desiredPrefix)
 
 }
 
@@ -209,8 +209,8 @@ func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *nclient.Wri
 	return resp, nil
 }
 
-func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient, prefixId int32, prefix *models.Prefix) (resp *nclient.Prefix, err error) {
-	isLegacy, err := c.isLegacyNetBox(ctx)
+func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *nclient.Prefix, err error) {
+	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient
 		}
 
 		if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
-			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
 			if err != nil {
 				return nil, err
 			}
@@ -240,13 +240,13 @@ func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient
 		}
 
 		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 			if err != nil {
 				return nil, err
 			}
 			desiredPrefix.Site = &siteDetails.Id
 		}
-		return cLegacy.updatePrefixV3(int64(prefixId), desiredPrefix)
+		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
 	}
 
 	desiredPrefix := nclient.NewWritablePrefixRequest(prefix.Prefix)
@@ -262,7 +262,7 @@ func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient
 		desiredPrefix.SetDescription(prefix.Metadata.Description)
 
 		if prefix.Metadata.Tenant != "" {
-			tenantDetails, err := cLegacy.GetTenantDetails(prefix.Metadata.Tenant)
+			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
 			if err != nil {
 				return nil, err
 			}
@@ -271,7 +271,7 @@ func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient
 		}
 
 		if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-			siteDetails, err := cLegacy.GetSiteDetails(prefix.Metadata.Site)
+			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 			if err != nil {
 				return nil, err
 			}
@@ -279,7 +279,7 @@ func (c *NetboxClientV4) updatePrefix(ctx context.Context, cLegacy *NetboxClient
 			desiredPrefix.SetScopeId(int32(siteDetails.Id))
 		}
 	}
-	return c.updatePrefixV4(ctx, prefixId, desiredPrefix)
+	return c.clientV4.updatePrefixV4(ctx, prefixId, desiredPrefix)
 
 }
 
@@ -315,8 +315,8 @@ func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, pre
 	return resp, nil
 }
 
-func (c *NetboxClientV4) DeletePrefix(ctx context.Context, prefixId int32) (err error) {
-	req := c.IpamAPI.IpamPrefixesDestroy(ctx, prefixId)
+func (c *NetboxCompositeClient) DeletePrefix(ctx context.Context, prefixId int32) (err error) {
+	req := c.clientV4.IpamAPI.IpamPrefixesDestroy(ctx, prefixId)
 	httpResp, err := req.Execute()
 
 	var body []byte

@@ -90,11 +90,14 @@ func TestIpRange(t *testing.T) {
 			Return(&nclient.PaginatedIPRangeList{Results: []nclient.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		// init client
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
 
-		actual, err := client.getIpRange(context.TODO(), &models.IpRange{
+		actual, err := compositeClient.getIpRange(context.TODO(), &models.IpRange{
 			StartAddress: startAddress,
 			EndAddress:   endAddress,
 			Metadata: &models.NetboxMetadata{
@@ -163,7 +166,7 @@ func TestIpRange(t *testing.T) {
 			Return(expectedResp, &http.Response{StatusCode: 201, Body: http.NoBody}, nil)
 
 		// Create client with mock
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
 
@@ -181,8 +184,12 @@ func TestIpRange(t *testing.T) {
 		}
 
 		mockTenancy.EXPECT().TenancyTenantsList(tenancyListInput, nil).Return(tenancyListOutput, nil).AnyTimes()
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+			clientV3: clientV3,
 		}
 
 		// Create request
@@ -190,8 +197,7 @@ func TestIpRange(t *testing.T) {
 		ipRangeRequest.SetStatus("active")
 
 		// Test
-		actual, err := client.ReserveOrUpdateIpRange(context.TODO(),
-			legacyClient,
+		actual, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
 				EndAddress:   endAddress,
@@ -244,11 +250,15 @@ func TestIpRange(t *testing.T) {
 		endAddress := "10.0.0.10"
 
 		// Create client with mock
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 		}
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+			clientV3: clientV3,
 		}
 
 		// Create request
@@ -258,9 +268,8 @@ func TestIpRange(t *testing.T) {
 
 		// Test
 		expectedHash := "ffjrep8b29fdaikb"
-		_, err := client.ReserveOrUpdateIpRange(
+		_, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
-			legacyClient,
 			&models.IpRange{
 				StartAddress: startAddress,
 				EndAddress:   endAddress,
@@ -347,17 +356,20 @@ func TestIpRange(t *testing.T) {
 			Return(expectedResp, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		// Create client with mock
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 		}
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+			clientV3: clientV3,
 		}
 
 		// Test
-		actual, err := client.ReserveOrUpdateIpRange(
+		actual, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
-			legacyClient,
 			&models.IpRange{
 				StartAddress: startAddress,
 				EndAddress:   endAddress,
@@ -395,11 +407,14 @@ func TestIpRange(t *testing.T) {
 			Return(&http.Response{StatusCode: 204, Body: http.NoBody}, nil)
 
 		// init client with mock
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
 
-		err := client.DeleteIpRange(context.TODO(), int64(ipRangeId))
+		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
 
 		// assert error return
 		AssertNil(t, err)
@@ -421,11 +436,14 @@ func TestIpRange(t *testing.T) {
 			Return(&http.Response{StatusCode: 404, Body: http.NoBody}, nil)
 
 		// init client with mock
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
 
-		err := client.DeleteIpRange(context.TODO(), int64(ipRangeId))
+		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
 
 		// assert error return
 		AssertNil(t, err)
@@ -447,11 +465,14 @@ func TestIpRange(t *testing.T) {
 			Return(&http.Response{StatusCode: 400, Body: http.NoBody}, nil)
 
 		// init client with mock
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
 
-		err := client.DeleteIpRange(context.TODO(), int64(ipRangeId))
+		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
 
 		// assert error return
 		AssertError(t, err, "failed to delete ip range from Netbox: status 400, body: ")

@@ -68,11 +68,11 @@ func TestPrefix_CreatePrefix(t *testing.T) {
 
 	mockPrefixIpam.EXPECT().IpamPrefixesCreate(createPrefixInput, nil).Return(createPrefixOutput, nil)
 
-	netboxClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, err := netboxClient.createPrefixV3(prefixToCreate)
+	actual, err := clientV3.createPrefixV3(prefixToCreate)
 	assert.Nil(t, err)
 	assert.Greater(t, actual.Id, int32(0))
 	assert.Equal(t, prefix, actual.Prefix)
@@ -124,11 +124,11 @@ func TestPrefix_UpdatePrefix(t *testing.T) {
 
 	mockPrefixIpam.EXPECT().IpamPrefixesUpdate(updatePrefixInput, nil).Return(updatePrefixOutput, nil)
 
-	netboxClient := &NetboxClient{
+	clientV3 := &NetboxClientV3{
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, err := netboxClient.updatePrefixV3(prefixId, prefixToUpdate)
+	actual, err := clientV3.updatePrefixV3(prefixId, prefixToUpdate)
 	assert.Nil(t, err)
 	assert.Greater(t, actual.Id, int32(0))
 	assert.Equal(t, prefix, actual.Prefix)

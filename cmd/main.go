@@ -151,24 +151,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	netboxClient, err := api.GetNetboxClient()
+	netboxClientV3, err := api.GetNetboxClient()
 	if err != nil {
 		setupLog.Error(err, "failed to initialize netbox client")
 		os.Exit(1)
 	}
-	err = netboxClient.VerifyNetboxConfiguration()
-	if err != nil {
-		setupLog.Error(err, "verification of netbox configuration failed")
-		os.Exit(1)
-	}
-
 	netboxClientV4, err := api.GetNetboxClientV4()
 	if err != nil {
 		setupLog.Error(err, "failed to initialize netbox client v4")
 		os.Exit(1)
 	}
 
-	netboxCompositeClient := api.NewNetboxCompositeClient(netboxClient, netboxClientV4)
+	netboxCompositeClient := api.NewNetboxCompositeClient(netboxClientV3, netboxClientV4)
+
+	err = netboxCompositeClient.VerifyNetboxConfiguration()
+	if err != nil {
+		setupLog.Error(err, "verification of netbox configuration failed")
+		os.Exit(1)
+	}
 
 	// check existence of ENV POD_NAMESPACE
 	operatorNamespace, envVarExists := os.LookupEnv("POD_NAMESPACE")

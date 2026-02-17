@@ -93,11 +93,14 @@ func TestIPAddressClaim(t *testing.T) {
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(input, nil).Return(output, nil)
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
+		actual, err := compositeClient.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error return
 		AssertNil(t, err)
@@ -141,17 +144,20 @@ func TestIPAddressClaim(t *testing.T) {
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
 		// init client
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPAddress,
 		}
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := legacyClient.GetAvailableIpAddressByClaim(
+		actual, err := compositeClient.GetAvailableIpAddressByClaim(
 			context.TODO(),
-			client,
 			&models.IPAddressClaim{
 				ParentPrefix: parentPrefixV4,
 				Metadata: &models.NetboxMetadata{
@@ -201,17 +207,20 @@ func TestIPAddressClaim(t *testing.T) {
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
 		// init client
-		legacyClient := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPAddress,
 		}
-		client := &NetboxClientV4{
+		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := legacyClient.GetAvailableIpAddressByClaim(
+		actual, err := compositeClient.GetAvailableIpAddressByClaim(
 			context.TODO(),
-			client,
 			&models.IPAddressClaim{
 				ParentPrefix: parentPrefixV6,
 				Metadata: &models.NetboxMetadata{
@@ -261,17 +270,20 @@ func TestIPAddressClaim(t *testing.T) {
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPAddress,
 		}
 		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := client.GetAvailableIpAddressByClaim(
+		actual, err := compositeClient.GetAvailableIpAddressByClaim(
 			context.TODO(),
-			clientV4,
 			&models.IPAddressClaim{
 				ParentPrefix: parentPrefixV6,
 				Metadata: &models.NetboxMetadata{
@@ -308,17 +320,20 @@ func TestIPAddressClaim(t *testing.T) {
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPAddress,
 		}
 		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := client.GetAvailableIpAddressByClaim(
+		actual, err := compositeClient.GetAvailableIpAddressByClaim(
 			context.TODO(),
-			clientV4,
 			&models.IPAddressClaim{
 				ParentPrefix: parentPrefixV4,
 				Metadata: &models.NetboxMetadata{
@@ -346,11 +361,14 @@ func TestIPAddressClaim(t *testing.T) {
 		mockIPAddress.EXPECT().IpamPrefixesAvailableIpsList(input, nil).Return(output, nil)
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		actual, err := client.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
+		actual, err := compositeClient.GetAvailableIpAddressesByParentPrefix(parentPrefixIdV4)
 
 		// assert error
 		AssertError(t, err, ErrParentPrefixExhausted.Error())
@@ -377,8 +395,11 @@ func TestIPAddressClaim(t *testing.T) {
 		}
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -387,7 +408,7 @@ func TestIPAddressClaim(t *testing.T) {
 
 		mockIPAddress.EXPECT().IpamIPAddressesList(ipam.NewIpamIPAddressesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		actual, err := client.RestoreExistingIpByHash(input)
+		actual, err := compositeClient.RestoreExistingIpByHash(input)
 
 		assert.Nil(t, err)
 		assert.Equal(t, ipAddressRestore, actual.IpAddress)
@@ -414,16 +435,19 @@ func TestIPAddressClaim_GetNoAvailableIPAddressWithTenancyChecks(t *testing.T) {
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(nil, errors.New(expectedErrorMsg)).AnyTimes()
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 		}
 		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := client.GetAvailableIpAddressByClaim(
+		actual, err := compositeClient.GetAvailableIpAddressByClaim(
 			context.TODO(),
-			clientV4,
 			&models.IPAddressClaim{
 				ParentPrefix: parentPrefix,
 				Metadata: &models.NetboxMetadata{
@@ -459,16 +483,19 @@ func TestIPAddressClaim_GetNoAvailableIPAddressWithTenancyChecks(t *testing.T) {
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(emptyTenantList, nil).AnyTimes()
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 		}
 		clientV4 := &NetboxClientV4{
 			IpamAPI: mockIpamAPI,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := client.GetAvailableIpAddressByClaim(
+		actual, err := compositeClient.GetAvailableIpAddressByClaim(
 			context.TODO(),
-			clientV4,
 			&models.IPAddressClaim{
 				ParentPrefix: parentPrefix,
 				Metadata: &models.NetboxMetadata{

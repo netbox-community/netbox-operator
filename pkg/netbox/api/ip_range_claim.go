@@ -31,14 +31,14 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRange, error) {
+func (c *NetboxCompositeClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRange, error) {
 	customIpRangeSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
 		{
 			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
 			value: hash,
 		},
 	})
-	list, err := r.Ipam.IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, customIpRangeSearch)
+	list, err := c.clientV3.Ipam.IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, customIpRangeSearch)
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +66,13 @@ func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRang
 }
 
 // GetAvailableIpRangeByClaim searches an available IpRange in Netbox matching IpRangeClaim requirements
-func (r *NetboxClient) GetAvailableIpRangeByClaim(ctx context.Context, cV4 *NetboxClientV4, ipRangeClaim *models.IpRangeClaim) (*models.IpRange, error) {
-	_, err := r.GetTenantDetails(ipRangeClaim.Metadata.Tenant)
+func (c *NetboxCompositeClient) GetAvailableIpRangeByClaim(ctx context.Context, ipRangeClaim *models.IpRangeClaim) (*models.IpRange, error) {
+	_, err := c.getTenantDetails(ipRangeClaim.Metadata.Tenant)
 	if err != nil {
 		return nil, err
 	}
 
-	responseParentPrefix, err := cV4.GetPrefix(
+	responseParentPrefix, err := c.getPrefix(
 		ctx,
 		&models.Prefix{
 			Prefix:   ipRangeClaim.ParentPrefix,
@@ -86,7 +86,7 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ctx context.Context, cV4 *Netb
 	}
 
 	parentPrefixId := responseParentPrefix.Results[0].Id
-	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
+	responseAvailableIPs, err := c.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +103,9 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ctx context.Context, cV4 *Netb
 }
 
 // GetAvailableIpsByIpRange returns all available Ips in Netbox matching IpRangeClaim requirements
-func (r *NetboxClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
+func (c *NetboxCompositeClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
 	requestAvailableIPs := ipam.NewIpamIPRangesAvailableIpsListParams().WithID(ipRangeId)
-	responseAvailableIPs, err := r.Ipam.IpamIPRangesAvailableIpsList(requestAvailableIPs, nil)
+	responseAvailableIPs, err := c.clientV3.Ipam.IpamIPRangesAvailableIpsList(requestAvailableIPs, nil)
 	if err != nil {
 		return nil, err
 	}

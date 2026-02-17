@@ -148,12 +148,15 @@ func TestIPAddress(t *testing.T) {
 		mockIPAddress.EXPECT().IpamIPAddressesList(input, nil).Return(output, nil).AnyTimes()
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam:    mockIPAddress,
 			Tenancy: mockPrefixTenancy,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		actual, err := client.GetIpAddress(&models.IPAddress{
+		actual, err := compositeClient.getIpAddress(&models.IPAddress{
 			IpAddress: ipAddress,
 			Metadata: &models.NetboxMetadata{
 				Tenant: tenantName,
@@ -195,12 +198,15 @@ func TestIPAddress(t *testing.T) {
 		mockIPAddress.EXPECT().IpamIPAddressesList(input, nil).Return(output, nil).AnyTimes()
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam:    mockIPAddress,
 			Tenancy: mockPrefixTenancy,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		res, err := client.GetIpAddress(&models.IPAddress{
+		res, err := compositeClient.getIpAddress(&models.IPAddress{
 			IpAddress: ipAddress,
 			Metadata: &models.NetboxMetadata{
 				Tenant: tenantName,
@@ -224,11 +230,14 @@ func TestIPAddress(t *testing.T) {
 		mockIPAddress.EXPECT().IpamIPAddressesCreate(input, nil).Return(output, nil)
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		ipaddress, err := client.CreateIpAddress(writeableAddress())
+		ipaddress, err := compositeClient.createIpAddress(writeableAddress())
 
 		// assert error return
 		AssertNil(t, err)
@@ -248,11 +257,14 @@ func TestIPAddress(t *testing.T) {
 
 		mockIPAddress.EXPECT().IpamIPAddressesUpdate(input, nil).Return(output, nil)
 
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		ipaddress, err := client.UpdateIpAddress(IpAddressId, writeableAddress())
+		ipaddress, err := compositeClient.updateIpAddress(IpAddressId, writeableAddress())
 
 		// assertion for errors
 		AssertNil(t, err)
@@ -269,11 +281,14 @@ func TestIPAddress(t *testing.T) {
 
 		mockIPAddress.EXPECT().IpamIPAddressesDelete(input, nil).Return(output, nil)
 
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
 		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
 
-		err := client.DeleteIpAddress(IpAddressId)
+		err := compositeClient.DeleteIpAddress(IpAddressId)
 		AssertNil(t, err)
 	})
 
@@ -298,12 +313,15 @@ func TestIPAddress(t *testing.T) {
 		// use gomock.Any() because the input contains a pointer
 		mockIPAddress.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Return(outputUpdate, nil)
 
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		ipAddressModel := ipAddressModel("")
-		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
+		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel)
 		AssertNil(t, err)
 	})
 
@@ -329,12 +347,15 @@ func TestIPAddress(t *testing.T) {
 		// use gomock.Any() because the input contains a pointer
 		mockIPAddress.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Return(outputUpdate, nil)
 
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		ipAddressModel := ipAddressModel(expectedHash)
-		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
+		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel)
 		AssertNil(t, err)
 	})
 
@@ -354,13 +375,16 @@ func TestIPAddress(t *testing.T) {
 
 		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
 
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPAddress,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		expectedHash := "iwfohs7v82fe9w0"
 		ipAddressModel := ipAddressModel(expectedHash)
-		_, err := client.ReserveOrUpdateIpAddress(ipAddressModel)
+		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel)
 		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
 	})
 }
