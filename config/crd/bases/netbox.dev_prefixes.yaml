@@ -190,7 +190,7 @@ spec:
                 type: array
               id:
                 description: The ID of the resource in NetBox
-                format: int32
+                format: int64
                 type: integer
               url:
                 description: |-

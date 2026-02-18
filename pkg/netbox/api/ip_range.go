@@ -148,8 +148,8 @@ func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) DeleteIpRange(ctx context.Context, ipRangeId int64) (err error) {
-	req := c.clientV4.IpamAPI.IpamIpRangesDestroy(ctx, int32(ipRangeId))
+func (c *NetboxCompositeClient) DeleteIpRange(ctx context.Context, ipRangeId int32) (err error) {
+	req := c.clientV4.IpamAPI.IpamIpRangesDestroy(ctx, ipRangeId)
 	httpResp, execErr := req.Execute()
 
 	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {

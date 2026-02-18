@@ -414,7 +414,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
+		err := compositeClient.DeleteIpRange(context.TODO(), ipRangeId)
 
 		// assert error return
 		AssertNil(t, err)
@@ -443,7 +443,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
+		err := compositeClient.DeleteIpRange(context.TODO(), ipRangeId)
 
 		// assert error return
 		AssertNil(t, err)
@@ -472,7 +472,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		err := compositeClient.DeleteIpRange(context.TODO(), int64(ipRangeId))
+		err := compositeClient.DeleteIpRange(context.TODO(), ipRangeId)
 
 		// assert error return
 		AssertError(t, err, "failed to delete ip range from netbox: status 400, body: ")

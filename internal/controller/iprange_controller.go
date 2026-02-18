@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -77,7 +78,10 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				err := r.NetboxClient.DeleteIpRange(ctx, o.Status.IpRangeId)
+				if o.Status.IpRangeId > math.MaxInt32 {
+					return ctrl.Result{}, fmt.Errorf("reconciliation of ip ranges with id's larger than 2147483647 is not supported")
+				}
+				err := r.NetboxClient.DeleteIpRange(ctx, int32(o.Status.IpRangeId))
 				if err != nil {
 					err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
 						corev1.EventTypeWarning, err)

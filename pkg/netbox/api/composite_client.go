@@ -16,8 +16,11 @@ limitations under the License.
 
 package api
 
-// NetboxCompositeClient holds both the legacy (v3) and modern (v4) clients,
+// NetboxCompositeClient holds both the v3 and v4 clients,
 // presenting a single unified interface to callers (controllers).
+// The v4 client was introduced becuase of braking changes in the
+// ip ranges and prefixes endpoints of the NetBox api in newer (4.2+) NetBox versions
+// for requests where the v3 client is still compatible the client was not replaced
 type NetboxCompositeClient struct {
 	clientV3 *NetboxClientV3
 	clientV4 *NetboxClientV4

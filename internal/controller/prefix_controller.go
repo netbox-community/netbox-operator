@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -78,7 +79,10 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				if err := r.NetboxClient.DeletePrefix(ctx, o.Status.PrefixId); err != nil {
+				if o.Status.PrefixId > math.MaxInt32 {
+					return ctrl.Result{}, fmt.Errorf("reconciliation of prefixes with id's larger than 2147483647 is not supported")
+				}
+				if err := r.NetboxClient.DeletePrefix(ctx, int32(o.Status.PrefixId)); err != nil {
 					if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err); errReport != nil {
 						return ctrl.Result{}, errReport
 					}
@@ -221,7 +225,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	/* 4. update status fields */
-	o.Status.PrefixId = netboxPrefixModel.Id
+	o.Status.PrefixId = int64(netboxPrefixModel.Id)
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
 	err = r.Client.Status().Update(ctx, o)
 	if err != nil {
