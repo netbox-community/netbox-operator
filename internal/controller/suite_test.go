@@ -54,6 +54,8 @@ var k8sClient client.Client
 var k8sManagerOptions ctrl.Options
 var testEnv *envtest.Environment
 var mockCtrl *gomock.Controller
+var mockIpamAPI *mock_interfaces.MockIpamAPI
+var mockIpamPrefixesListRequest *mock_interfaces.MockIpamPrefixesListRequest
 var ipamMockIpAddress *mock_interfaces.MockIpamInterface
 var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
 var tenancyMock *mock_interfaces.MockTenancyInterface
@@ -112,6 +114,8 @@ var _ = BeforeSuite(func() {
 	ipamMockIpAddressClaim = mock_interfaces.NewMockIpamInterface(mockCtrl)
 	tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
 	dcimMock = mock_interfaces.NewMockDcimInterface(mockCtrl)
+	mockIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
+	mockIpamPrefixesListRequest = mock_interfaces.NewMockIpamPrefixesListRequest(mockCtrl)
 
 	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
 	Expect(k8sManager.GetConfig()).NotTo(BeNil())
@@ -121,11 +125,14 @@ var _ = BeforeSuite(func() {
 		Client:              k8sManager.GetClient(),
 		Scheme:              k8sManager.GetScheme(),
 		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient: &api.NetboxClient{
-			Ipam:    ipamMockIpAddress,
-			Tenancy: tenancyMock,
-			Dcim:    dcimMock,
-		},
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockIpAddress,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
 	}).SetupWithManager(k8sManager)
@@ -135,11 +142,14 @@ var _ = BeforeSuite(func() {
 		Client:              k8sManager.GetClient(),
 		Scheme:              k8sManager.GetScheme(),
 		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetClient(), k8sManager.GetEventRecorderFor("ip-address-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient: &api.NetboxClient{
-			Ipam:    ipamMockIpAddressClaim,
-			Tenancy: tenancyMock,
-			Dcim:    dcimMock,
-		},
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockIpAddressClaim,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
 	}).SetupWithManager(k8sManager)

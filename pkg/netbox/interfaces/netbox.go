@@ -17,11 +17,15 @@ limitations under the License.
 package interfaces
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/go-openapi/runtime"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	v4client "github.com/netbox-community/go-netbox/v4"
 )
 
 type IpamInterface interface {
@@ -54,4 +58,64 @@ type ExtrasInterface interface {
 
 type DcimInterface interface {
 	DcimSitesList(params *dcim.DcimSitesListParams, authInfo runtime.ClientAuthInfoWriter, opts ...dcim.ClientOption) (*dcim.DcimSitesListOK, error)
+}
+
+// V4 API Interfaces - Request Objects
+
+type IpamIpRangesListRequest interface {
+	StartAddress(startAddress []string) IpamIpRangesListRequest
+	EndAddress(endAddress []string) IpamIpRangesListRequest
+	Execute() (*v4client.PaginatedIPRangeList, *http.Response, error)
+}
+
+type IpamIpRangesCreateRequest interface {
+	WritableIPRangeRequest(writableIPRangeRequest v4client.WritableIPRangeRequest) IpamIpRangesCreateRequest
+	Execute() (*v4client.IPRange, *http.Response, error)
+}
+
+type IpamIpRangesUpdateRequest interface {
+	WritableIPRangeRequest(writableIPRangeRequest v4client.WritableIPRangeRequest) IpamIpRangesUpdateRequest
+	Execute() (*v4client.IPRange, *http.Response, error)
+}
+
+type IpamIpRangesDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
+type IpamPrefixesListRequest interface {
+	Prefix(prefix []string) IpamPrefixesListRequest
+	Execute() (*v4client.PaginatedPrefixList, *http.Response, error)
+}
+
+type IpamPrefixesCreateRequest interface {
+	WritablePrefixRequest(writablePrefixRequest v4client.WritablePrefixRequest) IpamPrefixesCreateRequest
+	Execute() (*v4client.Prefix, *http.Response, error)
+}
+
+type IpamPrefixesUpdateRequest interface {
+	WritablePrefixRequest(writablePrefixRequest v4client.WritablePrefixRequest) IpamPrefixesUpdateRequest
+	Execute() (*v4client.Prefix, *http.Response, error)
+}
+
+type IpamPrefixesDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
+type IpamAPI interface {
+	IpamIpRangesList(ctx context.Context) IpamIpRangesListRequest
+	IpamIpRangesCreate(ctx context.Context) IpamIpRangesCreateRequest
+	IpamIpRangesUpdate(ctx context.Context, id int32) IpamIpRangesUpdateRequest
+	IpamIpRangesDestroy(ctx context.Context, id int32) IpamIpRangesDestroyRequest
+	IpamPrefixesList(ctx context.Context) IpamPrefixesListRequest
+	IpamPrefixesCreate(ctx context.Context) IpamPrefixesCreateRequest
+	IpamPrefixesUpdate(ctx context.Context, id int32) IpamPrefixesUpdateRequest
+	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
+}
+
+type APIStatusRetrieveRequest interface {
+	Execute() (map[string]interface{}, *http.Response, error)
+}
+
+type StatusAPI interface {
+	StatusRetrieve(ctx context.Context) APIStatusRetrieveRequest
 }

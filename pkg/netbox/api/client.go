@@ -26,7 +26,7 @@ import (
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
-	nclient "github.com/netbox-community/go-netbox/v3/netbox/client"
+	v3client "github.com/netbox-community/go-netbox/v3/netbox/client"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	log "github.com/sirupsen/logrus"
 
@@ -39,7 +39,7 @@ const (
 	RequestTimeout = 1200
 )
 
-type NetboxClient struct {
+type NetboxClientV3 struct {
 	Ipam    interfaces.IpamInterface
 	Tenancy interfaces.TenancyInterface
 	Extras  interfaces.ExtrasInterface
@@ -48,8 +48,8 @@ type NetboxClient struct {
 
 // Checks that the Netbox host is properly configured for the operator to function.
 // Currently only checks that the required custom fields for IP address handling have been added.
-func (r *NetboxClient) VerifyNetboxConfiguration() error {
-	customFields, err := r.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
+func (c *NetboxCompositeClient) VerifyNetboxConfiguration() error {
+	customFields, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (irt *InstrumentedRoundTripper) RoundTrip(req *http.Request) (*http.Respons
 	return resp, nil
 }
 
-func GetNetboxClient() (*NetboxClient, error) {
+func GetNetboxClient() (*NetboxClientV3, error) {
 
 	logger := log.StandardLogger()
 	logger.Debug(fmt.Sprintf("Initializing netbox client at host %v", config.GetOperatorConfig().NetboxHost))
@@ -117,14 +117,14 @@ func GetNetboxClient() (*NetboxClient, error) {
 		Timeout: time.Second * time.Duration(RequestTimeout),
 	}
 
-	transport := httptransport.NewWithClient(config.GetOperatorConfig().NetboxHost, nclient.DefaultBasePath, desiredRuntimeClientSchemes, httpClient)
+	transport := httptransport.NewWithClient(config.GetOperatorConfig().NetboxHost, v3client.DefaultBasePath, desiredRuntimeClientSchemes, httpClient)
 	transport.DefaultAuthentication = httptransport.APIKeyAuth("Authorization",
 		"header",
 		fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken))
 	transport.SetLogger(log.StandardLogger())
 
-	auxNetboxClient := nclient.New(transport, nil)
-	netboxClient := &NetboxClient{
+	auxNetboxClient := v3client.New(transport, nil)
+	netboxClient := &NetboxClientV3{
 		Ipam:    auxNetboxClient.Ipam,
 		Tenancy: auxNetboxClient.Tenancy,
 		Extras:  auxNetboxClient.Extras,

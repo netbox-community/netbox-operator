@@ -35,11 +35,7 @@ var _ = Describe("IpRange Controller", func() {
 	Context("When generating NetBox IpRange  Model form IpRangeSpec", func() {
 		// dummy reconciler
 		ipRangeRecondiler = &IpRangeReconciler{
-			NetboxClient: &api.NetboxClient{
-				Ipam:    ipamMockIpAddress,
-				Tenancy: tenancyMock,
-				Dcim:    dcimMock,
-			},
+			NetboxClient: &api.NetboxCompositeClient{},
 		}
 
 		// default IpRange

@@ -42,7 +42,7 @@ import (
 type IpAddressClaimReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
-	NetboxClient        *api.NetboxClient
+	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -63,13 +63,13 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	/* 0. check if the matching IpAddressClaim object exists */
 	o := &netboxv1.IpAddressClaim{}
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err := r.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		// end loop if deletion timestamp is not zero
 		return ctrl.Result{}, nil
 	}
@@ -84,13 +84,13 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// 1. check if matching IpAddress object already exists
 	ipAddress := &netboxv1.IpAddress{}
-	ipAddressName := o.ObjectMeta.Name
+	ipAddressName := o.Name
 	ipAddressLookupKey := types.NamespacedName{
 		Name:      ipAddressName,
 		Namespace: o.Namespace,
 	}
 
-	err = r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
+	err = r.Get(ctx, ipAddressLookupKey, ipAddress)
 	if err != nil {
 		// return error if not a notfound error
 		if !apierrors.IsNotFound(err) {
@@ -138,6 +138,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			// ip address cannot be restored from netbox
 			// 5.a assign new available ip address
 			ipAddressModel, err = r.NetboxClient.GetAvailableIpAddressByClaim(
+				ctx,
 				&models.IPAddressClaim{
 					ParentPrefix: o.Spec.ParentPrefix,
 					Metadata: &models.NetboxMetadata{
@@ -164,7 +165,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 
-		err = r.Client.Create(ctx, ipAddressResource)
+		err = r.Create(ctx, ipAddressResource)
 		if err != nil {
 			if errReport := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, err); errReport != nil {
 				return ctrl.Result{}, errReport
@@ -180,7 +181,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	} else {
 		// 6.b update fields of IPAddress object
 		debugLogger.Info("update ipaddress resource")
-		err := r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
+		err := r.Get(ctx, ipAddressLookupKey, ipAddress)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

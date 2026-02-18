@@ -151,12 +151,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	netboxClient, err := api.GetNetboxClient()
+	netboxClientV3, err := api.GetNetboxClient()
 	if err != nil {
 		setupLog.Error(err, "failed to initialize netbox client")
 		os.Exit(1)
 	}
-	err = netboxClient.VerifyNetboxConfiguration()
+	netboxClientV4, err := api.GetNetboxClientV4()
+	if err != nil {
+		setupLog.Error(err, "failed to initialize netbox client v4")
+		os.Exit(1)
+	}
+
+	netboxCompositeClient := api.NewNetboxCompositeClient(netboxClientV3, netboxClientV4)
+
+	err = netboxCompositeClient.VerifyNetboxConfiguration()
 	if err != nil {
 		setupLog.Error(err, "verification of netbox configuration failed")
 		os.Exit(1)
@@ -173,7 +181,7 @@ func main() {
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-address-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient:        netboxClient,
+		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
@@ -184,7 +192,7 @@ func main() {
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-address-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient:        netboxClient,
+		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
@@ -195,7 +203,7 @@ func main() {
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient:        netboxClient,
+		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
@@ -206,7 +214,7 @@ func main() {
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient:        netboxClient,
+		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
@@ -217,7 +225,7 @@ func main() {
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient:        netboxClient,
+		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
@@ -228,7 +236,7 @@ func main() {
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
-		NetboxClient:        netboxClient,
+		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {

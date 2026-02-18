@@ -51,9 +51,12 @@ func TestTenancy_GetTenantDetails(t *testing.T) {
 	}
 
 	mockPrefix.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListOutput, nil)
-	netboxClient := &NetboxClient{Tenancy: mockPrefix}
+	clientV3 := &NetboxClientV3{Tenancy: mockPrefix}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := netboxClient.GetTenantDetails(tenant)
+	actual, err := compositeClient.getTenantDetails(tenant)
 	assert.NoError(t, err)
 	assert.Equal(t, tenant, actual.Name)
 	assert.Equal(t, tenantOutputId, actual.Id)
@@ -76,9 +79,12 @@ func TestTenancy_GetWrongTenantDetails(t *testing.T) {
 	}
 
 	mockPrefix.EXPECT().TenancyTenantsList(wrongTenantListRequestInput, nil).Return(emptyListTenantOutput, nil)
-	netboxClient := &NetboxClient{Tenancy: mockPrefix}
+	clientV3 := &NetboxClientV3{Tenancy: mockPrefix}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := netboxClient.GetTenantDetails(wrongTenant)
+	actual, err := compositeClient.getTenantDetails(wrongTenant)
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "failed to fetch tenant 'wrongTenant': not found")
 }

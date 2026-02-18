@@ -50,6 +50,10 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
 elif [[ "${VERSION}" == "4.1.10" ]] ;then
   echo "Using default helm chart and demo data"
 
+elif [[ "${VERSION}" == "4.4.9" ]] ;then
+  NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.26/netbox-7.2.26.tgz"
+  NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.4.sql"
+
 else
   echo "Unknown version ${VERSION}"
   exit 1
