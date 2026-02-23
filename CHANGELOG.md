@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.39] - 2026-02-23
+
+<!-- Release notes generated using configuration in .github/release.yml at 3b18fc914aaf43851d9e93dd94b684cb8c99caf4 -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump github.com/grpc-ecosystem/grpc-gateway/v2 from 2.27.8 to 2.28.0 in the go-dependencies group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/520
+* Build(deps): bump actions/checkout from 6.0.1 to 6.0.2 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/521
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.38...v0.2.39
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.39)
+
+---
+
 ## [v0.2.38] - 2026-02-19
 
 <!-- Release notes generated using configuration in .github/release.yml at bc187116f37a5120248887b0c0b61da73dbd5d83 -->
