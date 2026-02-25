@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.40] - 2026-02-25
+
+<!-- Release notes generated using configuration in .github/release.yml at 379b522dd51c5405809e202515ccc1ae9ecaad82 -->
+
+## What's Changed
+### Contributions
+* query custom fields by name by @bruelea in https://github.com/netbox-community/netbox-operator/pull/523
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.39...v0.2.40
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.40)
+
+---
+
 ## [v0.2.39] - 2026-02-23
 
 <!-- Release notes generated using configuration in .github/release.yml at 3b18fc914aaf43851d9e93dd94b684cb8c99caf4 -->
