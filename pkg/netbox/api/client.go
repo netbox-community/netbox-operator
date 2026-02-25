@@ -49,19 +49,12 @@ type NetboxClientV3 struct {
 // Checks that the Netbox host is properly configured for the operator to function.
 // Currently only checks that the required custom fields for IP address handling have been added.
 func (c *NetboxCompositeClient) VerifyNetboxConfiguration() error {
-	customFields, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
+	customFields, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams().WithName(&config.GetOperatorConfig().NetboxRestorationHashFieldName), nil)
 	if err != nil {
 		return err
 	}
 
-	containsRestorationHashField := false
-	for _, field := range customFields.Payload.Results {
-		if *field.Name == config.GetOperatorConfig().NetboxRestorationHashFieldName {
-			containsRestorationHashField = true
-			break
-		}
-	}
-	if !containsRestorationHashField {
+	if len(customFields.Payload.Results) != 1 {
 		return fmt.Errorf("netbox missing custom field '%s' for restoration hash", config.GetOperatorConfig().NetboxRestorationHashFieldName)
 	}
 	return nil
