@@ -2,7 +2,7 @@
 IMG ?= your-image-registry:latest
 LOCAL_IMG = netbox-operator:build-local #Should not be changed without changing kind/kustomization.yaml too
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.0
+ENVTEST_K8S_VERSION = 1.33.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -232,7 +232,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@87bcfec
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.23
 
 generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mkdir -p ${GEN_DIR}
@@ -254,9 +254,16 @@ create-kind-4.0.11:
 test-e2e-4.0.11: create-kind-4.0.11 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)
 
-.PHONY: create-kind-4.1.11
-create-kind-4.1.11:
-	./kind/local-env.sh --version 4.1.11
-.PHONY: test-e2e-4.1.11
-test-e2e-4.1.11: create-kind-4.1.11 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
+.PHONY: create-kind-4.1.10
+create-kind-4.1.10:
+	./kind/local-env.sh --version 4.1.10
+.PHONY: test-e2e-4.1.10
+test-e2e-4.1.10: create-kind-4.1.10 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
+	chainsaw test $(E2E_PARAM)
+
+.PHONY: create-kind-4.4.9
+create-kind-4.4.9:
+	./kind/local-env.sh --version 4.4.9
+.PHONY: test-e2e-4.4.9
+test-e2e-4.4.9: create-kind-4.4.9 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)

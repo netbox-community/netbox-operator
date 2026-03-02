@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -39,14 +40,14 @@ const (
 	ipMaskIPv6 = "/128"
 )
 
-func (r *NetboxClient) RestoreExistingIpByHash(hash string) (*models.IPAddress, error) {
+func (c *NetboxCompositeClient) RestoreExistingIpByHash(hash string) (*models.IPAddress, error) {
 	customIpSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
 		{
 			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
 			value: hash,
 		},
 	})
-	list, err := r.Ipam.IpamIPAddressesList(ipam.NewIpamIPAddressesListParams(), nil, customIpSearch)
+	list, err := c.clientV3.Ipam.IpamIPAddressesList(ipam.NewIpamIPAddressesListParams(), nil, customIpSearch)
 	if err != nil {
 		return nil, err
 	}
@@ -71,25 +72,28 @@ func (r *NetboxClient) RestoreExistingIpByHash(hash string) (*models.IPAddress, 
 }
 
 // GetAvailableIpAddressByClaim searches an available IpAddress in Netbox matching IpAddressClaim requirements
-func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAddressClaim) (*models.IPAddress, error) {
-	_, err := r.GetTenantDetails(ipAddressClaim.Metadata.Tenant)
+func (c *NetboxCompositeClient) GetAvailableIpAddressByClaim(ctx context.Context, ipAddressClaim *models.IPAddressClaim) (*models.IPAddress, error) {
+	// fail early if tenant requested in the spec does not exists
+	_, err := c.getTenantDetails(ipAddressClaim.Metadata.Tenant)
 	if err != nil {
 		return nil, err
 	}
 
-	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
-		Prefix:   ipAddressClaim.ParentPrefix,
-		Metadata: ipAddressClaim.Metadata,
-	})
+	responseParentPrefix, err := c.getPrefix(
+		ctx,
+		&models.Prefix{
+			Prefix:   ipAddressClaim.ParentPrefix,
+			Metadata: ipAddressClaim.Metadata,
+		})
 	if err != nil {
 		return nil, err
 	}
-	if len(responseParentPrefix.Payload.Results) == 0 {
+	if len(responseParentPrefix.Results) == 0 {
 		return nil, utils.NetboxNotFoundError("parent prefix")
 	}
 
-	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
-	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
+	parentPrefixId := responseParentPrefix.Results[0].Id
+	responseAvailableIPs, err := c.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +108,9 @@ func (r *NetboxClient) GetAvailableIpAddressByClaim(ipAddressClaim *models.IPAdd
 	}, nil
 }
 
-func (r *NetboxClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int64) (*ipam.IpamPrefixesAvailableIpsListOK, error) {
-	requestAvailableIPs := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
-	responseAvailableIPs, err := r.Ipam.IpamPrefixesAvailableIpsList(requestAvailableIPs, nil)
+func (c *NetboxCompositeClient) GetAvailableIpAddressesByParentPrefix(parentPrefixId int32) (*ipam.IpamPrefixesAvailableIpsListOK, error) {
+	requestAvailableIPs := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(parentPrefixId))
+	responseAvailableIPs, err := c.clientV3.Ipam.IpamPrefixesAvailableIpsList(requestAvailableIPs, nil)
 	if err != nil {
 		return nil, err
 	}

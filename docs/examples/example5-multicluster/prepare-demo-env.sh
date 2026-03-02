@@ -5,7 +5,7 @@ set -e
 
 # install netbox in the london cluster and load demo data
 kubectl config use-context kind-london
-./kind/deploy-netbox.sh london "4.1.11" default
+./kind/deploy-netbox.sh london "4.1.10" default
 
 # install NetBox Operator
 kubectl config use-context kind-london

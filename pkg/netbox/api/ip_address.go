@@ -28,8 +28,8 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*netboxModels.IPAddress, error) {
-	responseIpAddress, err := r.GetIpAddress(ipAddress)
+func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*netboxModels.IPAddress, error) {
+	responseIpAddress, err := c.getIpAddress(ipAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 	}
 
 	if ipAddress.Metadata != nil && ipAddress.Metadata.Tenant != "" {
-		tenantDetails, err := r.GetTenantDetails(ipAddress.Metadata.Tenant)
+		tenantDetails, err := c.getTenantDetails(ipAddress.Metadata.Tenant)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +56,7 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 
 	// create ip address since it doesn't exist
 	if len(responseIpAddress.Payload.Results) == 0 {
-		return r.CreateIpAddress(desiredIPAddress)
+		return c.createIpAddress(desiredIPAddress)
 	}
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
@@ -68,22 +68,22 @@ func (r *NetboxClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*n
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
 				//update ip address since it does exist and the restoration hash matches
-				return r.UpdateIpAddress(ipToUpdate.ID, desiredIPAddress)
+				return c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
 			}
 			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
 		}
 	}
 
 	ipAddressId := responseIpAddress.Payload.Results[0].ID
-	return r.UpdateIpAddress(ipAddressId, desiredIPAddress)
+	return c.updateIpAddress(ipAddressId, desiredIPAddress)
 }
 
-func (r *NetboxClient) GetIpAddress(ipAddress *models.IPAddress) (*ipam.IpamIPAddressesListOK, error) {
+func (c *NetboxCompositeClient) getIpAddress(ipAddress *models.IPAddress) (*ipam.IpamIPAddressesListOK, error) {
 
 	requestIpAddress := ipam.
 		NewIpamIPAddressesListParams().
 		WithAddress(&ipAddress.IpAddress)
-	responseIpAddress, err := r.Ipam.IpamIPAddressesList(requestIpAddress, nil)
+	responseIpAddress, err := c.clientV3.Ipam.IpamIPAddressesList(requestIpAddress, nil)
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch IpAddress details", err)
 	}
@@ -91,12 +91,12 @@ func (r *NetboxClient) GetIpAddress(ipAddress *models.IPAddress) (*ipam.IpamIPAd
 	return responseIpAddress, err
 }
 
-func (r *NetboxClient) CreateIpAddress(ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, error) {
+func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, error) {
 	requestCreateIp := ipam.
 		NewIpamIPAddressesCreateParams().
 		WithDefaults().
 		WithData(ipAddress)
-	responseCreateIp, err := r.Ipam.
+	responseCreateIp, err := c.clientV3.Ipam.
 		IpamIPAddressesCreate(requestCreateIp, nil)
 	if err != nil {
 		return nil, utils.NetboxError("failed to reserve IP Address", err)
@@ -104,22 +104,22 @@ func (r *NetboxClient) CreateIpAddress(ipAddress *netboxModels.WritableIPAddress
 	return responseCreateIp.Payload, nil
 }
 
-func (r *NetboxClient) UpdateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, error) {
+func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, error) {
 	requestUpdateIp := ipam.
 		NewIpamIPAddressesUpdateParams().
 		WithDefaults().
 		WithData(ipAddress).
 		WithID(ipAddressId)
-	responseUpdateIp, err := r.Ipam.IpamIPAddressesUpdate(requestUpdateIp, nil)
+	responseUpdateIp, err := c.clientV3.Ipam.IpamIPAddressesUpdate(requestUpdateIp, nil)
 	if err != nil {
 		return nil, utils.NetboxError("failed to update IP Address", err)
 	}
 	return responseUpdateIp.Payload, nil
 }
 
-func (r *NetboxClient) DeleteIpAddress(ipAddressId int64) error {
+func (c *NetboxCompositeClient) DeleteIpAddress(ipAddressId int64) error {
 	requestDeleteIp := ipam.NewIpamIPAddressesDeleteParams().WithID(ipAddressId)
-	_, err := r.Ipam.IpamIPAddressesDelete(requestDeleteIp, nil)
+	_, err := c.clientV3.Ipam.IpamIPAddressesDelete(requestDeleteIp, nil)
 	if err != nil {
 		switch typedErr := err.(type) {
 		case *ipam.IpamIPAddressesDeleteDefault:

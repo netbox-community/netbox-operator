@@ -49,7 +49,7 @@ const IPManagedCustomFieldsAnnotationName = "ipaddress.netbox.dev/managed-custom
 type IpAddressReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
-	NetboxClient        *api.NetboxClient
+	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -70,7 +70,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	conditionMessage := ""
 	objectDeleted := false
 
-	err := r.Client.Get(ctx, req.NamespacedName, o)
+	err := r.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -87,7 +87,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}()
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
 				if o.Status.IpAddressId != 0 {
@@ -124,15 +124,17 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// 1. try to lock lease of parent prefix if IpAddressUrl is not set in status
 	// and IpAddress is owned by an IpAddressClaim
-	or := o.ObjectMeta.OwnerReferences
-	if len(or) > 0 && o.Status.IpAddressUrl == "" {
-		// get ip address claim owner
+	or := o.OwnerReferences
+	var ll *leaselocker.LeaseLocker
+	if len(or) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
+		// get ip address claim
 		orLookupKey := types.NamespacedName{
 			Name:      or[0].Name,
 			Namespace: req.Namespace,
 		}
 		ipAddressClaim := &netboxv1.IpAddressClaim{}
-		if err = r.Client.Get(ctx, orLookupKey, ipAddressClaim); err != nil {
+		err = r.Get(ctx, orLookupKey, ipAddressClaim)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -141,7 +143,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Name:      convertCIDRToLeaseLockName(ipAddressClaim.Spec.ParentPrefix),
 			Namespace: r.OperatorNamespace,
 		}
-		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
+		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.String())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -176,7 +178,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
 			// delete the ip address so it can be recreated by the ip address claim controller
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
-			if err = r.Client.Delete(ctx, o); err != nil {
+			if err = r.Delete(ctx, o); err != nil {
 				conditionMessage = "failed to delete IpAddress CR with restoration hash mismatch"
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -212,7 +214,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 
 	// check if created ip address contains entire description from spec
-	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description)
+	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.String()+" // "+o.Spec.Description)
 	if !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
 	}
@@ -256,7 +258,7 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 		Metadata: &models.NetboxMetadata{
 			Comments:    spec.Comments,
 			Custom:      netboxCustomFields,
-			Description: req.NamespacedName.String() + " // " + spec.Description,
+			Description: req.String() + " // " + spec.Description,
 			Tenant:      spec.Tenant,
 		},
 	}, nil

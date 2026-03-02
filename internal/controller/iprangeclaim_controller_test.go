@@ -47,7 +47,7 @@ var _ = Describe("IpRangeClaim Controller", func() {
 			Expect(ipRange).To(Equal(&netboxv1.IpRange{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      claim.Name,
-					Namespace: claim.ObjectMeta.Namespace,
+					Namespace: claim.Namespace,
 				},
 				Spec: netboxv1.IpRangeSpec{
 					Comments:     "test",

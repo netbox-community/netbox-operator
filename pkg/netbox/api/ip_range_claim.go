@@ -18,6 +18,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -30,14 +31,14 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRange, error) {
+func (c *NetboxCompositeClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRange, error) {
 	customIpRangeSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
 		{
 			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
 			value: hash,
 		},
 	})
-	list, err := r.Ipam.IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, customIpRangeSearch)
+	list, err := c.clientV3.Ipam.IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, customIpRangeSearch)
 	if err != nil {
 		return nil, err
 	}
@@ -60,29 +61,32 @@ func (r *NetboxClient) RestoreExistingIpRangeByHash(hash string) (*models.IpRang
 		StartAddress: *res.StartAddress,
 		EndAddress:   *res.EndAddress,
 		Id:           res.ID,
+		Size:         int32(res.Size),
 	}, nil
 }
 
 // GetAvailableIpRangeByClaim searches an available IpRange in Netbox matching IpRangeClaim requirements
-func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeClaim) (*models.IpRange, error) {
-	_, err := r.GetTenantDetails(ipRangeClaim.Metadata.Tenant)
+func (c *NetboxCompositeClient) GetAvailableIpRangeByClaim(ctx context.Context, ipRangeClaim *models.IpRangeClaim) (*models.IpRange, error) {
+	_, err := c.getTenantDetails(ipRangeClaim.Metadata.Tenant)
 	if err != nil {
 		return nil, err
 	}
 
-	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
-		Prefix:   ipRangeClaim.ParentPrefix,
-		Metadata: ipRangeClaim.Metadata,
-	})
+	responseParentPrefix, err := c.getPrefix(
+		ctx,
+		&models.Prefix{
+			Prefix:   ipRangeClaim.ParentPrefix,
+			Metadata: ipRangeClaim.Metadata,
+		})
 	if err != nil {
 		return nil, err
 	}
-	if len(responseParentPrefix.Payload.Results) == 0 {
+	if len(responseParentPrefix.Results) == 0 {
 		return nil, utils.NetboxNotFoundError("parent prefix")
 	}
 
-	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
-	responseAvailableIPs, err := r.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
+	parentPrefixId := responseParentPrefix.Results[0].Id
+	responseAvailableIPs, err := c.GetAvailableIpAddressesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
 	}
@@ -99,9 +103,9 @@ func (r *NetboxClient) GetAvailableIpRangeByClaim(ipRangeClaim *models.IpRangeCl
 }
 
 // GetAvailableIpsByIpRange returns all available Ips in Netbox matching IpRangeClaim requirements
-func (r *NetboxClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
+func (c *NetboxCompositeClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
 	requestAvailableIPs := ipam.NewIpamIPRangesAvailableIpsListParams().WithID(ipRangeId)
-	responseAvailableIPs, err := r.Ipam.IpamIPRangesAvailableIpsList(requestAvailableIPs, nil)
+	responseAvailableIPs, err := c.clientV3.Ipam.IpamIPRangesAvailableIpsList(requestAvailableIPs, nil)
 	if err != nil {
 		return nil, err
 	}

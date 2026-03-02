@@ -52,9 +52,12 @@ func TestSite_GetSiteDetails(t *testing.T) {
 	}
 
 	mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListOutput, nil)
-	netboxClient := &NetboxClient{Dcim: mockDcim}
+	clientV3 := &NetboxClientV3{Dcim: mockDcim}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := netboxClient.GetSiteDetails(site)
+	actual, err := compositeClient.getSiteDetails(site)
 	assert.NoError(t, err)
 	assert.Equal(t, site, actual.Name)
 	assert.Equal(t, siteOutputId, actual.Id)
@@ -77,9 +80,12 @@ func TestSite_GetEmptyResult(t *testing.T) {
 	}
 
 	mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(emptyListSiteOutput, nil)
-	netboxClient := &NetboxClient{Dcim: mockDcim}
+	clientV3 := &NetboxClientV3{Dcim: mockDcim}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := netboxClient.GetSiteDetails(site)
+	actual, err := compositeClient.getSiteDetails(site)
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "failed to fetch site 'mySite': not found")
 }
@@ -96,9 +102,12 @@ func TestSite_GetError(t *testing.T) {
 	expectedErr := "error getting sites list"
 
 	mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(nil, errors.New(expectedErr))
-	netboxClient := &NetboxClient{Dcim: mockDcim}
+	clientV3 := &NetboxClientV3{Dcim: mockDcim}
+	compositeClient := &NetboxCompositeClient{
+		clientV3: clientV3,
+	}
 
-	actual, err := netboxClient.GetSiteDetails(site)
+	actual, err := compositeClient.getSiteDetails(site)
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "failed to fetch Site details: "+expectedErr)
 }

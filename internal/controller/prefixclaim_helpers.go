@@ -31,7 +31,7 @@ func generatePrefixFromPrefixClaim(claim *netboxv1.PrefixClaim, prefix string, l
 	return &netboxv1.Prefix{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claim.Name,
-			Namespace: claim.ObjectMeta.Namespace,
+			Namespace: claim.Namespace,
 		},
 		Spec: generatePrefixSpec(claim, prefix, logger),
 	}

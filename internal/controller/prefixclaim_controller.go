@@ -47,7 +47,7 @@ const (
 type PrefixClaimReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
-	NetboxClient        *api.NetboxClient
+	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
 	OperatorNamespace   string
 	RestConfig          *rest.Config
@@ -67,12 +67,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	/* 0. check if the matching PrefixClaim object exists */
 	o := &netboxv1.PrefixClaim{}
-	if err := r.Client.Get(ctx, req.NamespacedName, o); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// if being deleted
-	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !o.DeletionTimestamp.IsZero() {
 		// end loop if deletion timestamp is not zero
 		return ctrl.Result{}, nil
 	}
@@ -144,7 +144,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// The existing algorithm for prefix allocation within a ParentPrefix remains unchanged
 
 				// fetch available prefixes from netbox
-				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(&o.Spec)
+				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(ctx, &o.Spec)
 				if err != nil {
 					r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, netboxv1.ConditionPrefixAssignedFalse.Reason, netboxv1.ConditionPrefixAssignedFalse.Message+": "+err.Error())
 					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
@@ -175,12 +175,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	/* 2. check if the matching Prefix object exists */
 	prefix := &netboxv1.Prefix{}
-	prefixName := o.ObjectMeta.Name
+	prefixName := o.Name
 	prefixLookupKey := types.NamespacedName{
 		Name:      prefixName,
 		Namespace: o.Namespace,
 	}
-	if err := r.Client.Get(ctx, prefixLookupKey, prefix); err != nil { // if not nil (likely the Prefix object is not found)
+	if err := r.Get(ctx, prefixLookupKey, prefix); err != nil { // if not nil (likely the Prefix object is not found)
 		/* return error if not a notfound error */
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
@@ -233,6 +233,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 			// get available Prefix under parent prefix in netbox with equal mask length
 			prefixModel, err = r.NetboxClient.GetAvailablePrefixByClaim(
+				ctx,
 				&models.PrefixClaim{
 					ParentPrefix: o.Status.SelectedParentPrefix,
 					PrefixLength: o.Spec.PrefixLength,
@@ -268,7 +269,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		err = r.Client.Create(ctx, prefixResource)
+		err = r.Create(ctx, prefixResource)
 		if err != nil {
 			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
 			return ctrl.Result{}, err
@@ -279,7 +280,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	} else { // Prefix object exists
 		/* 7.b update fields of the Prefix object */
 		logger.V(4).Info("update prefix resource")
-		if err := r.Client.Get(ctx, prefixLookupKey, prefix); err != nil {
+		if err := r.Get(ctx, prefixLookupKey, prefix); err != nil {
 			return ctrl.Result{}, err
 		}
 
