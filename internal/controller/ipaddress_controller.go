@@ -68,6 +68,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	o := &netboxv1.IpAddress{}
 	conditionMessage := ""
+	objectDeleted := false
 
 	err := r.Client.Get(ctx, req.NamespacedName, o)
 	if err != nil {
@@ -75,8 +76,11 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	defer func() {
-		err := r.UpdateConditions(ctx, o, conditionMessage)
-		if err != nil {
+		if objectDeleted {
+			logger.Info("reconcile loop ended, object was deleted")
+			return
+		}
+		if err := r.UpdateConditions(ctx, o, conditionMessage); err != nil {
 			reconcileErr = errors.Join(reconcileErr, err)
 		}
 		logger.Info("reconcile loop ended")
@@ -86,10 +90,11 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !o.ObjectMeta.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
 			if !o.Spec.PreserveInNetbox {
-				err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId)
-				if err != nil {
-					conditionMessage = err.Error()
-					return ctrl.Result{Requeue: true}, nil
+				if o.Status.IpAddressId != 0 {
+					if err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
+						conditionMessage = err.Error()
+						return ctrl.Result{Requeue: true}, nil
+					}
 				}
 			}
 
@@ -99,12 +104,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return ctrl.Result{}, errors.New("failed to remove the finalizer")
 			}
 
-			err = r.Update(ctx, o)
-			if err != nil {
-				o.Status.SyncState = netboxv1.SyncStateFailed
+			if err = r.Update(ctx, o); err != nil {
 				return ctrl.Result{}, err
 			}
-			o.Status.SyncState = netboxv1.SyncStateSucceeded
 		}
 
 		// end loop if deletion timestamp is not zero
@@ -123,16 +125,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// 1. try to lock lease of parent prefix if IpAddressUrl is not set in status
 	// and IpAddress is owned by an IpAddressClaim
 	or := o.ObjectMeta.OwnerReferences
-	var ll *leaselocker.LeaseLocker
-	if len(or) > 0 /* len(nil array) = 0 */ && o.Status.IpAddressUrl == "" {
-		// get ip address claim
+	if len(or) > 0 && o.Status.IpAddressUrl == "" {
+		// get ip address claim owner
 		orLookupKey := types.NamespacedName{
 			Name:      or[0].Name,
 			Namespace: req.Namespace,
 		}
 		ipAddressClaim := &netboxv1.IpAddressClaim{}
-		err = r.Client.Get(ctx, orLookupKey, ipAddressClaim)
-		if err != nil {
+		if err = r.Client.Get(ctx, orLookupKey, ipAddressClaim); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -141,23 +141,20 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			Name:      convertCIDRToLeaseLockName(ipAddressClaim.Spec.ParentPrefix),
 			Namespace: r.OperatorNamespace,
 		}
-		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
+		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.NamespacedName.String())
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		lockCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		// create lock
-		locked := ll.TryLock(lockCtx)
+		locked := ll.TryLock(ctx)
 		if !locked {
 			conditionMessage = fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", ipAddressClaim.Spec.ParentPrefix))
+		defer ll.UnlockWithRetry(ctx)
+		logger.V(4).Info("successfully locked parent prefix", "prefix", ipAddressClaim.Spec.ParentPrefix)
 	}
 
 	// 2. reserve or update ip address in netbox
@@ -178,53 +175,41 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
 			// delete the ip address so it can be recreated by the ip address claim controller
-			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
-			err = r.Client.Delete(ctx, o)
-			if err != nil {
-				conditionMessage = "FailedToDeleteIpAddressCR, failed to delete ipaddress customr resource with restoration hash mismatch"
+			if err = r.Client.Delete(ctx, o); err != nil {
+				conditionMessage = "failed to delete IpAddress CR with restoration hash mismatch"
 				return ctrl.Result{Requeue: true}, nil
 			}
+			objectDeleted = true
 			return ctrl.Result{}, nil
-
 		}
 
 		return ctrl.Result{Requeue: true}, nil
 	}
-	o.Status.SyncState = netboxv1.SyncStateSucceeded
 
-	// 3. unlock lease of parent prefix
-	if ll != nil {
-		ll.UnlockWithRetry(ctx)
-	}
-
-	// 4. update status fields
-	o.Status.IpAddressId = netboxIpAddressModel.ID
-	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
-	err = r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
+	// 3. update annotations
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
 
 	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		logger.Error(err, "failed to update last metadata annotation")
+		logger.Error(err, "failed to generate managed custom fields annotation")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	err = accessor.SetAnnotations(o, annotations)
-	if err != nil {
+	if err = accessor.SetAnnotations(o, annotations); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// update object to store lastIpAddressMetadata annotation
 	if err := r.Update(ctx, o); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// 4. update status fields (set after r.Update to avoid being overwritten by API response)
+	o.Status.SyncState = netboxv1.SyncStateSucceeded
+	o.Status.IpAddressId = netboxIpAddressModel.ID
+	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 
 	// check if created ip address contains entire description from spec
 	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.NamespacedName.String()+" // "+o.Spec.Description)
@@ -232,9 +217,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
 	}
 
-	if o.Status.SyncState == netboxv1.SyncStateSucceeded {
-		logger.V(4).Info(fmt.Sprintf("reserved ip address in netbox, ip: %s", o.Spec.IpAddress))
-	}
+	logger.V(4).Info("reserved ip address in netbox", "ip", o.Spec.IpAddress)
 
 	return ctrl.Result{}, nil
 }
@@ -279,25 +262,29 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 	}, nil
 }
 
-func (r *IpAddressReconciler) UpdateConditions(ctx context.Context, o *netboxv1.IpAddress, msg string) error {
+func (r *IpAddressReconciler) UpdateConditions(ctx context.Context, o *netboxv1.IpAddress, conditionMessage string) error {
+	var additionalMsgs []string
+	if conditionMessage != "" {
+		additionalMsgs = []string{conditionMessage}
+	}
+
 	switch {
 	case !o.DeletionTimestamp.IsZero():
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil, msg)
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil, additionalMsgs...)
 	case o.Status.IpAddressUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, additionalMsgs...)
 	case o.Status.SyncState == netboxv1.SyncStateFailed:
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, msg)
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, additionalMsgs...)
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil, msg)
+			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil, additionalMsgs...)
 	}
 
-	err := r.Status().Update(ctx, o)
-	if err != nil {
-		return err
+	if err := r.Status().Update(ctx, o); err != nil {
+		return client.IgnoreNotFound(err)
 	}
 
 	return nil

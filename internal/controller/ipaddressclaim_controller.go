@@ -89,11 +89,11 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Namespace: o.Namespace,
 	}
 
-	reconcileErr = r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
-	if reconcileErr != nil {
+	err := r.Client.Get(ctx, ipAddressLookupKey, ipAddress)
+	if err != nil {
 		// return error if not a notfound error
-		if !apierrors.IsNotFound(reconcileErr) {
-			return ctrl.Result{}, fmt.Errorf("failed to get IpAddress: %w", reconcileErr)
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to get IpAddress: %w", err)
 		}
 
 		logger.V(4).Info("ipaddress object matching ipaddress claim was not found, creating new ipaddress object")
@@ -108,11 +108,8 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, fmt.Errorf("failed to create lease locker: %w", err)
 		}
 
-		lockCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
 		// 3. try to lock lease for parent prefix
-		locked := ll.TryLock(lockCtx)
+		locked := ll.TryLock(ctx)
 		if !locked {
 			// lock for parent prefix was not available, rescheduling
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix)
@@ -121,7 +118,8 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
+		defer ll.UnlockWithRetry(ctx)
+		logger.V(4).Info("successfully locked parent prefix", "prefix", o.Spec.ParentPrefix)
 
 		// 4. try to reclaim ip address
 		h := generateIpAddressRestorationHash(o)
@@ -143,11 +141,11 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			if err != nil {
 				return ctrl.Result{Requeue: true}, NewDomainError("failed to get available IP address from NetBox: %w", err)
 			}
-			logger.V(4).Info(fmt.Sprintf("ip address is not reserved in netbox, assigned new ip address: %s", ipAddressModel.IpAddress))
+			logger.V(4).Info("ip address is not reserved in netbox, assigned new ip address", "ip", ipAddressModel.IpAddress)
 		} else {
 			// 5.b reassign reserved ip address from netbox
 			// do nothing, ip address restored
-			logger.V(4).Info(fmt.Sprintf("reassign reserved ip address from netbox, ip: %s", ipAddressModel.IpAddress))
+			logger.V(4).Info("reassign reserved ip address from netbox", "ip", ipAddressModel.IpAddress)
 		}
 
 		// 6.a create the IPAddress object
@@ -165,10 +163,6 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	} else {
 		// 6.b update fields of IPAddress object
 		logger.V(4).Info("update ipaddress resource")
-		if err := r.Client.Get(ctx, ipAddressLookupKey, ipAddress); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to get IpAddress for update: %w", err)
-		}
-
 		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress, logger)
 		_, err := ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {
 			// only add the mutable fields here
@@ -228,9 +222,11 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// IpAddress doesn't exist yet
-			reportErr := errors.Join(err, reconcileErr)
-			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reportErr)
-			result = ctrl.Result{Requeue: true}
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reconcileErr)
+			// Preserve original result (e.g. RequeueAfter from lock contention)
+			if !result.Requeue && result.RequeueAfter == 0 {
+				result = ctrl.Result{Requeue: true}
+			}
 			err = nil
 			return
 		}
@@ -243,7 +239,7 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedTrue, corev1.EventTypeNormal, nil)
 	}
 	// Update status based on IpAddress readiness
-	if apismeta.IsStatusConditionTrue(ipAddress.Status.Conditions, "Ready") {
+	if apismeta.IsStatusConditionTrue(ipAddress.Status.Conditions, netboxv1.ConditionIpaddressReadyTrue.Type) {
 		logger.V(4).Info("ipaddress status ready true")
 		claim.Status.IpAddress = ipAddress.Spec.IpAddress
 		claim.Status.IpAddressDotDecimal = strings.Split(ipAddress.Spec.IpAddress, "/")[0]
