@@ -68,23 +68,19 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	o := &netboxv1.IpAddress{}
 	conditionMessage := ""
-	objectDeleted := false
 
 	err := r.Get(ctx, req.NamespacedName, o)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	defer func() {
-		if objectDeleted {
-			logger.Info("reconcile loop ended, object was deleted")
-			return
-		}
+	deferredFunc := func() {
 		if err := r.UpdateConditions(ctx, o, conditionMessage); err != nil {
 			reconcileErr = errors.Join(reconcileErr, err)
 		}
 		logger.Info("reconcile loop ended")
-	}()
+	}
+	defer func() { deferredFunc() }()
 
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
@@ -182,7 +178,11 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				conditionMessage = "failed to delete IpAddress CR with restoration hash mismatch"
 				return ctrl.Result{Requeue: true}, nil
 			}
-			objectDeleted = true
+			// cancel the deferred condition update since the object has been deleted
+			// and no longer needs status updates
+			deferredFunc = func() {
+				logger.Info("reconcile loop ended, object was deleted")
+			}
 			return ctrl.Result{}, nil
 		}
 

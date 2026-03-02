@@ -97,9 +97,6 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
 		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
-		}
 	}
 
 	err = r.Get(ctx, ipRangeLookupKey, ipRange)
@@ -154,9 +151,6 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	if !apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
 		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, nil)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 		logger.Info("reconcile loop finished")
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -166,9 +160,6 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err != nil {
 		logger.Error(err, "failed to generate ip range status")
 		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, err)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 	err = r.Client.Status().Update(ctx, o)
@@ -177,10 +168,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, nil)
-	if err != nil {
-		return ctrl.Result{}, err
 
-	}
 	logger.Info("reconcile loop finished")
 	return ctrl.Result{}, nil
 }
@@ -296,9 +284,6 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 		if int(ipRangeModel.Size) != o.Spec.Size {
 			ll.Unlock()
 			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMismatch, corev1.EventTypeWarning, err)
-			if err != nil {
-				return nil, ctrl.Result{}, err
-			}
 			return nil, ctrl.Result{Requeue: true}, nil
 		}
 		logger.V(4).Info(fmt.Sprintf("reassign reserved ip range from netbox, range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))

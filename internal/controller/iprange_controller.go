@@ -96,9 +96,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
 		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
-		}
 	}
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
@@ -210,9 +207,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	logger.Info("reconcile loop finished")
 
