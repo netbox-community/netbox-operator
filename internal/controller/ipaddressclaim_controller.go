@@ -225,14 +225,14 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 			// IpAddress doesn't exist yet
 			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reconcileErr)
 			// Preserve original result (e.g. RequeueAfter from lock contention)
-			if !result.Requeue && result.RequeueAfter == 0 {
-				result = ctrl.Result{Requeue: true}
+			if result.RequeueAfter == 0 {
+				result = ctrl.Result{RequeueAfter: 1 * time.Second}
 			}
 			err = nil
-			return
+			return result, err
 		}
 		err = fmt.Errorf("failed to get IpAddress for status update: %w", err)
-		return
+		return result, err
 	}
 
 	// IpAddress exists - report successful IP assignment if not already reported
@@ -253,5 +253,5 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
 	}
 
-	return
+	return result, err
 }
