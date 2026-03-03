@@ -74,6 +74,15 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
+	// Register unlock as a variable-based defer so it runs AFTER updateStatus (LIFO order).
+	// UnlockWithRetry can block on retries, so it must not delay the status update.
+	var unlockFunc func()
+	defer func() {
+		if unlockFunc != nil {
+			unlockFunc()
+		}
+	}()
+
 	// Defer status update to ensure it happens regardless of how we exit
 	// This follows Kubernetes controller best practices
 	// The deferred function captures the return values to include error context in status
@@ -118,7 +127,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		defer ll.UnlockWithRetry(ctx)
+		unlockFunc = func() { ll.UnlockWithRetry(ctx) }
 		logger.V(4).Info("successfully locked parent prefix", "prefix", o.Spec.ParentPrefix)
 
 		// 4. try to reclaim ip address

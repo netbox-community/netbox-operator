@@ -74,6 +74,15 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Register unlock as a variable-based defer so it runs AFTER deferredFunc (LIFO order).
+	// UnlockWithRetry can block on retries, so it must not delay the status update.
+	var unlockFunc func()
+	defer func() {
+		if unlockFunc != nil {
+			unlockFunc()
+		}
+	}()
+
 	deferredFunc := func() {
 		if err := r.UpdateConditions(ctx, o, conditionMessage); err != nil {
 			reconcileErr = errors.Join(reconcileErr, err)
@@ -151,7 +160,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		defer ll.UnlockWithRetry(ctx)
+		unlockFunc = func() { ll.UnlockWithRetry(ctx) }
 		logger.V(4).Info("successfully locked parent prefix", "prefix", ipAddressClaim.Spec.ParentPrefix)
 	}
 
