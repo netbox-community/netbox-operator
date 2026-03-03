@@ -118,8 +118,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 
 		// 3. try to lock lease for parent prefix
-		locked := ll.TryLock(ctx)
+		lockCtx, cancelLock := context.WithCancel(ctx)
+		locked := ll.TryLock(lockCtx)
 		if !locked {
+			cancelLock()
 			// lock for parent prefix was not available, rescheduling
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix)
 			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
@@ -127,7 +129,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		unlockFunc = func() { ll.UnlockWithRetry(ctx) }
+		unlockFunc = func() {
+			cancelLock() // stop lease renewal goroutine before unlocking
+			ll.UnlockWithRetry(ctx)
+		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", o.Spec.ParentPrefix)
 
 		// 4. try to reclaim ip address

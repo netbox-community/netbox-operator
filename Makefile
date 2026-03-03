@@ -192,6 +192,7 @@ deploy-kind: docker-build-local manifests kustomize
 	kind load docker-image ${LOCAL_IMG}
 	kind load docker-image ${LOCAL_IMG}  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 	$(KUSTOMIZE) build kind | $(KUBECTL) apply -f -
+	$(KUBECTL) rollout restart deployment/netbox-operator-controller-manager -n netbox-operator-system
 
 .PHONY: undeploy-kind
 undeploy-kind: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.

@@ -130,10 +130,6 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
 			return ctrl.Result{}, err
 		}
-
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
-			nil, fmt.Sprintf(" assigned ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
-
 	} else {
 		// update spec of IpRange object
 		logger.V(4).Info("update iprange resource")
@@ -148,6 +144,10 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Report IpRangeAssigned on every reconcile where the IpRange exists (create or update path)
+	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
+		nil, fmt.Sprintf(" assigned ip range: %s-%s", ipRange.Spec.StartAddress, ipRange.Spec.EndAddress))
 
 	if !apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
 		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, nil)

@@ -274,9 +274,6 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, err)
 			return ctrl.Result{}, err
 		}
-
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedTrue, corev1.EventTypeNormal, nil)
-
 	} else { // Prefix object exists
 		/* 7.b update fields of the Prefix object */
 		logger.V(4).Info("update prefix resource")
@@ -301,6 +298,9 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Report PrefixAssigned on every reconcile where the Prefix exists (create or update path)
+	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixAssignedTrue, corev1.EventTypeNormal, nil)
 
 	logger.V(4).Info("update prefixClaim status")
 	if apismeta.IsStatusConditionTrue(prefix.Status.Conditions, "Ready") {

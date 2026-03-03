@@ -153,14 +153,19 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		locked := ll.TryLock(ctx)
+		lockCtx, cancelLock := context.WithCancel(ctx)
+		locked := ll.TryLock(lockCtx)
 		if !locked {
+			cancelLock()
 			conditionMessage = fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
 		}
-		unlockFunc = func() { ll.UnlockWithRetry(ctx) }
+		unlockFunc = func() {
+			cancelLock() // stop lease renewal goroutine before unlocking
+			ll.UnlockWithRetry(ctx)
+		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", ipAddressClaim.Spec.ParentPrefix)
 	}
 
