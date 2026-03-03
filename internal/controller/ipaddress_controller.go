@@ -74,14 +74,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Register unlock as a variable-based defer so it runs AFTER deferredFunc (LIFO order).
-	// UnlockWithRetry can block on retries, so it must not delay the status update.
-	var unlockFunc func()
-	defer func() {
-		if unlockFunc != nil {
-			unlockFunc()
-		}
-	}()
+	// cancelLock stops the lease renewal goroutine on early returns (lease expires naturally).
+	// Explicit cancelLock()+UnlockWithRetry() runs inline after the critical section.
+	var cancelLock context.CancelFunc
 
 	deferredFunc := func() {
 		if err := r.UpdateConditions(ctx, o, conditionMessage); err != nil {
@@ -153,18 +148,19 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, err
 		}
 
-		lockCtx, cancelLock := context.WithCancel(ctx)
+		var lockCtx context.Context
+		lockCtx, cancelLock = context.WithCancel(ctx)
+		defer func() {
+			if cancelLock != nil {
+				cancelLock() // ensure renewal goroutine stops on any return path
+			}
+		}()
 		locked := ll.TryLock(lockCtx)
 		if !locked {
-			cancelLock()
 			conditionMessage = fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
-		}
-		unlockFunc = func() {
-			cancelLock() // stop lease renewal goroutine before unlocking
-			ll.UnlockWithRetry(ctx)
 		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", ipAddressClaim.Spec.ParentPrefix)
 	}
@@ -203,7 +199,13 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// 3. update annotations
+	// 3. unlock lease of parent prefix — allocation is done, lock no longer needed
+	if ll != nil {
+		cancelLock()
+		ll.UnlockWithRetry(ctx)
+	}
+
+	// 4. update annotations
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}

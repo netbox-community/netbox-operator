@@ -74,15 +74,6 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	// Register unlock as a variable-based defer so it runs AFTER updateStatus (LIFO order).
-	// UnlockWithRetry can block on retries, so it must not delay the status update.
-	var unlockFunc func()
-	defer func() {
-		if unlockFunc != nil {
-			unlockFunc()
-		}
-	}()
-
 	// Defer status update to ensure it happens regardless of how we exit
 	// This follows Kubernetes controller best practices
 	// The deferred function captures the return values to include error context in status
@@ -119,19 +110,15 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		// 3. try to lock lease for parent prefix
 		lockCtx, cancelLock := context.WithCancel(ctx)
+		defer cancelLock() // ensure renewal goroutine stops on any return path
 		locked := ll.TryLock(lockCtx)
 		if !locked {
-			cancelLock()
 			// lock for parent prefix was not available, rescheduling
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix)
 			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
-		}
-		unlockFunc = func() {
-			cancelLock() // stop lease renewal goroutine before unlocking
-			ll.UnlockWithRetry(ctx)
 		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", o.Spec.ParentPrefix)
 
