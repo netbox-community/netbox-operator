@@ -88,28 +88,27 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
-			if !o.Spec.PreserveInNetbox {
-				if o.Status.IpAddressId != 0 {
-					if err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
-						conditionMessage = err.Error()
-						return ctrl.Result{Requeue: true}, nil
-					}
-				}
-			}
+		if !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
+			return ctrl.Result{}, nil
+		}
 
-			logger.V(4).Info("removing the finalizer")
-			removed := controllerutil.RemoveFinalizer(o, IpAddressFinalizerName)
-			if !removed {
-				return ctrl.Result{}, errors.New("failed to remove the finalizer")
-			}
-
-			if err = r.Update(ctx, o); err != nil {
-				return ctrl.Result{}, err
+		if !o.Spec.PreserveInNetbox && o.Status.IpAddressId != 0 {
+			if err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
+				conditionMessage = err.Error()
+				return ctrl.Result{Requeue: true}, nil
 			}
 		}
 
-		// end loop if deletion timestamp is not zero
+		logger.V(4).Info("removing the finalizer")
+		removed := controllerutil.RemoveFinalizer(o, IpAddressFinalizerName)
+		if !removed {
+			return ctrl.Result{}, errors.New("failed to remove the finalizer")
+		}
+
+		if err = r.Update(ctx, o); err != nil {
+			return ctrl.Result{}, err
+		}
+
 		return ctrl.Result{}, nil
 	}
 

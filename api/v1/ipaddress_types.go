@@ -77,7 +77,7 @@ type IpAddressStatus struct {
 	IpAddressUrl string `json:"url,omitempty"`
 
 	// Indicates if Sync with the backend was successful
-	// If connection to the backend failed but the spec did not change it is set to unknmown
+	// If connection to the backend failed but the spec did not change it is set to unknown
 	SyncState SyncState `json:"syncState,omitempty"`
 
 	// Conditions represent the latest available observations of an object's state
