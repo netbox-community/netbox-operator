@@ -213,11 +213,6 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 
 	logger.V(4).Info("updating ipaddressclaim status")
 
-	// Initialize status conditions if this is a new resource
-	if apismeta.FindStatusCondition(claim.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-	}
-
 	// Fetch the latest IpAddress object
 	ipAddress := &netboxv1.IpAddress{}
 	err = r.Client.Get(ctx, lookupKey, ipAddress)
