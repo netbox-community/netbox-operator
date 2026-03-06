@@ -63,7 +63,7 @@ type PrefixReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("reconcile loop started")
@@ -101,10 +101,10 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	// Set ready to false initially
-	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-	}
+	// Defer status update to ensure it happens regardless of how we exit
+	defer func() {
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, reconcileResult, reconcileErr)
+	}()
 
 	// register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
@@ -136,10 +136,9 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if prefixClaim.Status.SelectedParentPrefix == "" {
 			// the parent prefix is not selected
-			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, fmt.Errorf("%s", "the parent prefix is not selected"))
 			return ctrl.Result{
 				Requeue: true,
-			}, nil
+			}, NewDomainError("the parent prefix is not selected")
 		}
 
 		if prefixClaim.Status.SelectedParentPrefix != msgCanNotInferParentPrefix {
@@ -186,22 +185,15 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
-			// if there is a restoration hash mismatch and the PrefixId status field is not set,
-			// delete the prefix so it can be recreated by the prefix claim controller
-			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
-			err = r.Delete(ctx, o)
-			if err != nil {
-				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
-					corev1.EventTypeWarning, err)
-				return ctrl.Result{Requeue: true}, nil
+			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete prefix CR with restoration hash mismatch: %w", deleteErr)
 			}
+			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
 		}
 
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalse,
-			corev1.EventTypeWarning, err)
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("failed to reserve or update prefix in netbox: %w", err)
 	}
 
 	/* 3. unlock lease of parent prefix */
@@ -212,10 +204,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	/* 4. update status fields */
 	o.Status.PrefixId = int64(netboxPrefixModel.Id)
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
-	err = r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
@@ -223,8 +211,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	annotations[PXManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		logger.Error(err, "failed to update last metadata annotation")
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
 	err = accessor.SetAnnotations(o, annotations)
@@ -239,15 +226,13 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// check if the created prefix contains the entire description from spec
 	if netboxPrefixModel.Description == nil {
-		logger.Error(fmt.Errorf("prefix in netbox is missing a description"), "")
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("prefix in netbox is missing a description")
 	}
 	if _, found := strings.CutPrefix(*netboxPrefixModel.Description, req.String()+" // "+o.Spec.Description); !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
 	}
 
 	logger.V(4).Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", o.Spec.Prefix))
-	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, nil)
 
 	logger.Info("reconcile loop finished")
 
@@ -259,6 +244,44 @@ func (r *PrefixReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&netboxv1.Prefix{}).
 		Complete(r)
+}
+
+// updateStatus updates the Prefix status conditions based on the current state of the object.
+// This function is called as a deferred function in Reconcile to ensure status is always updated.
+func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+	logger := log.FromContext(ctx)
+
+	// Set default return values
+	result = reconcileRes
+	err = reconcileErr
+
+	// Ensure status update is always called, even on early returns
+	defer func() {
+		updateErr := r.Status().Update(ctx, o)
+		if updateErr != nil {
+			updateErr = client.IgnoreNotFound(updateErr)
+			if updateErr != nil {
+				err = errors.Join(err, updateErr)
+			}
+		}
+		result, err = IgnoreDomainError(result, err)
+	}()
+
+	logger.V(4).Info("updating prefix status")
+
+	switch {
+	case !o.DeletionTimestamp.IsZero():
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeNormal, reconcileErr)
+	case o.Status.PrefixUrl == "":
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	default:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, nil)
+	}
+
+	return result, err
 }
 
 func generateNetboxPrefixModelFromPrefixSpec(spec *netboxv1.PrefixSpec, req ctrl.Request, lastPrefixMetadata string) (*models.Prefix, error) {

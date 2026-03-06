@@ -63,7 +63,7 @@ type IpRangeReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("reconcile loop started")
@@ -93,10 +93,10 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
 	}
 
-	// Set ready to false initially
-	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-	}
+	// Defer status update to ensure it happens regardless of how we exit
+	defer func() {
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, reconcileResult, reconcileErr)
+	}()
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox {
@@ -152,24 +152,15 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
-			// if there is a restoration hash mismatch and the IpRangeId status field is not set,
-			// delete the ip range so it can be recreated by the ip range claim controller
-			// this will only affect resources that are created by a claim controller (and have a restoration hash custom field
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
-			err = r.Delete(ctx, o)
-			if err != nil {
-				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-					corev1.EventTypeWarning, err)
-				return ctrl.Result{Requeue: true}, nil
+			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete IpRange CR with restoration hash mismatch: %w", deleteErr)
 			}
+			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
 		}
 
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-			corev1.EventTypeWarning, err, fmt.Sprintf("range: %s-%s", o.Spec.StartAddress, o.Spec.EndAddress))
-
-		// The decision to not return the error message (just logging it) is to not trigger printing the stacktrace on api errors
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("failed to reserve or update ip range in netbox: %w", err)
 	}
 
 	// 3. unlock lease of parent prefix
@@ -180,10 +171,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// 4. update status fields
 	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
 	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
-	err = r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
@@ -191,8 +178,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	annotations[IPRManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		logger.Error(err, "failed to update last metadata annotation")
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
 	err = accessor.SetAnnotations(o, annotations)
@@ -206,8 +192,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
-
 	logger.Info("reconcile loop finished")
 
 	return ctrl.Result{}, nil
@@ -218,6 +202,44 @@ func (r *IpRangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&netboxv1.IpRange{}).
 		Complete(r)
+}
+
+// updateStatus updates the IpRange status conditions based on the current state of the object.
+// This function is called as a deferred function in Reconcile to ensure status is always updated.
+func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRange, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+	logger := log.FromContext(ctx)
+
+	// Set default return values
+	result = reconcileRes
+	err = reconcileErr
+
+	// Ensure status update is always called, even on early returns
+	defer func() {
+		updateErr := r.Status().Update(ctx, o)
+		if updateErr != nil {
+			updateErr = client.IgnoreNotFound(updateErr)
+			if updateErr != nil {
+				err = errors.Join(err, updateErr)
+			}
+		}
+		result, err = IgnoreDomainError(result, err)
+	}()
+
+	logger.V(4).Info("updating iprange status")
+
+	switch {
+	case !o.DeletionTimestamp.IsZero():
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeNormal, reconcileErr)
+	case o.Status.IpRangeUrl == "":
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	default:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
+	}
+
+	return result, err
 }
 
 func (r *IpRangeReconciler) generateNetboxIpRangeModelFromIpRangeSpec(o *netboxv1.IpRange, req ctrl.Request, lastIpRangeMetadata string) (*models.IpRange, error) {

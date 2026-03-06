@@ -109,14 +109,12 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 }
 
 type EventStatusRecorder struct {
-	client client.Client
-	rec    record.EventRecorder
+	rec record.EventRecorder
 }
 
-func NewEventStatusRecorder(client client.Client, rec record.EventRecorder) *EventStatusRecorder {
+func NewEventStatusRecorder(rec record.EventRecorder) *EventStatusRecorder {
 	return &EventStatusRecorder{
-		client: client,
-		rec:    rec,
+		rec: rec,
 	}
 }
 
@@ -135,13 +133,6 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 	if conditionChanged {
 		esr.rec.Event(o, eventType, condition.Reason, condition.Message)
 		logger.Info("Condition "+condition.Type+" changed to "+string(condition.Status), "Reason", condition.Reason, "Message", condition.Message)
-
-		// TODO: Remove this Status().Update() call once all controllers use deferred status updates.
-		// Currently needed because iprange, iprangeclaim, prefix, and prefixclaim controllers
-		// rely on Report() to persist status conditions.
-		if err := esr.client.Status().Update(ctx, o); err != nil {
-			logger.Error(err, "failed to update status after condition change")
-		}
 	}
 }
 

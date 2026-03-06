@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -57,7 +58,7 @@ type IpRangeClaimReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("reconcile loop started")
@@ -94,10 +95,10 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Set ready to false initially
-	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-	}
+	// Defer status update to ensure it happens regardless of how we exit
+	defer func() {
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, ipRangeLookupKey, reconcileResult, reconcileErr)
+	}()
 
 	err = r.Get(ctx, ipRangeLookupKey, ipRange)
 	if err != nil {
@@ -127,8 +128,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		err = r.Create(ctx, ipRangeResource)
 		if err != nil {
-			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
-			return ctrl.Result{}, err
+			return ctrl.Result{}, NewDomainError("failed to create IpRange: %w", err)
 		}
 	} else {
 		// update spec of IpRange object
@@ -145,30 +145,6 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
-	// Report IpRangeAssigned on every reconcile where the IpRange exists (create or update path)
-	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
-		nil, fmt.Sprintf(" assigned ip range: %s-%s", ipRange.Spec.StartAddress, ipRange.Spec.EndAddress))
-
-	if !apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, "Ready") {
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, nil)
-		logger.Info("reconcile loop finished")
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	logger.V(4).Info("iprange status ready true")
-	o.Status, err = r.generateIpRangeClaimStatus(o, ipRange)
-	if err != nil {
-		logger.Error(err, "failed to generate ip range status")
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, err)
-		return ctrl.Result{Requeue: true}, nil
-	}
-	err = r.Client.Status().Update(ctx, o)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, nil)
-
 	logger.Info("reconcile loop finished")
 	return ctrl.Result{}, nil
 }
@@ -179,6 +155,67 @@ func (r *IpRangeClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&netboxv1.IpRangeClaim{}).
 		Owns(&netboxv1.IpRange{}).
 		Complete(r)
+}
+
+// updateStatus updates the IpRangeClaim status based on the current state of the owned IpRange.
+// This function is called as a deferred function in Reconcile to ensure status is always updated.
+func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpRangeClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+	logger := log.FromContext(ctx)
+
+	// Set default return values
+	result = reconcileRes
+	err = reconcileErr
+
+	// Ensure status update is always called, even on early returns
+	defer func() {
+		updateErr := r.Status().Update(ctx, claim)
+		if updateErr != nil {
+			err = errors.Join(err, updateErr)
+		}
+		result, err = IgnoreDomainError(result, err)
+	}()
+
+	logger.V(4).Info("updating iprangeclaim status")
+
+	// Fetch the latest IpRange object
+	ipRange := &netboxv1.IpRange{}
+	err = r.Client.Get(ctx, lookupKey, ipRange)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// IpRange doesn't exist yet
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, reconcileErr)
+			// Preserve original result (e.g. RequeueAfter from lock contention)
+			if result.IsZero() {
+				result = ctrl.Result{RequeueAfter: 1 * time.Second}
+			}
+			err = nil
+			return result, err
+		}
+		err = fmt.Errorf("failed to get IpRange for status update: %w", err)
+		return result, err
+	}
+
+	// IpRange exists - report successful assignment if not already reported
+	if apismeta.FindStatusCondition(claim.Status.Conditions, netboxv1.ConditionIpRangeAssignedTrue.Type) == nil || apismeta.IsStatusConditionFalse(claim.Status.Conditions, netboxv1.ConditionIpRangeAssignedTrue.Type) {
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeAssignedTrue, corev1.EventTypeNormal,
+			nil, fmt.Sprintf(" assigned ip range: %s-%s", ipRange.Spec.StartAddress, ipRange.Spec.EndAddress))
+	}
+	// Update status based on IpRange readiness
+	if apismeta.IsStatusConditionTrue(ipRange.Status.Conditions, netboxv1.ConditionIpRangeReadyTrue.Type) {
+		logger.V(4).Info("iprange status ready true")
+		var genErr error
+		claim.Status, genErr = r.generateIpRangeClaimStatus(claim, ipRange)
+		if genErr != nil {
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeClaimReadyFalseStatusGen, corev1.EventTypeWarning, genErr)
+			return result, err
+		}
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeClaimReadyTrue, corev1.EventTypeNormal, nil)
+	} else {
+		logger.V(4).Info("iprange status ready false")
+		r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	}
+
+	return result, err
 }
 
 func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *netboxv1.IpRangeClaim) (*leaselocker.LeaseLocker, ctrl.Result, error) {
@@ -257,8 +294,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 	h := generateIpRangeRestorationHash(o)
 	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
-		return nil, ctrl.Result{Requeue: true}, nil
+		return nil, ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing ip range by hash: %w", err)
 	}
 
 	if ipRangeModel == nil {
@@ -275,16 +311,14 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 			},
 		)
 		if err != nil {
-			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, err)
-			return nil, ctrl.Result{Requeue: true}, nil
+			return nil, ctrl.Result{Requeue: true}, NewDomainError("failed to get available ip range: %w", err)
 		}
 		logger.V(4).Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	} else {
 		// reassign reserved ip range from netbox
 		if int(ipRangeModel.Size) != o.Spec.Size {
 			ll.Unlock()
-			r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeAssignedFalseSizeMismatch, corev1.EventTypeWarning, err)
-			return nil, ctrl.Result{Requeue: true}, nil
+			return nil, ctrl.Result{Requeue: true}, NewDomainError("ip range size mismatch: expected %d, got %d", o.Spec.Size, ipRangeModel.Size)
 		}
 		logger.V(4).Info(fmt.Sprintf("reassign reserved ip range from netbox, range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	}
