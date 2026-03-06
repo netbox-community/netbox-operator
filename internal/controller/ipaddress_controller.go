@@ -67,7 +67,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger.Info("reconcile loop started")
 
 	o := &netboxv1.IpAddress{}
-	conditionMessage := ""
 
 	err := r.Get(ctx, req.NamespacedName, o)
 	if err != nil {
@@ -78,13 +77,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Explicit cancelLock()+UnlockWithRetry() runs inline after the critical section.
 	var cancelLock context.CancelFunc
 
-	deferredFunc := func() {
-		if err := r.UpdateConditions(ctx, o, conditionMessage); err != nil {
-			reconcileErr = errors.Join(reconcileErr, err)
-		}
-		logger.Info("reconcile loop ended")
-	}
-	defer func() { deferredFunc() }()
+	// Defer status update to ensure it happens regardless of how we exit
+	// This follows Kubernetes controller best practices
+	// The deferred function captures the return values to include error context in status
+	defer func() {
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, reconcileResult, reconcileErr)
+	}()
 
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
@@ -94,8 +92,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		if !o.Spec.PreserveInNetbox && o.Status.IpAddressId != 0 {
 			if err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
-				conditionMessage = err.Error()
-				return ctrl.Result{Requeue: true}, nil
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip address from netbox: %w", err)
 			}
 		}
 
@@ -156,7 +153,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}()
 		locked := ll.TryLock(lockCtx)
 		if !locked {
-			conditionMessage = fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
+			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", ipAddressClaim.Spec.ParentPrefix)
+			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, nil
@@ -183,19 +181,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
 			// delete the ip address so it can be recreated by the ip address claim controller
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
-			if err = r.Delete(ctx, o); err != nil {
-				conditionMessage = "failed to delete IpAddress CR with restoration hash mismatch"
-				return ctrl.Result{Requeue: true}, nil
+			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete IpAddress CR with restoration hash mismatch: %w", deleteErr)
 			}
-			// cancel the deferred condition update since the object has been deleted
-			// and no longer needs status updates
-			deferredFunc = func() {
-				logger.Info("reconcile loop ended, object was deleted")
-			}
+			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("failed to reserve or update ip address in netbox: %w", err)
 	}
 
 	// 3. unlock lease of parent prefix — allocation is done, lock no longer needed
@@ -211,8 +204,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		logger.Error(err, "failed to generate managed custom fields annotation")
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
 	if err = accessor.SetAnnotations(o, annotations); err != nil {
@@ -236,6 +228,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	logger.V(4).Info("reserved ip address in netbox", "ip", o.Spec.IpAddress)
 
+	logger.Info("reconcile loop finished")
 	return ctrl.Result{}, nil
 }
 
@@ -244,6 +237,48 @@ func (r *IpAddressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&netboxv1.IpAddress{}).
 		Complete(r)
+}
+
+// updateStatus updates the IpAddress status conditions based on the current state of the object.
+// This function is called as a deferred function in Reconcile to ensure status is always updated.
+// It captures any reconcile errors to include them in the status condition message.
+func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAddress, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+	logger := log.FromContext(ctx)
+
+	// Set default return values
+	result = reconcileRes
+	err = reconcileErr
+
+	// Ensure status update is always called, even on early returns
+	defer func() {
+		updateErr := r.Status().Update(ctx, o)
+		if updateErr != nil {
+			updateErr = client.IgnoreNotFound(updateErr)
+			if updateErr != nil {
+				err = errors.Join(err, updateErr)
+			}
+		}
+		result, err = IgnoreDomainError(result, err)
+	}()
+
+	logger.V(4).Info("updating ipaddress status")
+
+	switch {
+	case !o.DeletionTimestamp.IsZero():
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, reconcileErr)
+	case o.Status.IpAddressUrl == "":
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	case o.Status.SyncState == netboxv1.SyncStateFailed:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	default:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil)
+	}
+
+	return result, err
 }
 
 func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec, req ctrl.Request, lastIpAddressMetadata string) (*models.IPAddress, error) {
@@ -277,32 +312,4 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 			Tenant:      spec.Tenant,
 		},
 	}, nil
-}
-
-func (r *IpAddressReconciler) UpdateConditions(ctx context.Context, o *netboxv1.IpAddress, conditionMessage string) error {
-	var additionalMsgs []string
-	if conditionMessage != "" {
-		additionalMsgs = []string{conditionMessage}
-	}
-
-	switch {
-	case !o.DeletionTimestamp.IsZero():
-		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeNormal, nil, additionalMsgs...)
-	case o.Status.IpAddressUrl == "":
-		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, additionalMsgs...)
-	case o.Status.SyncState == netboxv1.SyncStateFailed:
-		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, nil, additionalMsgs...)
-	default:
-		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil, additionalMsgs...)
-	}
-
-	if err := r.Status().Update(ctx, o); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
-	return nil
 }
