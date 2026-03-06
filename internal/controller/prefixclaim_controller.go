@@ -261,9 +261,6 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	} else { // Prefix object exists
 		/* 7.b update fields of the Prefix object */
 		logger.V(4).Info("update prefix resource")
-		if err := r.Get(ctx, prefixLookupKey, prefix); err != nil {
-			return ctrl.Result{}, err
-		}
 
 		updatedPrefixSpec := generatePrefixSpec(o, prefix.Spec.Prefix, logger)
 		if _, err = ctrl.CreateOrUpdate(ctx, r.Client, prefix, func() error {

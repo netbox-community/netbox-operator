@@ -86,8 +86,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeClaimFinalizerName)
 		}
 
-		err = r.Delete(ctx, ipRange)
-		if !apierrors.IsNotFound(err) {
+		if err = r.Delete(ctx, ipRange); err != nil && !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
 
@@ -109,7 +108,10 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		logger.V(4).Info("iprange object matching iprange claim was not found, creating new iprange object")
 
-		ipRangeModel, res, err := r.restoreOrAssignIpRangeAndSetCondition(ctx, o)
+		ipRangeModel, cancelLock, res, err := r.restoreOrAssignIpRangeAndSetCondition(ctx, o)
+		if cancelLock != nil {
+			defer cancelLock()
+		}
 		if ipRangeModel == nil {
 			return res, err
 		}
@@ -218,7 +220,7 @@ func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netbox
 	return result, err
 }
 
-func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *netboxv1.IpRangeClaim) (*leaselocker.LeaseLocker, ctrl.Result, error) {
+func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *netboxv1.IpRangeClaim) (*leaselocker.LeaseLocker, context.CancelFunc, ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	leaseLockerNSN := types.NamespacedName{
@@ -233,24 +235,24 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 
 	ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, claimNSN.String())
 	if err != nil {
-		return nil, ctrl.Result{}, err
+		return nil, nil, ctrl.Result{}, err
 	}
 
 	lockCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	// try to lock lease for parent prefix
 	locked := ll.TryLock(lockCtx)
 	if !locked {
+		cancel()
 		// lock for parent prefix was not available, rescheduling
 		logger.Info(fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix))
 		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
 			o.Spec.ParentPrefix)
-		return nil, ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, nil
 	}
 	logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 
-	return ll, ctrl.Result{}, nil
+	return ll, cancel, ctrl.Result{}, nil
 }
 
 func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) (netboxv1.IpRangeClaimStatus, error) {
@@ -283,18 +285,18 @@ func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(o *netboxv1.IpRangeC
 	}, nil
 }
 
-func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx context.Context, o *netboxv1.IpRangeClaim) (*models.IpRange, ctrl.Result, error) {
+func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx context.Context, o *netboxv1.IpRangeClaim) (*models.IpRange, context.CancelFunc, ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	ll, res, err := r.tryLockOnParentPrefix(ctx, o)
-	if err != nil {
-		return nil, res, err
+	ll, cancelLock, res, err := r.tryLockOnParentPrefix(ctx, o)
+	if err != nil || ll == nil {
+		return nil, nil, res, err
 	}
 
 	h := generateIpRangeRestorationHash(o)
 	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		return nil, ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing ip range by hash: %w", err)
+		return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing ip range by hash: %w", err)
 	}
 
 	if ipRangeModel == nil {
@@ -311,16 +313,15 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 			},
 		)
 		if err != nil {
-			return nil, ctrl.Result{Requeue: true}, NewDomainError("failed to get available ip range: %w", err)
+			return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("failed to get available ip range: %w", err)
 		}
 		logger.V(4).Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	} else {
 		// reassign reserved ip range from netbox
 		if int(ipRangeModel.Size) != o.Spec.Size {
-			ll.Unlock()
-			return nil, ctrl.Result{Requeue: true}, NewDomainError("ip range size mismatch: expected %d, got %d", o.Spec.Size, ipRangeModel.Size)
+			return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("ip range size mismatch: expected %d, got %d", o.Spec.Size, ipRangeModel.Size)
 		}
 		logger.V(4).Info(fmt.Sprintf("reassign reserved ip range from netbox, range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	}
-	return ipRangeModel, ctrl.Result{}, nil
+	return ipRangeModel, cancelLock, ctrl.Result{}, nil
 }

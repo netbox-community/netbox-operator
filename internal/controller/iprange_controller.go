@@ -110,6 +110,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	// and IpRange is owned by an IpRangeClaim
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
+	var cancelLock context.CancelFunc
 	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 
 		leaseLockerNSN, owner, parentPrefix, err := r.getLeaseLockerNSNandOwner(ctx, o)
@@ -122,8 +123,13 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			return ctrl.Result{}, err
 		}
 
-		lockCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+		var lockCtx context.Context
+		lockCtx, cancelLock = context.WithCancel(ctx)
+		defer func() {
+			if cancelLock != nil {
+				cancelLock()
+			}
+		}()
 
 		// create lock
 		locked := ll.TryLock(lockCtx)
@@ -165,6 +171,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// 3. unlock lease of parent prefix
 	if ll != nil {
+		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 

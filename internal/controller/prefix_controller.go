@@ -122,6 +122,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	*/
 	ownerReferences := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
+	var cancelLock context.CancelFunc
 	var err error
 	if len(ownerReferences) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 		// get prefixClaim
@@ -154,8 +155,13 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 				return ctrl.Result{}, err
 			}
 
-			lockCtx, cancel := context.WithCancel(ctx)
-			defer cancel()
+			var lockCtx context.Context
+			lockCtx, cancelLock = context.WithCancel(ctx)
+			defer func() {
+				if cancelLock != nil {
+					cancelLock()
+				}
+			}()
 
 			// create lock
 			locked := ll.TryLock(lockCtx)
@@ -166,7 +172,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 					RequeueAfter: 2 * time.Second,
 				}, nil
 			}
-			logger.V(4).Info("successfully locked parent prefix %s", prefixClaim.Status.SelectedParentPrefix)
+			logger.V(4).Info("successfully locked parent prefix", "prefix", prefixClaim.Status.SelectedParentPrefix)
 		}
 	}
 
@@ -198,6 +204,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	/* 3. unlock lease of parent prefix */
 	if ll != nil {
+		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 
@@ -219,7 +226,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, err
 	}
 
-	// update object to store lastIpAddressMetadata annotation
+	// update object to store lastPrefixMetadata annotation
 	if err := r.Update(ctx, o); err != nil {
 		return ctrl.Result{}, err
 	}
