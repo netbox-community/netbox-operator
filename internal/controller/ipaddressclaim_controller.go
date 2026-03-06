@@ -221,7 +221,7 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 			// IpAddress doesn't exist yet
 			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpAssignedFalse, corev1.EventTypeWarning, reconcileErr)
 			// Preserve original result (e.g. RequeueAfter from lock contention)
-			if result.RequeueAfter == 0 {
+			if result.IsZero() {
 				result = ctrl.Result{RequeueAfter: 1 * time.Second}
 			}
 			err = nil
