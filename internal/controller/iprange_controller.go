@@ -83,11 +83,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				}
 				err := r.NetboxClient.DeleteIpRange(ctx, int32(o.Status.IpRangeId))
 				if err != nil {
-					err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
+					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
 						corev1.EventTypeWarning, err)
-					if err != nil {
-						return ctrl.Result{}, err
-					}
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
@@ -98,10 +95,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Set ready to false initially
 	if apismeta.FindStatusCondition(o.Status.Conditions, netboxv1.ConditionReadyFalseNewResource.Type) == nil {
-		err := r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to initialise Ready condition: %w, ", err)
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionReadyFalseNewResource, corev1.EventTypeNormal, nil)
 	}
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
@@ -164,19 +158,15 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
 			err = r.Delete(ctx, o)
 			if err != nil {
-				if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-					corev1.EventTypeWarning, err); err != nil {
-					return ctrl.Result{}, err
-				}
+				r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
+					corev1.EventTypeWarning, err)
 				return ctrl.Result{Requeue: true}, nil
 			}
 			return ctrl.Result{}, nil
 		}
 
-		if err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
-			corev1.EventTypeWarning, err, fmt.Sprintf("range: %s-%s", o.Spec.StartAddress, o.Spec.EndAddress)); err != nil {
-			return ctrl.Result{}, err
-		}
+		r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalse,
+			corev1.EventTypeWarning, err, fmt.Sprintf("range: %s-%s", o.Spec.StartAddress, o.Spec.EndAddress))
 
 		// The decision to not return the error message (just logging it) is to not trigger printing the stacktrace on api errors
 		return ctrl.Result{Requeue: true}, nil
@@ -216,10 +206,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	err = r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
 
 	logger.Info("reconcile loop finished")
 

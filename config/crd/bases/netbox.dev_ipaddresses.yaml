@@ -181,6 +181,11 @@ spec:
                 description: The ID of the resource in NetBox
                 format: int64
                 type: integer
+              syncState:
+                description: |-
+                  Indicates if Sync with the backend was successful
+                  If connection to the backend failed but the spec did not change it is set to unknown
+                type: string
               url:
                 description: |-
                   The URL to the resource in the NetBox UI. Note that the base of this
