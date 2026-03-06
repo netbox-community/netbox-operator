@@ -23,7 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -78,7 +77,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// This follows Kubernetes controller best practices
 	// The deferred function captures the return values to include error context in status
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, req.NamespacedName, reconcileResult, reconcileErr, logger)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, req.NamespacedName, reconcileResult, reconcileErr)
 	}()
 
 	// 1. check if matching IpAddress object already exists
@@ -197,7 +196,9 @@ func (r *IpAddressClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Status updates the IpAddressClaim status based on the current state of the owned IpAddress.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
 // It captures any reconcile errors to include them in the status condition message.
-func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpAddressClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error, logger logr.Logger) (result ctrl.Result, err error) {
+func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpAddressClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+	logger := log.FromContext(ctx)
+
 	// Set default return values
 	result = reconcileRes
 	err = reconcileErr
