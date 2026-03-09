@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,6 +69,15 @@ func IgnoreDomainError(reconcileRes ctrl.Result, err error) (ctrl.Result, error)
 func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
 }
+
+// lockAcquireTimeout limits how long TryLock can block waiting for a lease.
+// The leaselocker's default LeaseDuration is 60s, meaning TryLock would block
+// for up to 61s on a contested or stale lease. This timeout limits the blocking
+// to prevent a single failing claim from starving the entire controller's work queue.
+// On success, even if the timeout fires after the critical section starts,
+// the lease remains valid for the remaining LeaseDuration (~50s) — the critical
+// section is still protected.
+const lockAcquireTimeout = 10 * time.Second
 
 func generateManagedCustomFieldsAnnotation(customFields map[string]string) (string, error) {
 	if customFields == nil {

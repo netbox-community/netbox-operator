@@ -170,6 +170,11 @@ func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netbox
 
 	// Ensure status update is always called, even on early returns
 	defer func() {
+		if apierrors.IsConflict(err) {
+			// Object was modified concurrently — skip status update, will retry on requeue
+			result, err = IgnoreDomainError(result, err)
+			return
+		}
 		updateErr := r.Status().Update(ctx, claim)
 		if updateErr != nil {
 			err = errors.Join(err, updateErr)
@@ -238,7 +243,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 		return nil, nil, ctrl.Result{}, err
 	}
 
-	lockCtx, cancel := context.WithCancel(ctx)
+	lockCtx, cancel := context.WithTimeout(ctx, lockAcquireTimeout)
 
 	// try to lock lease for parent prefix
 	locked := ll.TryLock(lockCtx)
@@ -248,7 +253,7 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 		logger.Info(fmt.Sprintf("failed to lock parent prefix %s", o.Spec.ParentPrefix))
 		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", "failed to lock parent prefix %s",
 			o.Spec.ParentPrefix)
-		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, nil
+		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, NewDomainError("failed to lock parent prefix %s", o.Spec.ParentPrefix)
 	}
 	logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 

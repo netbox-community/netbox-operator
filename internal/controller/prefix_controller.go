@@ -30,6 +30,7 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -156,7 +157,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 			}
 
 			var lockCtx context.Context
-			lockCtx, cancelLock = context.WithCancel(ctx)
+			lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
 			defer func() {
 				if cancelLock != nil {
 					cancelLock()
@@ -170,7 +171,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 				r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 				return ctrl.Result{
 					RequeueAfter: 2 * time.Second,
-				}, nil
+					}, NewDomainError("%s", errorMsg)
 			}
 			logger.V(4).Info("successfully locked parent prefix", "prefix", prefixClaim.Status.SelectedParentPrefix)
 		}
@@ -208,10 +209,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		ll.UnlockWithRetry(ctx)
 	}
 
-	/* 4. update status fields */
-	o.Status.PrefixId = int64(netboxPrefixModel.Id)
-	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
-
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
@@ -230,6 +227,10 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	if err := r.Update(ctx, o); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// update status fields (set after r.Update to avoid being overwritten by API response)
+	o.Status.PrefixId = int64(netboxPrefixModel.Id)
+	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
 
 	// check if the created prefix contains the entire description from spec
 	if netboxPrefixModel.Description == nil {
@@ -264,6 +265,11 @@ func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix,
 
 	// Ensure status update is always called, even on early returns
 	defer func() {
+		if apierrors.IsConflict(err) {
+			// Object was modified concurrently — skip status update, will retry on requeue
+			result, err = IgnoreDomainError(result, err)
+			return
+		}
 		updateErr := r.Status().Update(ctx, o)
 		if updateErr != nil {
 			updateErr = client.IgnoreNotFound(updateErr)

@@ -108,7 +108,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 
 		// 3. try to lock lease for parent prefix
-		lockCtx, cancelLock := context.WithCancel(ctx)
+		lockCtx, cancelLock := context.WithTimeout(ctx, lockAcquireTimeout)
 		defer cancelLock() // ensure renewal goroutine stops on any return path
 		locked := ll.TryLock(lockCtx)
 		if !locked {
@@ -117,7 +117,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
-			}, nil
+			}, NewDomainError("%s", errorMsg)
 		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", o.Spec.ParentPrefix)
 
@@ -205,6 +205,11 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 
 	// Ensure status update is always called, even on early returns
 	defer func() {
+		if apierrors.IsConflict(err) {
+			// Object was modified concurrently — skip status update, will retry on requeue
+			result, err = IgnoreDomainError(result, err)
+			return
+		}
 		updateErr := r.Status().Update(ctx, claim)
 		if updateErr != nil {
 			err = errors.Join(err, updateErr)

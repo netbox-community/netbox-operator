@@ -33,6 +33,7 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -124,7 +125,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		}
 
 		var lockCtx context.Context
-		lockCtx, cancelLock = context.WithCancel(ctx)
+		lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
 		defer func() {
 			if cancelLock != nil {
 				cancelLock()
@@ -138,7 +139,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
-			}, nil
+			}, NewDomainError("%s", errorMsg)
 		}
 		logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", parentPrefix))
 	}
@@ -175,10 +176,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. update status fields
-	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
-	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
-
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
@@ -198,6 +195,10 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// update status fields (set after r.Update to avoid being overwritten by API response)
+	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
+	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
 
 	logger.Info("reconcile loop finished")
 
@@ -222,6 +223,11 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 
 	// Ensure status update is always called, even on early returns
 	defer func() {
+		if apierrors.IsConflict(err) {
+			// Object was modified concurrently — skip status update, will retry on requeue
+			result, err = IgnoreDomainError(result, err)
+			return
+		}
 		updateErr := r.Status().Update(ctx, o)
 		if updateErr != nil {
 			updateErr = client.IgnoreNotFound(updateErr)

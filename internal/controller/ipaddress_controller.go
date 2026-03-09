@@ -32,6 +32,7 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -145,7 +146,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		var lockCtx context.Context
-		lockCtx, cancelLock = context.WithCancel(ctx)
+		lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
 		defer func() {
 			if cancelLock != nil {
 				cancelLock() // ensure renewal goroutine stops on any return path
@@ -157,7 +158,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
-			}, nil
+			}, NewDomainError("%s", errorMsg)
 		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", ipAddressClaim.Spec.ParentPrefix)
 	}
@@ -251,6 +252,11 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 
 	// Ensure status update is always called, even on early returns
 	defer func() {
+		if apierrors.IsConflict(err) {
+			// Object was modified concurrently — skip status update, will retry on requeue
+			result, err = IgnoreDomainError(result, err)
+			return
+		}
 		updateErr := r.Status().Update(ctx, o)
 		if updateErr != nil {
 			updateErr = client.IgnoreNotFound(updateErr)

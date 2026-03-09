@@ -191,7 +191,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				return ctrl.Result{}, err
 			}
 
-			lockCtx, cancel := context.WithCancel(ctx)
+			lockCtx, cancel := context.WithTimeout(ctx, lockAcquireTimeout)
 			defer cancel()
 
 			/* 4. try to lock the lease for the parent prefix */
@@ -202,7 +202,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 				return ctrl.Result{
 					RequeueAfter: 2 * time.Second,
-				}, nil
+					}, NewDomainError("%s", errorMsg)
 			}
 			logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Status.SelectedParentPrefix))
 		} // else {
@@ -304,6 +304,11 @@ func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv
 
 	// Ensure status update is always called, even on early returns
 	defer func() {
+		if apierrors.IsConflict(err) {
+			// Object was modified concurrently — skip status update, will retry on requeue
+			result, err = IgnoreDomainError(result, err)
+			return
+		}
 		updateErr := r.Status().Update(ctx, claim)
 		if updateErr != nil {
 			err = errors.Join(err, updateErr)
