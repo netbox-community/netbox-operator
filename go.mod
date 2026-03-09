@@ -5,6 +5,8 @@ module github.com/netbox-community/netbox-operator
 
 go 1.25.0
 
+toolchain go1.26.1
+
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/go-openapi/runtime v0.29.3
