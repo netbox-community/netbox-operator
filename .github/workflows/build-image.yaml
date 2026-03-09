@@ -26,12 +26,12 @@ jobs:
         with:
           fetch-tags: true
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Login to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -49,7 +49,7 @@ jobs:
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
       - name: Generate docker image tag
         id: meta
-        uses: docker/metadata-action@v5.10.0
+        uses: docker/metadata-action@v6.0.0
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -61,7 +61,7 @@ jobs:
             type=semver,pattern={{raw}},enable=${{ steps.tag_info.outputs.latest_tag != 'no-tag' }},value=${{ steps.tag_info.outputs.latest_tag }}
             type=semver,pattern={{version}},enable=${{ steps.tag_info.outputs.latest_tag != 'no-tag' }},value=${{ steps.tag_info.outputs.latest_tag }}
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           platforms: linux/amd64,linux/arm64
           # we push only if the pipeline is run against the commits on main branch or a tag
