@@ -255,26 +255,6 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 	result = reconcileRes
 	err = reconcileErr
 
-	// Ensure status update is always called, even on early returns
-	defer func() {
-		if apierrors.IsConflict(err) {
-			// Object was modified concurrently — skip status update, will retry on requeue
-			result, err = IgnoreDomainError(result, err)
-			return
-		}
-		// Align resource version so the patch targets the latest revision
-		statusBase.SetResourceVersion(o.GetResourceVersion())
-		statusPatch := client.MergeFrom(statusBase)
-		patchErr := r.Status().Patch(ctx, o, statusPatch)
-		if patchErr != nil {
-			patchErr = client.IgnoreNotFound(patchErr)
-			if patchErr != nil {
-				err = errors.Join(err, patchErr)
-			}
-		}
-		result, err = IgnoreDomainError(result, err)
-	}()
-
 	logger.V(4).Info("updating ipaddress status")
 
 	switch {
@@ -292,7 +272,23 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil)
 	}
 
-	return result, err
+	if apierrors.IsConflict(err) {
+		// Object was modified concurrently — skip status update, will retry on requeue
+		return IgnoreDomainError(result, err)
+	}
+
+	// Align resource version so the patch targets the latest revision
+	statusBase.SetResourceVersion(o.GetResourceVersion())
+	statusPatch := client.MergeFrom(statusBase)
+	patchErr := r.Status().Patch(ctx, o, statusPatch)
+	if patchErr != nil {
+		patchErr = client.IgnoreNotFound(patchErr)
+		if patchErr != nil {
+			err = errors.Join(err, patchErr)
+		}
+	}
+
+	return IgnoreDomainError(result, err)
 }
 
 func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec, req ctrl.Request, lastIpAddressMetadata string) (*models.IPAddress, error) {
