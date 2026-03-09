@@ -28,8 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.0
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
-        with:
-          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
@@ -42,8 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.0
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
-        with:
-          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
@@ -56,8 +52,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.0
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
-        with:
-          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
@@ -70,8 +64,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5.0.0
       - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
-        with:
-          go-version-file: "go.mod"
       - name: Import environment variables from file
         run: |
           cat ".github/env" >> "$GITHUB_ENV"
