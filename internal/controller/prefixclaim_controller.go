@@ -71,6 +71,10 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Snapshot for status patch — taken before any status mutations so the
+	// merge-patch diff captures every change (SelectedParentPrefix, conditions, etc.).
+	statusBase := o.DeepCopy()
+
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
 		// end loop if deletion timestamp is not zero
@@ -79,7 +83,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, req.NamespacedName, reconcileResult, reconcileErr)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, req.NamespacedName, reconcileResult, reconcileErr)
 	}()
 
 	/* 1. compute and assign the parent prefix if required */
@@ -202,7 +206,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 				return ctrl.Result{
 					RequeueAfter: 2 * time.Second,
-					}, NewDomainError("%s", errorMsg)
+				}, NewDomainError("%s", errorMsg)
 			}
 			logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Status.SelectedParentPrefix))
 		} // else {
@@ -295,7 +299,7 @@ func (r *PrefixClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // updateStatus updates the PrefixClaim status based on the current state of the owned Prefix.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
-func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.PrefixClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.PrefixClaim, statusBase *netboxv1.PrefixClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
 	// Set default return values
@@ -309,9 +313,12 @@ func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		updateErr := r.Status().Update(ctx, claim)
-		if updateErr != nil {
-			err = errors.Join(err, updateErr)
+		// Align resource version so the patch targets the latest revision
+		statusBase.SetResourceVersion(claim.GetResourceVersion())
+		statusPatch := client.MergeFrom(statusBase)
+		patchErr := r.Status().Patch(ctx, claim, statusPatch)
+		if patchErr != nil {
+			err = errors.Join(err, patchErr)
 		}
 		result, err = IgnoreDomainError(result, err)
 	}()

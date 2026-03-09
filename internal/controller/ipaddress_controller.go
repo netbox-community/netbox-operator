@@ -74,15 +74,17 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Snapshot for status patch — taken before any status mutations so the
+	// merge-patch diff captures every change (SyncState, IpAddressId, conditions, etc.).
+	statusBase := o.DeepCopy()
+
 	// cancelLock stops the lease renewal goroutine on early returns (lease expires naturally).
 	// Explicit cancelLock()+UnlockWithRetry() runs inline after the critical section.
 	var cancelLock context.CancelFunc
 
 	// Defer status update to ensure it happens regardless of how we exit
-	// This follows Kubernetes controller best practices
-	// The deferred function captures the return values to include error context in status
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, reconcileResult, reconcileErr)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
 	}()
 
 	// if being deleted
@@ -208,15 +210,18 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
+	// snapshot before annotation mutation for merge-patch
+	patch := client.MergeFrom(o.DeepCopy())
+
 	if err = accessor.SetAnnotations(o, annotations); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if err := r.Update(ctx, o); err != nil {
+	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// 4. update status fields (set after r.Update to avoid being overwritten by API response)
+	// 4. update status fields (set after r.Patch to avoid being overwritten by API response)
 	o.Status.SyncState = netboxv1.SyncStateSucceeded
 	o.Status.IpAddressId = netboxIpAddressModel.ID
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
@@ -243,7 +248,7 @@ func (r *IpAddressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // updateStatus updates the IpAddress status conditions based on the current state of the object.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
 // It captures any reconcile errors to include them in the status condition message.
-func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAddress, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAddress, statusBase *netboxv1.IpAddress, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
 	// Set default return values
@@ -257,11 +262,14 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		updateErr := r.Status().Update(ctx, o)
-		if updateErr != nil {
-			updateErr = client.IgnoreNotFound(updateErr)
-			if updateErr != nil {
-				err = errors.Join(err, updateErr)
+		// Align resource version so the patch targets the latest revision
+		statusBase.SetResourceVersion(o.GetResourceVersion())
+		statusPatch := client.MergeFrom(statusBase)
+		patchErr := r.Status().Patch(ctx, o, statusPatch)
+		if patchErr != nil {
+			patchErr = client.IgnoreNotFound(patchErr)
+			if patchErr != nil {
+				err = errors.Join(err, patchErr)
 			}
 		}
 		result, err = IgnoreDomainError(result, err)

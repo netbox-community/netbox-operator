@@ -69,6 +69,10 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Snapshot for status patch — taken before any status mutations so the
+	// merge-patch diff captures every change.
+	statusBase := o.DeepCopy()
+
 	ipRange := &netboxv1.IpRange{}
 	ipRangeName := o.Name
 	ipRangeLookupKey := types.NamespacedName{
@@ -96,7 +100,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, ipRangeLookupKey, reconcileResult, reconcileErr)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, ipRangeLookupKey, reconcileResult, reconcileErr)
 	}()
 
 	err = r.Get(ctx, ipRangeLookupKey, ipRange)
@@ -161,7 +165,7 @@ func (r *IpRangeClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // updateStatus updates the IpRangeClaim status based on the current state of the owned IpRange.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
-func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpRangeClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpRangeClaim, statusBase *netboxv1.IpRangeClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
 	// Set default return values
@@ -175,9 +179,12 @@ func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netbox
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		updateErr := r.Status().Update(ctx, claim)
-		if updateErr != nil {
-			err = errors.Join(err, updateErr)
+		// Align resource version so the patch targets the latest revision
+		statusBase.SetResourceVersion(claim.GetResourceVersion())
+		statusPatch := client.MergeFrom(statusBase)
+		patchErr := r.Status().Patch(ctx, claim, statusPatch)
+		if patchErr != nil {
+			err = errors.Join(err, patchErr)
 		}
 		result, err = IgnoreDomainError(result, err)
 	}()

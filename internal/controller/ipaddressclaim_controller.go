@@ -67,6 +67,10 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Snapshot for status patch — taken before any status mutations so the
+	// merge-patch diff captures every change.
+	statusBase := o.DeepCopy()
+
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
 		// end loop if deletion timestamp is not zero
@@ -74,10 +78,9 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// Defer status update to ensure it happens regardless of how we exit
-	// This follows Kubernetes controller best practices
 	// The deferred function captures the return values to include error context in status
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, req.NamespacedName, reconcileResult, reconcileErr)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, req.NamespacedName, reconcileResult, reconcileErr)
 	}()
 
 	// 1. check if matching IpAddress object already exists
@@ -196,7 +199,7 @@ func (r *IpAddressClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Status updates the IpAddressClaim status based on the current state of the owned IpAddress.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
 // It captures any reconcile errors to include them in the status condition message.
-func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpAddressClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.IpAddressClaim, statusBase *netboxv1.IpAddressClaim, lookupKey types.NamespacedName, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
 	// Set default return values
@@ -210,9 +213,12 @@ func (r *IpAddressClaimReconciler) updateStatus(ctx context.Context, claim *netb
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		updateErr := r.Status().Update(ctx, claim)
-		if updateErr != nil {
-			err = errors.Join(err, updateErr)
+		// Align resource version so the patch targets the latest revision
+		statusBase.SetResourceVersion(claim.GetResourceVersion())
+		statusPatch := client.MergeFrom(statusBase)
+		patchErr := r.Status().Patch(ctx, claim, statusPatch)
+		if patchErr != nil {
+			err = errors.Join(err, patchErr)
 		}
 		result, err = IgnoreDomainError(result, err)
 	}()

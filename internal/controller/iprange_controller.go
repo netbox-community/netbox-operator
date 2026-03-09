@@ -75,6 +75,10 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Snapshot for status patch — taken before any status mutations so the
+	// merge-patch diff captures every change (IpRangeId, conditions, etc.).
+	statusBase := o.DeepCopy()
+
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
@@ -96,7 +100,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, reconcileResult, reconcileErr)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
 	}()
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
@@ -185,18 +189,21 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
+	// snapshot before annotation mutation for merge-patch
+	patch := client.MergeFrom(o.DeepCopy())
+
 	err = accessor.SetAnnotations(o, annotations)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// update object to store lastIpRangeMetadata annotation
-	err = r.Update(ctx, o)
+	// patch object to store lastIpRangeMetadata annotation
+	err = r.Patch(ctx, o, patch)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// update status fields (set after r.Update to avoid being overwritten by API response)
+	// update status fields (set after r.Patch to avoid being overwritten by API response)
 	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
 	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
 
@@ -214,7 +221,7 @@ func (r *IpRangeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // updateStatus updates the IpRange status conditions based on the current state of the object.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
-func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRange, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRange, statusBase *netboxv1.IpRange, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
 	// Set default return values
@@ -228,11 +235,14 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		updateErr := r.Status().Update(ctx, o)
-		if updateErr != nil {
-			updateErr = client.IgnoreNotFound(updateErr)
-			if updateErr != nil {
-				err = errors.Join(err, updateErr)
+		// Align resource version so the patch targets the latest revision
+		statusBase.SetResourceVersion(o.GetResourceVersion())
+		statusPatch := client.MergeFrom(statusBase)
+		patchErr := r.Status().Patch(ctx, o, statusPatch)
+		if patchErr != nil {
+			patchErr = client.IgnoreNotFound(patchErr)
+			if patchErr != nil {
+				err = errors.Join(err, patchErr)
 			}
 		}
 		result, err = IgnoreDomainError(result, err)

@@ -75,6 +75,10 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Snapshot for status patch — taken before any status mutations so the
+	// merge-patch diff captures every change (PrefixId, conditions, etc.).
+	statusBase := o.DeepCopy()
+
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
 		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
@@ -104,7 +108,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, reconcileResult, reconcileErr)
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
 	}()
 
 	// register finalizer if not yet registered
@@ -171,7 +175,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 				r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 				return ctrl.Result{
 					RequeueAfter: 2 * time.Second,
-					}, NewDomainError("%s", errorMsg)
+				}, NewDomainError("%s", errorMsg)
 			}
 			logger.V(4).Info("successfully locked parent prefix", "prefix", prefixClaim.Status.SelectedParentPrefix)
 		}
@@ -218,17 +222,20 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
+	// snapshot before annotation mutation for merge-patch
+	patch := client.MergeFrom(o.DeepCopy())
+
 	err = accessor.SetAnnotations(o, annotations)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// update object to store lastPrefixMetadata annotation
-	if err := r.Update(ctx, o); err != nil {
+	// patch object to store lastPrefixMetadata annotation
+	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// update status fields (set after r.Update to avoid being overwritten by API response)
+	// update status fields (set after r.Patch to avoid being overwritten by API response)
 	o.Status.PrefixId = int64(netboxPrefixModel.Id)
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
 
@@ -256,7 +263,7 @@ func (r *PrefixReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // updateStatus updates the Prefix status conditions based on the current state of the object.
 // This function is called as a deferred function in Reconcile to ensure status is always updated.
-func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
+func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix, statusBase *netboxv1.Prefix, reconcileRes ctrl.Result, reconcileErr error) (result ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
 	// Set default return values
@@ -270,11 +277,14 @@ func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix,
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		updateErr := r.Status().Update(ctx, o)
-		if updateErr != nil {
-			updateErr = client.IgnoreNotFound(updateErr)
-			if updateErr != nil {
-				err = errors.Join(err, updateErr)
+		// Align resource version so the patch targets the latest revision
+		statusBase.SetResourceVersion(o.GetResourceVersion())
+		statusPatch := client.MergeFrom(statusBase)
+		patchErr := r.Status().Patch(ctx, o, statusPatch)
+		if patchErr != nil {
+			patchErr = client.IgnoreNotFound(patchErr)
+			if patchErr != nil {
+				err = errors.Join(err, patchErr)
 			}
 		}
 		result, err = IgnoreDomainError(result, err)
