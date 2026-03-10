@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.43] - 2026-03-10
+
+<!-- Release notes generated using configuration in .github/release.yml at 9181edead730a9a5a00972d923ef41fdbd39319f -->
+
+## What's Changed
+### Contributions
+* replace getavailable ips method by @bruelea in https://github.com/netbox-community/netbox-operator/pull/532
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.42...v0.2.43
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.43)
+
+---
+
 ## [v0.2.42] - 2026-03-09
 
 <!-- Release notes generated using configuration in .github/release.yml at f63a44119a1e44136ec42a4fb9dc4710808f8feb -->
