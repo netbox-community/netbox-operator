@@ -20,6 +20,8 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"net"
+	"strings"
 
 	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -84,4 +86,75 @@ type IpRangeClaimRestorationData struct {
 	ParentPrefix string
 	Tenant       string
 	Size         string
+}
+
+// ipsInRange returns all IP addresses from startAddr to endAddr (inclusive).
+// Supports both IPv4 and IPv6 addresses.
+func ipsInRange(startAddr, endAddr string) ([]string, error) {
+	startIP := net.ParseIP(startAddr)
+	if startIP == nil {
+		return nil, fmt.Errorf("failed to parse start address: %s", startAddr)
+	}
+	endIP := net.ParseIP(endAddr)
+	if endIP == nil {
+		return nil, fmt.Errorf("failed to parse end address: %s", endAddr)
+	}
+
+	// Determine IP version from the original string notation rather than
+	// relying on To4(), which would treat IPv4-mapped IPv6 addresses
+	// (e.g. "::ffff:192.168.1.1") as IPv4.
+	startIsIPv6 := strings.Contains(startAddr, ":")
+	endIsIPv6 := strings.Contains(endAddr, ":")
+
+	if startIsIPv6 != endIsIPv6 {
+		return nil, fmt.Errorf("start and end addresses must be of the same IP version")
+	}
+
+	if !startIsIPv6 {
+		startIP = startIP.To4()
+		endIP = endIP.To4()
+		if startIP == nil || endIP == nil {
+			return nil, fmt.Errorf("failed to normalize IPv4 addresses")
+		}
+	} else {
+		startIP = startIP.To16()
+		endIP = endIP.To16()
+	}
+
+	if ipGreaterThan(startIP, endIP) {
+		return nil, fmt.Errorf("start address %s is greater than end address %s", startAddr, endAddr)
+	}
+
+	var ips []string
+	for ip := copyIP(startIP); !ipGreaterThan(ip, endIP); incrementIP(ip) {
+		ips = append(ips, ip.String())
+	}
+	return ips, nil
+}
+
+func copyIP(ip net.IP) net.IP {
+	dup := make(net.IP, len(ip))
+	copy(dup, ip)
+	return dup
+}
+
+func incrementIP(ip net.IP) {
+	for i := len(ip) - 1; i >= 0; i-- {
+		ip[i]++
+		if ip[i] != 0 {
+			break
+		}
+	}
+}
+
+func ipGreaterThan(a, b net.IP) bool {
+	for i := range a {
+		if a[i] < b[i] {
+			return false
+		}
+		if a[i] > b[i] {
+			return true
+		}
+	}
+	return false
 }

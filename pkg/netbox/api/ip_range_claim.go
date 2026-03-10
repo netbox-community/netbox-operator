@@ -102,16 +102,6 @@ func (c *NetboxCompositeClient) GetAvailableIpRangeByClaim(ctx context.Context, 
 	}, nil
 }
 
-// GetAvailableIpsByIpRange returns all available Ips in Netbox matching IpRangeClaim requirements
-func (c *NetboxCompositeClient) GetAvailableIpAddressesByIpRange(ipRangeId int64) (*ipam.IpamIPRangesAvailableIpsListOK, error) {
-	requestAvailableIPs := ipam.NewIpamIPRangesAvailableIpsListParams().WithID(ipRangeId)
-	responseAvailableIPs, err := c.clientV3.Ipam.IpamIPRangesAvailableIpsList(requestAvailableIPs, nil)
-	if err != nil {
-		return nil, err
-	}
-	return responseAvailableIPs, nil
-}
-
 func searchAvailableIpRange(availableIps *ipam.IpamPrefixesAvailableIpsListOK, requiredSize int, family int64) (string, string, error) {
 	// this function receives a list of available IPs it chan have IPv4 or IPv6 IPs
 	// it will search for the first available range of IPs with the required size
