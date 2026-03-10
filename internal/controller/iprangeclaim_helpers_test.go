@@ -18,6 +18,7 @@ package controller
 
 import (
 	"testing"
+	"time"
 )
 
 func TestIpsInRange_SingleIPv4(t *testing.T) {
@@ -125,6 +126,13 @@ func TestIpsInRange_ErrorInvalidStartAddress(t *testing.T) {
 	}
 }
 
+func TestIpsInRange_MixedIPFamilies(t *testing.T) {
+	_, err := ipsInRange("192.168.1.1", "::ffff:c0a8:102")
+	if err == nil {
+		t.Fatal("expected error for mixed ip families, got nil")
+	}
+}
+
 func TestIpsInRange_ErrorInvalidEndAddress(t *testing.T) {
 	_, err := ipsInRange("10.0.0.1", "not-an-ip")
 	if err == nil {
@@ -167,5 +175,64 @@ func TestIpsInRange_EmptyStrings(t *testing.T) {
 	_, err := ipsInRange("", "")
 	if err == nil {
 		t.Fatal("expected error for empty strings, got nil")
+	}
+}
+
+func TestIpsInRange_IPv4MaxAddressOverflow(t *testing.T) {
+	// When the end address is the maximum IPv4 address, incrementIP overflows
+	// to 0.0.0.0, causing an infinite loop. This test guards against that.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ips, err := ipsInRange("255.255.255.254", "255.255.255.255")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
+		expected := []string{"255.255.255.254", "255.255.255.255"}
+		if len(ips) != len(expected) {
+			t.Errorf("expected %d IPs, got %d", len(expected), len(ips))
+			return
+		}
+		for i, ip := range ips {
+			if ip != expected[i] {
+				t.Errorf("index %d: expected %s, got %s", i, expected[i], ip)
+			}
+		}
+	}()
+	select {
+	case <-done:
+		// success
+	case <-time.After(3 * time.Second):
+		t.Fatal("ipsInRange did not return within 3 seconds — likely infinite loop due to overflow at max IPv4 address")
+	}
+}
+func TestIpsInRange_IPv6MaxAddressOverflow(t *testing.T) {
+	// When the end address is the maximum IPv4 address, incrementIP overflows
+	// to 0.0.0.0, causing an infinite loop. This test guards against that.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ips, err := ipsInRange("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			return
+		}
+		expected := []string{"ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"}
+		if len(ips) != len(expected) {
+			t.Errorf("expected %d IPs, got %d", len(expected), len(ips))
+			return
+		}
+		for i, ip := range ips {
+			if ip != expected[i] {
+				t.Errorf("index %d: expected %s, got %s", i, expected[i], ip)
+			}
+		}
+	}()
+	select {
+	case <-done:
+		// success
+	case <-time.After(3 * time.Second):
+		t.Fatal("ipsInRange did not return within 3 seconds — likely infinite loop due to overflow at max IPv4 address")
 	}
 }
