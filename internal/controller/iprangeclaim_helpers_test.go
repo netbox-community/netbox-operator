@@ -208,8 +208,8 @@ func TestIpsInRange_IPv4MaxAddressOverflow(t *testing.T) {
 	}
 }
 func TestIpsInRange_IPv6MaxAddressOverflow(t *testing.T) {
-	// When the end address is the maximum IPv4 address, incrementIP overflows
-	// to 0.0.0.0, causing an infinite loop. This test guards against that.
+	// When the end address is the maximum IPv6 address, incrementIP overflows
+	// to ::, causing an infinite loop. This test guards against that.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
