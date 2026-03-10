@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
+	"net/netip"
 
 	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -84,4 +85,34 @@ type IpRangeClaimRestorationData struct {
 	ParentPrefix string
 	Tenant       string
 	Size         string
+}
+
+// ipsInRange returns all IP addresses from startAddr to endAddr (inclusive).
+// Supports both IPv4 and IPv6 addresses.
+func ipsInRange(startAddr, endAddr string) ([]string, error) {
+	startIP, err := netip.ParseAddr(startAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse start address: %s", startAddr)
+	}
+	endIP, err := netip.ParseAddr(endAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse end address: %s", endAddr)
+	}
+
+	if startIP.Is6() != endIP.Is6() {
+		return nil, fmt.Errorf("start and end addresses must be of the same IP version")
+	}
+
+	if endIP.Less(startIP) {
+		return nil, fmt.Errorf("start address %s is greater than end address %s", startAddr, endAddr)
+	}
+
+	var ips []string
+	for ip := startIP; ; ip = ip.Next() {
+		ips = append(ips, ip.String())
+		if ip == endIP {
+			break
+		}
+	}
+	return ips, nil
 }
