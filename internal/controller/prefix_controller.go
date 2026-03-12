@@ -211,6 +211,12 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		ll.UnlockWithRetry(ctx)
 	}
 
+	// 4. if there is no change then no need to update
+	if netboxPrefixModel == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update annotation
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}

@@ -64,7 +64,40 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		return c.createIpRange(ctx, desiredIpRange)
 	}
 
-	ipRangeToUpdate := responseIpRangeList.Results[0]
+	ipRangeToUpdate := &responseIpRangeList.Results[0]
+
+	needsUpdate := utils.NeedsUpdate(
+		ipRangeToUpdate,
+		desiredIpRange,
+		func(ir *v4client.IPRange) string {
+			return *ir.Description
+		},
+		func(wir *v4client.WritableIPRangeRequest) string {
+			return *wir.Description
+		},
+		func(ir *v4client.IPRange) string {
+			return *ir.Comments
+		},
+		func(wir *v4client.WritableIPRangeRequest) string {
+			return *wir.Comments
+		},
+		func(ir *v4client.IPRange) string {
+			return string(*ir.Status.Value)
+		},
+		func(wir *v4client.WritableIPRangeRequest) string {
+			return string(*wir.Status)
+		},
+		func(ir *v4client.IPRange) interface{} {
+			return ir.CustomFields
+		},
+		func(wir *v4client.WritableIPRangeRequest) interface{} {
+			return wir.CustomFields
+		},
+	)
+
+	if !needsUpdate {
+		return nil, nil
+	}
 
 	// if the desired ip address has a restoration hash
 	// check that the ip address to update has the same restoration hash

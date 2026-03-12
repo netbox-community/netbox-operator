@@ -199,7 +199,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. update annotations
+	// 4. if there is no change then no need to update
+	if netboxIpAddressModel == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update annotations
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
