@@ -191,7 +191,7 @@ func (c *NetboxCompositeClient) customFieldsExistsOrErr(customfieldFilterEntries
 	for _, entry := range customfieldFilterEntries {
 		existingCustomField, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams().WithName(&entry.key), nil)
 		if err != nil {
-			return fmt.Errorf("faild to validate customfield existance, err: %w", err)
+			return fmt.Errorf("failed to validate customfield existence, err: %w", err)
 		}
 		if len(existingCustomField.Payload.Results) != 1 {
 			return fmt.Errorf("custom field %s not found", entry.key)
