@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -155,7 +154,7 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 
 	err := c.customFieldsExistsOrErr(parentPrefixSelectorCustomFields)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid parent prefix selector, %w", err)
 	}
 
 	conditions := newQueryFilterOperation(fieldEntries, parentPrefixSelectorCustomFields)
@@ -189,36 +188,14 @@ func (c *NetboxCompositeClient) customFieldsExistsOrErr(customfieldFilterEntries
 		return nil
 	}
 
-	responseGetCustomFieldsList, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
-	if err != nil {
-		return err
-	}
-
-	existingCustomFields := responseGetCustomFieldsList.Payload.Results
-	if len(existingCustomFields) == 0 {
-		return fmt.Errorf("netbox custom fields list is nil or empty")
-	}
-
-	customFieldNames := make([]string, len(existingCustomFields))
-	for i, field := range existingCustomFields {
-		if field.Name == nil {
-			return fmt.Errorf("netbox custom field name is nil")
-		}
-		customFieldNames[i] = *field.Name
-	}
-
-	missingCustomFields := make([]string, 0)
 	for _, entry := range customfieldFilterEntries {
-		if !slices.Contains(customFieldNames, entry.key) {
-			missingCustomFields = append(missingCustomFields, entry.key)
+		existingCustomField, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams().WithName(&entry.key), nil)
+		if err != nil {
+			return fmt.Errorf("faild to validate customfield existance, err: %w", err)
 		}
-	}
-
-	if len(missingCustomFields) > 0 {
-		return fmt.Errorf(
-			"invalid parentPrefixSelector, netbox custom fields %s do not exist",
-			strings.Join(missingCustomFields, ", "),
-		)
+		if len(existingCustomField.Payload.Results) != 1 {
+			return fmt.Errorf("custom field %s not found", entry.key)
+		}
 	}
 
 	return nil
