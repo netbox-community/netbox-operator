@@ -61,6 +61,39 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
 
+	needsUpdate := utils.NeedsUpdate(
+		ipToUpdate,
+		desiredIPAddress,
+		func(ip *netboxModels.IPAddress) string {
+			return ip.Description
+		},
+		func(wip *netboxModels.WritableIPAddress) string {
+			return wip.Description
+		},
+		func(ip *netboxModels.IPAddress) string {
+			return ip.Comments
+		},
+		func(wip *netboxModels.WritableIPAddress) string {
+			return wip.Comments
+		},
+		func(ip *netboxModels.IPAddress) string {
+			return *ip.Status.Value
+		},
+		func(wip *netboxModels.WritableIPAddress) string {
+			return wip.Status
+		},
+		func(ip *netboxModels.IPAddress) interface{} {
+			return ip.CustomFields
+		},
+		func(wip *netboxModels.WritableIPAddress) interface{} {
+			return wip.CustomFields
+		},
+	)
+
+	if !needsUpdate {
+		return nil, nil
+	}
+
 	// if the desired ip address has a restoration hash
 	// check that the ip address to update has the same restoration hash
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName

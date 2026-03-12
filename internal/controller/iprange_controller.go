@@ -179,6 +179,12 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		ll.UnlockWithRetry(ctx)
 	}
 
+	// 4. if there is no change then no need to update
+	if netboxIpRangeModel == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update annotation
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
