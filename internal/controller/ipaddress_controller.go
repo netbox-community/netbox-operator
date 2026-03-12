@@ -205,7 +205,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. update status fields
+	// 4. if there is no change then no need to update
+	if netboxIpAddressModel == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update status fields
 	o.Status.IpAddressId = netboxIpAddressModel.ID
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 	err = r.Client.Status().Update(ctx, o)

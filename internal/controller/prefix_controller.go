@@ -224,7 +224,12 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		ll.UnlockWithRetry(ctx)
 	}
 
-	/* 4. update status fields */
+	// 4. if there is no change then no need to update
+	if netboxPrefixModel == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update status fields
 	o.Status.PrefixId = int64(netboxPrefixModel.Id)
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
 	err = r.Client.Status().Update(ctx, o)

@@ -187,7 +187,12 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. update status fields
+	// 4. if there is no change then no need to update
+	if netboxIpRangeModel == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update status fields
 	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
 	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
 	err = r.Client.Status().Update(ctx, o)
