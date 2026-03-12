@@ -19,20 +19,65 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// DomainError wraps an error that should update status conditions.
+// Use NewStatusError to create errors that should be reflected in status.
+type DomainError struct {
+	err error
+}
+
+func (e *DomainError) Error() string {
+	return e.err.Error()
+}
+
+func (e *DomainError) Unwrap() error {
+	return e.err
+}
+
+// NewDomainError creates an error that will update the resource status condition.
+// Use this for errors that should be visible in kubectl describe output.
+func NewDomainError(format string, args ...interface{}) error {
+	return &DomainError{err: fmt.Errorf(format, args...)}
+}
+
+// IgnoreDomainError checks if an error should update status conditions.
+func IgnoreDomainError(reconcileRes ctrl.Result, err error) (ctrl.Result, error) {
+	if err == nil {
+		return reconcileRes, nil
+	}
+
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return ctrl.Result{}, err
+}
+
 func convertCIDRToLeaseLockName(cidr string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(cidr, "/", "-"), ":", "-")
 }
+
+// lockAcquireTimeout limits how long TryLock can block waiting for a lease.
+// The leaselocker's default LeaseDuration is 60s, meaning TryLock would block
+// for up to 61s on a contested or stale lease. This timeout limits the blocking
+// to prevent a single failing claim from starving the entire controller's work queue.
+// On success, even if the timeout fires after the critical section starts,
+// the lease remains valid for the remaining LeaseDuration (~50s) — the critical
+// section is still protected.
+const lockAcquireTimeout = 10 * time.Second
 
 func generateManagedCustomFieldsAnnotation(customFields map[string]string) (string, error) {
 	if customFields == nil {
@@ -74,18 +119,16 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 }
 
 type EventStatusRecorder struct {
-	client client.Client
-	rec    record.EventRecorder
+	rec record.EventRecorder
 }
 
-func NewEventStatusRecorder(client client.Client, rec record.EventRecorder) *EventStatusRecorder {
+func NewEventStatusRecorder(rec record.EventRecorder) *EventStatusRecorder {
 	return &EventStatusRecorder{
-		client: client,
-		rec:    rec,
+		rec: rec,
 	}
 }
 
-func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditions, condition metav1.Condition, eventType string, errExt error, additionalMessages ...string) error {
+func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditions, condition metav1.Condition, eventType string, errExt error, additionalMessages ...string) {
 	logger := log.FromContext(ctx)
 
 	if errExt != nil {
@@ -100,14 +143,7 @@ func (esr *EventStatusRecorder) Report(ctx context.Context, o ObjectWithConditio
 	if conditionChanged {
 		esr.rec.Event(o, eventType, condition.Reason, condition.Message)
 		logger.Info("Condition "+condition.Type+" changed to "+string(condition.Status), "Reason", condition.Reason, "Message", condition.Message)
-
-		err := esr.client.Status().Update(ctx, o)
-		if err != nil {
-			return err
-		}
 	}
-
-	return nil
 }
 
 func (esr *EventStatusRecorder) Recorder() record.EventRecorder {
