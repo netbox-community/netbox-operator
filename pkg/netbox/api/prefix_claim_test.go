@@ -1306,6 +1306,7 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 
 	// get prefix to check if it's a candidate
 	expectedCustomFieldName := "environment"
+	expectedCustomFieldParams := extras.NewExtrasCustomFieldsListParams().WithName(&expectedCustomFieldName)
 	expectedCustomFields := &extras.ExtrasCustomFieldsListOK{
 		Payload: &extras.ExtrasCustomFieldsListOKBody{
 			Results: []*netboxModels.CustomField{
@@ -1365,7 +1366,7 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelector(t *testing.T) {
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(gomock.Any(), nil).Return(expectedTenant, nil).AnyTimes()
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
-	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
+	mockExtras.EXPECT().ExtrasCustomFieldsList(expectedCustomFieldParams, nil).Return(expectedCustomFields, nil).AnyTimes()
 
 	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
@@ -1444,6 +1445,9 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 
 	// get prefix to check if it's a candidate
 	expectedCustomFieldName := "environment"
+	expectedCustomFieldParams := extras.NewExtrasCustomFieldsListParams().WithName(&expectedCustomFieldName)
+	nonExistingCustomFieldName := "non-existing"
+	nonExistingCustomFieldParams := extras.NewExtrasCustomFieldsListParams().WithName(&nonExistingCustomFieldName)
 	expectedCustomFields := &extras.ExtrasCustomFieldsListOK{
 		Payload: &extras.ExtrasCustomFieldsListOKBody{
 			Results: []*netboxModels.CustomField{
@@ -1453,10 +1457,16 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 			},
 		},
 	}
+	nonExistingCustomFields := &extras.ExtrasCustomFieldsListOK{
+		Payload: &extras.ExtrasCustomFieldsListOKBody{
+			Results: []*netboxModels.CustomField{},
+		},
+	}
 
 	mockTenancy.EXPECT().TenancyTenantsList(gomock.Any(), nil).Return(expectedTenant, nil).AnyTimes()
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
-	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
+	mockExtras.EXPECT().ExtrasCustomFieldsList(expectedCustomFieldParams, nil).Return(expectedCustomFields, nil).AnyTimes()
+	mockExtras.EXPECT().ExtrasCustomFieldsList(nonExistingCustomFieldParams, nil).Return(nonExistingCustomFields, nil).AnyTimes()
 
 	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
@@ -1475,5 +1485,5 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 	actual, err := compositeClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), &pxcSpec)
 
 	assert.Nil(t, actual)
-	AssertError(t, err, "invalid parentPrefixSelector, netbox custom fields non-existing do not exist")
+	assert.ErrorContains(t, err, "custom field non-existing not found")
 }

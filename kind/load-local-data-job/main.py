@@ -2,6 +2,7 @@ import os
 import pynetbox
 from pprint import pprint
 from dataclasses import dataclass
+from typing import Optional
 
 print("Starting to load data onto NetBox through API")
 
@@ -107,6 +108,8 @@ class CustomField:
     description: str
     required: bool
     filter_logic: str
+    validation_minimum: Optional[int] = None
+    validation_maximum: Optional[int] = None
 
 custom_fields = [
     CustomField(
@@ -169,6 +172,18 @@ custom_fields = [
         required=False,
         filter_logic="exact"
     ),
+    CustomField(
+        content_types=["ipam.prefix"],
+        object_types=["ipam.prefix"],
+        type="integer",
+        name="cfDataTypeIntegerValidationRange",
+        label="cf Data Type Integer Validation Range",
+        description="Custom field with integer validation bounds",
+        required=False,
+        filter_logic="exact",
+        validation_minimum=0,
+        validation_maximum=10,
+    ),
 ]
 
 for custom_field in custom_fields:
@@ -182,6 +197,8 @@ for custom_field in custom_fields:
             description=custom_field.description,
             required=custom_field.required,
             filter_logic=custom_field.filter_logic,
+            validation_minimum=custom_field.validation_minimum,
+            validation_maximum=custom_field.validation_maximum,
             default=None
         )
     except pynetbox.RequestError as e:
