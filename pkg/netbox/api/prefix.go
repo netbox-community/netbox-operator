@@ -155,29 +155,31 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate
 		needsUpdate := utils.NeedsUpdate(
 			prefixToUpdate,
 			desiredPrefix,
-			func(p *v4client.Prefix) string {
-				return *p.Description
+			func(c *v4client.Prefix, d *netboxModels.WritablePrefix) bool {
+				return *c.Description != d.Description
 			},
-			func(wp *netboxModels.WritablePrefix) string {
-				return wp.Description
+			func(c *v4client.Prefix, d *netboxModels.WritablePrefix) bool {
+				return *c.Comments != d.Comments
 			},
-			func(p *v4client.Prefix) string {
-				return *p.Comments
+			func(c *v4client.Prefix, d *netboxModels.WritablePrefix) bool {
+				return string(*c.Status.Value) != d.Status
 			},
-			func(wp *netboxModels.WritablePrefix) string {
-				return wp.Comments
-			},
-			func(p *v4client.Prefix) string {
-				return string(*p.Status.Value)
-			},
-			func(wp *netboxModels.WritablePrefix) string {
-				return wp.Status
-			},
-			func(p *v4client.Prefix) interface{} {
-				return p.CustomFields
-			},
-			func(wp *netboxModels.WritablePrefix) interface{} {
-				return wp.CustomFields
+			utils.CheckCustomFields(
+				func(c *v4client.Prefix) map[string]interface{} { return c.CustomFields },
+				func(d *netboxModels.WritablePrefix) map[string]interface{} {
+					return d.CustomFields.(map[string]interface{})
+				},
+			),
+			func(c *v4client.Prefix, d *netboxModels.WritablePrefix) bool {
+				var currentSiteId int32
+				if c.ScopeId.IsSet() {
+					currentSiteId = c.GetScopeId()
+				}
+				var desiredSiteId int32
+				if d.Site != nil {
+					desiredSiteId = int32(*d.Site)
+				}
+				return currentSiteId != desiredSiteId
 			},
 		)
 
@@ -196,29 +198,21 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate
 	needsUpdate := utils.NeedsUpdate(
 		prefixToUpdate,
 		desiredPrefix,
-		func(p *v4client.Prefix) string {
-			return *p.Description
+		func(c *v4client.Prefix, d *v4client.WritablePrefixRequest) bool {
+			return *c.Description != *d.Description
 		},
-		func(wp *v4client.WritablePrefixRequest) string {
-			return *wp.Description
+		func(c *v4client.Prefix, d *v4client.WritablePrefixRequest) bool {
+			return *c.Comments != *d.Comments
 		},
-		func(p *v4client.Prefix) string {
-			return *p.Comments
+		func(c *v4client.Prefix, d *v4client.WritablePrefixRequest) bool {
+			return string(*c.Status.Value) != string(*d.Status)
 		},
-		func(wp *v4client.WritablePrefixRequest) string {
-			return *wp.Comments
-		},
-		func(p *v4client.Prefix) string {
-			return string(*p.Status.Value)
-		},
-		func(wp *v4client.WritablePrefixRequest) string {
-			return string(*wp.Status)
-		},
-		func(p *v4client.Prefix) interface{} {
-			return p.CustomFields
-		},
-		func(wp *v4client.WritablePrefixRequest) interface{} {
-			return wp.CustomFields
+		utils.CheckCustomFields(
+			func(c *v4client.Prefix) map[string]interface{} { return c.CustomFields },
+			func(d *v4client.WritablePrefixRequest) map[string]interface{} { return d.CustomFields },
+		),
+		func(c *v4client.Prefix, d *v4client.WritablePrefixRequest) bool {
+			return c.GetScopeType() != d.GetScopeType() || c.GetScopeId() != d.GetScopeId()
 		},
 	)
 

@@ -69,30 +69,19 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	needsUpdate := utils.NeedsUpdate(
 		ipRangeToUpdate,
 		desiredIpRange,
-		func(ir *v4client.IPRange) string {
-			return *ir.Description
+		func(c *v4client.IPRange, d *v4client.WritableIPRangeRequest) bool {
+			return *c.Description != *d.Description
 		},
-		func(wir *v4client.WritableIPRangeRequest) string {
-			return *wir.Description
+		func(c *v4client.IPRange, d *v4client.WritableIPRangeRequest) bool {
+			return *c.Comments != *d.Comments
 		},
-		func(ir *v4client.IPRange) string {
-			return *ir.Comments
+		func(c *v4client.IPRange, d *v4client.WritableIPRangeRequest) bool {
+			return string(*c.Status.Value) != string(*d.Status)
 		},
-		func(wir *v4client.WritableIPRangeRequest) string {
-			return *wir.Comments
-		},
-		func(ir *v4client.IPRange) string {
-			return string(*ir.Status.Value)
-		},
-		func(wir *v4client.WritableIPRangeRequest) string {
-			return string(*wir.Status)
-		},
-		func(ir *v4client.IPRange) interface{} {
-			return ir.CustomFields
-		},
-		func(wir *v4client.WritableIPRangeRequest) interface{} {
-			return wir.CustomFields
-		},
+		utils.CheckCustomFields(
+			func(c *v4client.IPRange) map[string]interface{} { return c.CustomFields },
+			func(d *v4client.WritableIPRangeRequest) map[string]interface{} { return d.CustomFields },
+		),
 	)
 
 	if !needsUpdate {

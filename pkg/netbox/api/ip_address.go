@@ -64,30 +64,23 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	needsUpdate := utils.NeedsUpdate(
 		ipToUpdate,
 		desiredIPAddress,
-		func(ip *netboxModels.IPAddress) string {
-			return ip.Description
+		func(c *netboxModels.IPAddress, d *netboxModels.WritableIPAddress) bool {
+			return c.Description != d.Description
 		},
-		func(wip *netboxModels.WritableIPAddress) string {
-			return wip.Description
+		func(c *netboxModels.IPAddress, d *netboxModels.WritableIPAddress) bool {
+			return c.Comments != d.Comments
 		},
-		func(ip *netboxModels.IPAddress) string {
-			return ip.Comments
+		func(c *netboxModels.IPAddress, d *netboxModels.WritableIPAddress) bool {
+			return *c.Status.Value != d.Status
 		},
-		func(wip *netboxModels.WritableIPAddress) string {
-			return wip.Comments
-		},
-		func(ip *netboxModels.IPAddress) string {
-			return *ip.Status.Value
-		},
-		func(wip *netboxModels.WritableIPAddress) string {
-			return wip.Status
-		},
-		func(ip *netboxModels.IPAddress) interface{} {
-			return ip.CustomFields
-		},
-		func(wip *netboxModels.WritableIPAddress) interface{} {
-			return wip.CustomFields
-		},
+		utils.CheckCustomFields(
+			func(c *netboxModels.IPAddress) map[string]interface{} {
+				return c.CustomFields.(map[string]interface{})
+			},
+			func(d *netboxModels.WritableIPAddress) map[string]interface{} {
+				return d.CustomFields.(map[string]interface{})
+			},
+		),
 	)
 
 	if !needsUpdate {

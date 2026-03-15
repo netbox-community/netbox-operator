@@ -16,44 +16,32 @@ limitations under the License.
 
 package utils
 
-import (
-	"reflect"
-)
-
-func NeedsUpdate[C any, D any](
-	current *C, desired *D,
-	getDescriptionCurrent func(*C) string,
-	getDescriptionDesired func(*D) string,
-	getCommentsCurrent func(*C) string,
-	getCommentsDesired func(*D) string,
-	getStatusCurrent func(*C) string,
-	getStatusDesired func(*D) string,
-	getCustomFieldsCurrent func(*C) interface{},
-	getCustomFieldsDesired func(*D) interface{},
-) bool {
-
+func NeedsUpdate[C any, D any](current *C, desired *D, checks ...func(*C, *D) bool) bool {
 	if current == nil && desired != nil {
 		return true
 	}
 	if current != nil && desired == nil {
 		return true
 	}
-	if current != nil && desired != nil {
-		if getDescriptionCurrent(current) != getDescriptionDesired(desired) {
-			return true
-		}
-		if getCommentsCurrent(current) != getCommentsDesired(desired) {
-			return true
-		}
-
-		if !reflect.DeepEqual(getCustomFieldsCurrent(current), getCustomFieldsDesired(desired)) {
-			return true
-		}
-
-		if getStatusCurrent(current) != getStatusDesired(desired) {
+	for _, check := range checks {
+		if check(current, desired) {
 			return true
 		}
 	}
-
 	return false
+}
+
+func CheckCustomFields[C any, D any](
+	getCurrent func(*C) map[string]interface{},
+	getDesired func(*D) map[string]interface{},
+) func(*C, *D) bool {
+	return func(c *C, d *D) bool {
+		current := getCurrent(c)
+		for k, v := range getDesired(d) {
+			if current[k] != v {
+				return true
+			}
+		}
+		return false
+	}
 }
