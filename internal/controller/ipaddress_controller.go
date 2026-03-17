@@ -199,8 +199,18 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if there is no change then no need to update
-	if netboxIpAddressModel == nil {
+	// 4. if no change in custom fields and status, skip update
+	currentCustomFields, err := generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	readyCondition := apismeta.FindStatusCondition(o.Status.Conditions, "Ready")
+
+	if o.Status.IpAddressId == netboxIpAddressModel.ID &&
+		readyCondition != nil &&
+		readyCondition.Status == "True" &&
+		readyCondition.ObservedGeneration == o.Generation &&
+		annotations[IPManagedCustomFieldsAnnotationName] == currentCustomFields {
 		return ctrl.Result{}, nil
 	}
 

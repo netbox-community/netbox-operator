@@ -200,6 +200,26 @@ func mockedResponseIPAddressListWithHash(customFields map[string]interface{}) *i
 	}
 }
 
+func mockedResponseIPAddressListWithNoChange() *ipam.IpamIPAddressesListOKBody {
+	return &ipam.IpamIPAddressesListOKBody{
+		Results: []*netboxModels.IPAddress{
+			{
+				ID:          mockedResponseIPAddress().ID,
+				Address:     mockedResponseIPAddress().Address,
+				Comments:    comments + warningComment,
+				Description: nsn + description + warningComment,
+				Display:     mockedResponseIPAddress().Display,
+				Tenant:      mockedResponseIPAddress().Tenant,
+				Status: &netboxModels.IPAddressStatus{
+					Label: &netboxLabel,
+					Value: &value,
+				},
+				CustomFields: customFieldsCR,
+			},
+		},
+	}
+}
+
 func mockedResponseIPAddressList() *ipam.IpamIPAddressesListOKBody {
 	return &ipam.IpamIPAddressesListOKBody{
 		Results: []*netboxModels.IPAddress{

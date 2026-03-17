@@ -25,7 +25,7 @@ SHELL = /usr/bin/env bash -o pipefail
 GEN_DIR := gen/mock_interfaces
 NETBOX_MOCKS_OUTPUT_FILE := netbox_mocks.go
 INTERFACE_DEFITIONS_DIR := pkg/netbox/interfaces/netbox.go
-GINKGO=ginkgo
+GINKGO=$(GOBIN)/ginkgo
 
 GOFILES = $(shell find . -name \*.go ! -name 'zz_generated.*')
 

@@ -213,7 +213,16 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			true, metav1.Condition{}, netboxv1.IpAddressStatus{}),
+			true, false, nil),
+		Entry("Create IpAddress CR, no change needed in NetBox",
+			defaultIpAddressCR(true),
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithNoChange,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			false, true, ExpectedIpAddressStatus),
 	)
 })
 

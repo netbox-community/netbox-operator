@@ -70,22 +70,24 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		ipRangeToUpdate,
 		desiredIpRange,
 		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return *current.Description != *desired.Description
+			return current.GetDescription() != desired.GetDescription()
 		},
 		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return *current.Comments != *desired.Comments
+			return current.GetComments() != desired.GetComments()
 		},
 		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return string(*current.Status.Value) != string(*desired.Status)
+			return string(current.Status.GetValue()) != string(desired.GetStatus())
 		},
-		utils.CheckCustomFields(
-			func(c *v4client.IPRange) map[string]interface{} { return c.CustomFields },
-			func(d *v4client.WritableIPRangeRequest) map[string]interface{} { return d.CustomFields },
-		),
+		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
+			return utils.CompareCustomFields(
+				current.CustomFields,
+				desired.CustomFields,
+			)
+		},
 	)
 
 	if !needsUpdate {
-		return nil, nil
+		return ipRangeToUpdate, nil
 	}
 
 	// if the desired ip address has a restoration hash

@@ -40,7 +40,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 
 	//tenant mock input
-	tenant := "Tenant1"
+	tenantName := "Tenant1"
 	tenantId := int32(1)
 	tenantSlug := "tenant1"
 
@@ -53,7 +53,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	scopeType := "dcim.site"
 	comments := "blabla"
 	description := "very useful prefix"
-	expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+	expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenantName, tenantSlug)
 
 	prefixListOutput := v4client.PaginatedPrefixList{
 		Results: []v4client.Prefix{
@@ -94,7 +94,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 		&models.Prefix{
 			Prefix: prefix,
 			Metadata: &models.NetboxMetadata{
-				Tenant:      tenant,
+				Tenant:      tenantName,
 				Comments:    comments,
 				Description: description,
 			},
@@ -106,7 +106,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	assert.Equal(t, description, *actual.Results[0].Description)
 	assert.Equal(t, prefix, actual.Results[0].Display)
 	assert.Equal(t, prefix, actual.Results[0].Prefix)
-	assert.Equal(t, tenant, actual.Results[0].Tenant.Get().Name)
+	assert.Equal(t, tenantName, actual.Results[0].Tenant.Get().Name)
 	assert.Equal(t, tenantId, actual.Results[0].Tenant.Get().Id)
 	assert.Equal(t, tenantSlug, actual.Results[0].Tenant.Get().Slug)
 	assert.Equal(t, "dcim.site", *actual.Results[0].ScopeType.Get())
@@ -124,7 +124,7 @@ func TestPrefix_ListNonExistingPrefix(t *testing.T) {
 	prefix := "10.112.140.0/24"
 
 	//tenant mock input
-	tenant := "tenant1"
+	tenantName := "Tenant1"
 
 	//prefix mock output
 	prefixListOutput := v4client.PaginatedPrefixList{
@@ -155,7 +155,7 @@ func TestPrefix_ListNonExistingPrefix(t *testing.T) {
 		&models.Prefix{
 			Prefix: prefix,
 			Metadata: &models.NetboxMetadata{
-				Tenant: tenant,
+				Tenant: tenantName,
 			},
 		})
 
@@ -194,9 +194,12 @@ func TestPrefix_DeletePrefix(t *testing.T) {
 }
 
 func TestPrefix_ReserveOrUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// tenant mock input
-	tenant := "Tenant1"
-	tenantListRequestInput := tenancy.NewTenancyTenantsListParams().WithName(&tenant)
+	tenantName := "Tenant1"
+	tenantListRequestInput := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
 	// tenant mock output
 	tenantOutputId := int64(1)
@@ -206,7 +209,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Results: []*netboxModels.Tenant{
 				{
 					ID:   tenantOutputId,
-					Name: &tenant,
+					Name: &tenantName,
 					Slug: &tenantOutputSlug,
 				},
 			},
@@ -245,9 +248,6 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 	}
 
 	t.Run("reserve with tenant and site (v4 NetBox client)", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockCreateRequest := mock_interfaces.NewMockIpamPrefixesCreateRequest(ctrl)
@@ -260,9 +260,11 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		completeDescription := description + warningComment
 		scopeType := "dcim.site"
 		scopeId := int32(siteOutputId)
-		tenantId := int32(1)
-		tenantSlug := "tenant1"
-		expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+
+		//tenant mock input
+		tenantId := int32(tenantOutputId)
+
+		expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenantName, tenantOutputSlug)
 
 		//prefix mock output
 		createPrefixOutput := &v4client.Prefix{
@@ -323,7 +325,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 				Description: description,
 				Site:        site,
 				Custom:      make(map[string]string),
-				Tenant:      tenant,
+				Tenant:      tenantName,
 			},
 		}
 
@@ -336,9 +338,6 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 	})
 
 	t.Run("update without tenant and site (v4 netbox client)", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -413,9 +412,6 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 	})
 
 	t.Run("restoration hash mismatch", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		prefixListOutput := &v4client.PaginatedPrefixList{
@@ -466,5 +462,102 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
+	})
+
+	t.Run("ReserveOrUpdate, no update needed", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.1.0")
+		_ = mockStatusRequest
+
+		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
+		mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes()
+
+		comments := ""
+		commentsWarning := comments + warningComment
+		description := ""
+		descriptionWarning := description + warningComment
+
+		statusValue := v4client.PrefixStatusValue("active")
+		scopeId := int32(siteOutputId)
+
+		tenantId := int32(tenantOutputId)
+		outputTenant := v4client.NewBriefTenant(tenantId, "", "", tenantName, tenantOutputSlug)
+
+		resp := &v4client.Prefix{
+			Id:          prefixId,
+			Comments:    &commentsWarning,
+			Description: &descriptionWarning,
+			Display:     prefix,
+			Prefix:      prefix,
+			Status:      &v4client.PrefixStatus{Value: &statusValue},
+			ScopeId:     *v4client.NewNullableInt32(&scopeId),
+			Tenant:      *v4client.NewNullableBriefTenant(outputTenant),
+		}
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{*resp}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV3 := &NetboxClientV3{
+			Tenancy: mockTenancy,
+			Dcim:    mockDcim,
+		}
+		clientV4 := &NetboxClientV4{
+			IpamAPI:   mockIpamAPI,
+			StatusAPI: mockStatusAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+			clientV3: clientV3,
+		}
+
+		prefixModel := models.Prefix{
+			Prefix: prefix,
+			Metadata: &models.NetboxMetadata{
+				Comments:    comments,
+				Description: description,
+				Site:        site,
+				Custom:      make(map[string]string),
+				Tenant:      tenantName,
+			},
+		}
+
+		actual, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&prefixModel)
+
+		expected := &v4client.Prefix{
+			Id:          prefixId,
+			Comments:    &commentsWarning,
+			Description: &descriptionWarning,
+			Display:     prefix,
+			Prefix:      prefix,
+			Status:      &v4client.PrefixStatus{Value: &statusValue},
+			ScopeId:     *v4client.NewNullableInt32(&scopeId),
+			Tenant:      *v4client.NewNullableBriefTenant(outputTenant),
+		}
+
+		AssertNil(t, err)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Comments, actual.Comments)
+		assert.Equal(t, expected.Description, actual.Description)
+		assert.Equal(t, expected.Display, actual.Display)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.ScopeId, actual.ScopeId)
+		assert.Equal(t, expected.Tenant, actual.Tenant)
 	})
 }
