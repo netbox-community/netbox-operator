@@ -45,7 +45,7 @@ func TestIpRange(t *testing.T) {
 	tenantName := "Tenant1"
 	Label := "Status"
 	Value := "active"
-	comment := Comments
+	comments := Comments
 	description := Description
 	markPopulatedTrue := true
 
@@ -61,7 +61,7 @@ func TestIpRange(t *testing.T) {
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
-			Comments:      &comment,
+			Comments:      &comments,
 			Description:   &description,
 			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
 			Status:        expectedStatus,
@@ -155,7 +155,7 @@ func TestIpRange(t *testing.T) {
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
-			Comments:      &comment,
+			Comments:      &comments,
 			Description:   &description,
 			MarkPopulated: &markPopulatedTrue,
 			Tenant:        expectedIPRange().Tenant,
@@ -325,7 +325,7 @@ func TestIpRange(t *testing.T) {
 				{
 					Id:            ipRangeId,
 					CustomFields:  map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
-					Comments:      &comment,
+					Comments:      &comments,
 					Description:   &description,
 					MarkPopulated: &markPopulatedTrue,
 				},
@@ -345,7 +345,7 @@ func TestIpRange(t *testing.T) {
 			Id:            ipRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
-			Comments:      &comment,
+			Comments:      &comments,
 			Description:   &description,
 			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
 			MarkPopulated: &markPopulatedTrue,
@@ -383,6 +383,94 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, ipRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
 		assert.Equal(t, expectedIPRange().Description, actual.Description)
+		assert.Equal(t, expectedIPRange().StartAddress, actual.StartAddress)
+		assert.Equal(t, expectedIPRange().EndAddress, actual.EndAddress)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Id, actual.Tenant.Get().Id)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Name, actual.Tenant.Get().Name)
+		assert.Equal(t, expectedIPRange().Tenant.Get().Slug, actual.Tenant.Get().Slug)
+		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
+	})
+
+	t.Run("ReserveOrUpdate, no update needed", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+
+		tenancyListInput := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+		tenancyListOutput := &tenancy.TenancyTenantsListOK{
+			Payload: &tenancy.TenancyTenantsListOKBody{
+				Results: []*netboxModels.Tenant{
+					{
+						ID:   tenantId,
+						Name: &tenantName,
+						Slug: &tenantName,
+					},
+				},
+			},
+		}
+
+		mockTenancy.EXPECT().TenancyTenantsList(tenancyListInput, nil).Return(tenancyListOutput, nil).AnyTimes()
+
+		ipRangeId := int32(4)
+
+		commentsWarning := comments + warningComment
+		//descriptionWarning := description + warningComment
+
+		resp := &v4client.IPRange{
+			Id:            ipRangeId,
+			StartAddress:  startAddress,
+			EndAddress:    endAddress,
+			Comments:      &commentsWarning,
+			Description:   &description,
+			Status:        expectedStatus,
+			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
+			MarkPopulated: &markPopulatedTrue,
+		}
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{*resp}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV3 := &NetboxClientV3{
+			Tenancy: mockTenancy,
+		}
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+			clientV3: clientV3,
+		}
+
+		actual, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Tenant:      tenantName,
+					Description: description,
+					Comments:    comments,
+				},
+			})
+
+		AssertNil(t, err)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expectedIPRange().Id, actual.Id)
+		assert.Equal(t, *expectedIPRange().Comments+warningComment, *actual.Comments)
+		assert.Equal(t, *expectedIPRange().Description, *actual.Description)
 		assert.Equal(t, expectedIPRange().StartAddress, actual.StartAddress)
 		assert.Equal(t, expectedIPRange().EndAddress, actual.EndAddress)
 		assert.Equal(t, expectedIPRange().Tenant.Get().Id, actual.Tenant.Get().Id)

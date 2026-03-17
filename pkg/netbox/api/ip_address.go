@@ -64,27 +64,25 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	needsUpdate := utils.NeedsUpdate(
 		ipToUpdate,
 		desiredIPAddress,
-		func(c *netboxModels.IPAddress, d *netboxModels.WritableIPAddress) bool {
-			return c.Description != d.Description
+		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+			return current.Description != desired.Description
 		},
-		func(c *netboxModels.IPAddress, d *netboxModels.WritableIPAddress) bool {
-			return c.Comments != d.Comments
+		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+			return current.Comments != desired.Comments
 		},
-		func(c *netboxModels.IPAddress, d *netboxModels.WritableIPAddress) bool {
-			return *c.Status.Value != d.Status
+		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+			return *current.Status.Value != desired.Status
 		},
-		utils.CheckCustomFields(
-			func(c *netboxModels.IPAddress) map[string]interface{} {
-				return utils.NormalizeCustomFields(c.CustomFields)
-			},
-			func(d *netboxModels.WritableIPAddress) map[string]interface{} {
-				return utils.NormalizeCustomFields(d.CustomFields)
-			},
-		),
+		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+			return utils.CompareCustomFields(
+				utils.NormalizeCustomFields(current.CustomFields),
+				utils.NormalizeCustomFields(desired.CustomFields),
+			)
+		},
 	)
 
 	if !needsUpdate {
-		return nil, nil
+		return ipToUpdate, nil
 	}
 
 	// if the desired ip address has a restoration hash

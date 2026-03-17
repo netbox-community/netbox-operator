@@ -359,6 +359,54 @@ func TestIPAddress(t *testing.T) {
 		AssertNil(t, err)
 	})
 
+	t.Run("Check ReserveOrUpdate with no change needed", func(t *testing.T) {
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+
+		description := TruncateDescription(Description)
+		comments := Comments + warningComment
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{
+						ID:          expectedIPAddress().ID,
+						Address:     expectedIPAddress().Address,
+						Description: description,
+						Comments:    comments,
+						Status: &netboxModels.IPAddressStatus{
+							Label: &Label,
+							Value: &Value,
+						},
+						CustomFields: map[string]interface{}{},
+					},
+				},
+			},
+		}
+
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
+
+		clientV3 := &NetboxClientV3{
+			Ipam: mockIPAddress,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+		}
+
+		result, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{
+			IpAddress: ipAddress,
+			Metadata: &models.NetboxMetadata{
+				Description: Description,
+				Comments:    Comments,
+			},
+		})
+		AssertNil(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, expectedIPAddress().ID, result.ID)
+		assert.Equal(t, expectedIPAddress().Address, result.Address)
+		assert.Equal(t, expectedIPAddress().Description+warningComment, result.Description)
+		assert.Equal(t, expectedIPAddress().Comments+warningComment, result.Comments)
+		assert.Equal(t, *expectedIPAddress().Status, *result.Status)
+	})
+
 	t.Run("Check ReserveOrUpdate with hash mismatch", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{

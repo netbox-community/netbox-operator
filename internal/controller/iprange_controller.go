@@ -179,8 +179,18 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if there is no change then no need to update
-	if netboxIpRangeModel == nil {
+	// 4. if no change in custom fields and status, skip update
+	currentCustomFields, err := generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	readyCondition := apismeta.FindStatusCondition(o.Status.Conditions, "Ready")
+
+	if o.Status.IpRangeId == int64(netboxIpRangeModel.GetId()) &&
+		readyCondition != nil &&
+		readyCondition.Status == "True" &&
+		readyCondition.ObservedGeneration == o.Generation &&
+		annotations[IPRManagedCustomFieldsAnnotationName] == currentCustomFields {
 		return ctrl.Result{}, nil
 	}
 
