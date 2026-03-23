@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.46] - 2026-03-23
+
+<!-- Release notes generated using configuration in .github/release.yml at c6fec2ae067cf45fe2774dcaa331e5533382906d -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump google.golang.org/grpc from 1.79.2 to 1.79.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/539
+* Build(deps): bump the go-dependencies group across 1 directory with 8 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/541
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.45...v0.2.46
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.46)
+
+---
+
 ## [v0.2.45] - 2026-03-16
 
 <!-- Release notes generated using configuration in .github/release.yml at 2a201f0da08406f656814825b30a234c84de72a1 -->
