@@ -104,7 +104,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 					(!ipRangeToUpdate.LastUpdated.IsSet() || ipRangeV1.Status.LastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get()))
 
 				readyCondition := apismeta.FindStatusCondition(ipRangeV1.Status.Conditions, "Ready")
-				sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipRangeV1.Generation
+				sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == ipRangeV1.Generation
 				if sameLastUpdated && sameGeneration {
 					return nil, nil
 				}
@@ -122,7 +122,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		(!ipRangeToUpdate.LastUpdated.IsSet() || ipRangeV1.Status.LastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get()))
 
 	readyCondition := apismeta.FindStatusCondition(ipRangeV1.Status.Conditions, "Ready")
-	sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipRangeV1.Generation
+	sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == ipRangeV1.Generation
 	if sameLastUpdated && sameGeneration {
 		return nil, nil
 	}

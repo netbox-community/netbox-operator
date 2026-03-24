@@ -218,6 +218,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithNoChange,
+				mockIpamIPAddressesUpdate,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
