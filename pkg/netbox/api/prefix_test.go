@@ -25,11 +25,13 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestPrefix_ListExistingPrefix(t *testing.T) {
@@ -331,7 +333,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 
 		_, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			&prefixModel)
+			&prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
@@ -405,7 +407,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 
 		_, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			&prefixModel)
+			&prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesUpdate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
@@ -458,7 +460,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel)
+		_, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
@@ -469,9 +471,6 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
-
-		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.1.0")
-		_ = mockStatusRequest
 
 		mockTenancy.EXPECT().TenancyTenantsList(tenantListRequestInput, nil).Return(tenantListRequestOutput, nil).AnyTimes()
 		mockDcim.EXPECT().DcimSitesList(siteListRequestInput, nil).Return(siteListRequestOutput, nil).AnyTimes()
@@ -515,8 +514,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Dcim:    mockDcim,
 		}
 		clientV4 := &NetboxClientV4{
-			IpamAPI:   mockIpamAPI,
-			StatusAPI: mockStatusAPI,
+			IpamAPI: mockIpamAPI,
 		}
 		compositeClient := &NetboxCompositeClient{
 			clientV4: clientV4,
@@ -536,28 +534,19 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 
 		actual, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			&prefixModel)
-
-		expected := &v4client.Prefix{
-			Id:          prefixId,
-			Comments:    &commentsWarning,
-			Description: &descriptionWarning,
-			Display:     prefix,
-			Prefix:      prefix,
-			Status:      &v4client.PrefixStatus{Value: &statusValue},
-			ScopeId:     *v4client.NewNullableInt32(&scopeId),
-			Tenant:      *v4client.NewNullableBriefTenant(outputTenant),
-		}
+			&prefixModel, &netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:               "Ready",
+							Status:             "True",
+							ObservedGeneration: 0,
+						},
+					},
+				},
+			})
 
 		AssertNil(t, err)
-		assert.NotNil(t, actual)
-		assert.Equal(t, expected.Id, actual.Id)
-		assert.Equal(t, expected.Comments, actual.Comments)
-		assert.Equal(t, expected.Description, actual.Description)
-		assert.Equal(t, expected.Display, actual.Display)
-		assert.Equal(t, expected.Prefix, actual.Prefix)
-		assert.Equal(t, expected.Status, actual.Status)
-		assert.Equal(t, expected.ScopeId, actual.ScopeId)
-		assert.Equal(t, expected.Tenant, actual.Tenant)
+		assert.Nil(t, actual)
 	})
 }

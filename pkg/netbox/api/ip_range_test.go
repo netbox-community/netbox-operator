@@ -24,11 +24,13 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -204,7 +206,7 @@ func TestIpRange(t *testing.T) {
 				Metadata: &models.NetboxMetadata{
 					Tenant: tenantName,
 				},
-			})
+			}, &netboxv1.IpRange{})
 
 		// Assert
 		assert.NoError(t, err)
@@ -278,7 +280,7 @@ func TestIpRange(t *testing.T) {
 						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
 					},
 				},
-			})
+			}, &netboxv1.IpRange{})
 
 		// Assert
 		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.0.0.1-10.0.0.10")
@@ -376,7 +378,7 @@ func TestIpRange(t *testing.T) {
 				Metadata: &models.NetboxMetadata{
 					Tenant: tenantName,
 				},
-			})
+			}, &netboxv1.IpRange{})
 
 		// Assert
 		AssertNil(t, err)
@@ -464,19 +466,19 @@ func TestIpRange(t *testing.T) {
 					Description: description,
 					Comments:    comments,
 				},
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:               "Ready",
+							Status:             "True",
+							ObservedGeneration: 0,
+						},
+					},
+				},
 			})
-
 		AssertNil(t, err)
-		assert.NotNil(t, actual)
-		assert.Equal(t, expectedIPRange().Id, actual.Id)
-		assert.Equal(t, *expectedIPRange().Comments+warningComment, *actual.Comments)
-		assert.Equal(t, *expectedIPRange().Description, *actual.Description)
-		assert.Equal(t, expectedIPRange().StartAddress, actual.StartAddress)
-		assert.Equal(t, expectedIPRange().EndAddress, actual.EndAddress)
-		assert.Equal(t, expectedIPRange().Tenant.Get().Id, actual.Tenant.Get().Id)
-		assert.Equal(t, expectedIPRange().Tenant.Get().Name, actual.Tenant.Get().Name)
-		assert.Equal(t, expectedIPRange().Tenant.Get().Slug, actual.Tenant.Get().Slug)
-		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
+		assert.Nil(t, actual)
 	})
 
 	t.Run("Delete ip range", func(t *testing.T) {

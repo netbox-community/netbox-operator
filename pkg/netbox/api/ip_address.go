@@ -19,16 +19,20 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
+
+	apismeta "k8s.io/apimachinery/pkg/api/meta"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*netboxModels.IPAddress, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress, ipAddressV1 *netboxv1.IpAddress) (*netboxModels.IPAddress, error) {
 	responseIpAddress, err := c.getIpAddress(ipAddress)
 	if err != nil {
 		return nil, err
@@ -61,29 +65,25 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
 
-	needsUpdate := utils.NeedsUpdate(
-		ipToUpdate,
-		desiredIPAddress,
-		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
-			return current.Description != desired.Description
-		},
-		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
-			return current.Comments != desired.Comments
-		},
-		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
-			return *current.Status.Value != desired.Status
-		},
-		func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
-			return utils.CompareCustomFields(
-				utils.NormalizeCustomFields(current.CustomFields),
-				utils.NormalizeCustomFields(desired.CustomFields),
-			)
-		},
-	)
-
-	if !needsUpdate {
-		return ipToUpdate, nil
-	}
+	// needsUpdate := utils.NeedsUpdate(
+	// 	ipToUpdate,
+	// 	desiredIPAddress,
+	// 	func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+	// 		return current.Description != desired.Description
+	// 	},
+	// 	func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+	// 		return current.Comments != desired.Comments
+	// 	},
+	// 	func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+	// 		return *current.Status.Value != desired.Status
+	// 	},
+	// 	func(current *netboxModels.IPAddress, desired *netboxModels.WritableIPAddress) bool {
+	// 		return utils.CompareCustomFields(
+	// 			utils.NormalizeCustomFields(current.CustomFields),
+	// 			utils.NormalizeCustomFields(desired.CustomFields),
+	// 		)
+	// 	},
+	// )
 
 	// if the desired ip address has a restoration hash
 	// check that the ip address to update has the same restoration hash
@@ -91,11 +91,32 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	if ipAddress.Metadata != nil {
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
+				// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
+				// and the observed generation of the ready condition
+				sameLastUpdated := (ipToUpdate.LastUpdated == nil) == (ipAddressV1.Status.LastUpdated == nil) &&
+					(ipToUpdate.LastUpdated == nil || ipAddressV1.Status.LastUpdated.Time.Equal(time.Time(*ipToUpdate.LastUpdated)))
+
+				readyCondition := apismeta.FindStatusCondition(ipAddressV1.Status.Conditions, "Ready")
+				sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipAddressV1.Generation
+				if sameLastUpdated && sameGeneration {
+					return nil, nil
+				}
 				//update ip address since it does exist and the restoration hash matches
 				return c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
 			}
 			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
 		}
+	}
+
+	// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
+	// and the observed generation of the ready condition
+	sameLastUpdated := (ipToUpdate.LastUpdated == nil) == (ipAddressV1.Status.LastUpdated == nil) &&
+		(ipToUpdate.LastUpdated == nil || ipAddressV1.Status.LastUpdated.Time.Equal(time.Time(*ipToUpdate.LastUpdated)))
+
+	readyCondition := apismeta.FindStatusCondition(ipAddressV1.Status.Conditions, "Ready")
+	sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipAddressV1.Generation
+	if sameLastUpdated && sameGeneration {
+		return nil, nil
 	}
 
 	ipAddressId := responseIpAddress.Payload.Results[0].ID

@@ -24,13 +24,15 @@ import (
 	"net/http"
 
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
+	apismeta "k8s.io/apimachinery/pkg/api/meta"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange) (*v4client.IPRange, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (*v4client.IPRange, error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
 	if err != nil {
 		return nil, err
@@ -66,29 +68,29 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 
 	ipRangeToUpdate := &responseIpRangeList.Results[0]
 
-	needsUpdate := utils.NeedsUpdate(
-		ipRangeToUpdate,
-		desiredIpRange,
-		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return current.GetDescription() != desired.GetDescription()
-		},
-		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return current.GetComments() != desired.GetComments()
-		},
-		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return string(current.Status.GetValue()) != string(desired.GetStatus())
-		},
-		func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-			return utils.CompareCustomFields(
-				current.CustomFields,
-				desired.CustomFields,
-			)
-		},
-	)
+	// needsUpdate := utils.NeedsUpdate(
+	// 	ipRangeToUpdate,
+	// 	desiredIpRange,
+	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
+	// 		return current.GetDescription() != desired.GetDescription()
+	// 	},
+	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
+	// 		return current.GetComments() != desired.GetComments()
+	// 	},
+	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
+	// 		return string(current.Status.GetValue()) != string(desired.GetStatus())
+	// 	},
+	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
+	// 		return utils.CompareCustomFields(
+	// 			current.CustomFields,
+	// 			desired.CustomFields,
+	// 		)
+	// 	},
+	// )
 
-	if !needsUpdate {
-		return ipRangeToUpdate, nil
-	}
+	// if !needsUpdate {
+	// 	return ipRangeToUpdate, nil
+	// }
 
 	// if the desired ip address has a restoration hash
 	// check that the ip address to update has the same restoration hash
@@ -96,11 +98,33 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	if ipRange.Metadata != nil {
 		if restorationHash, ok := ipRange.Metadata.Custom[restorationHashKey]; ok {
 			if ipRangeToUpdate.CustomFields != nil && ipRangeToUpdate.CustomFields[restorationHashKey] == restorationHash {
+				// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
+				// and the observed generation of the ready condition
+				sameLastUpdated := (!ipRangeToUpdate.LastUpdated.IsSet()) == (ipRangeV1.Status.LastUpdated == nil) &&
+					(!ipRangeToUpdate.LastUpdated.IsSet() || ipRangeV1.Status.LastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get()))
+
+				readyCondition := apismeta.FindStatusCondition(ipRangeV1.Status.Conditions, "Ready")
+				sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipRangeV1.Generation
+				if sameLastUpdated && sameGeneration {
+					return nil, nil
+				}
+
 				//update ip address since it does exist and the restoration hash matches
 				return c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
 			}
 			return nil, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
 		}
+	}
+
+	// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
+	// and the observed generation of the ready condition
+	sameLastUpdated := (!ipRangeToUpdate.LastUpdated.IsSet()) == (ipRangeV1.Status.LastUpdated == nil) &&
+		(!ipRangeToUpdate.LastUpdated.IsSet() || ipRangeV1.Status.LastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get()))
+
+	readyCondition := apismeta.FindStatusCondition(ipRangeV1.Status.Conditions, "Ready")
+	sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipRangeV1.Generation
+	if sameLastUpdated && sameGeneration {
+		return nil, nil
 	}
 
 	//update ip range since it does exist

@@ -177,7 +177,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
+	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
@@ -199,18 +199,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change in custom fields and status, skip update
-	currentCustomFields, err := generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	readyCondition := apismeta.FindStatusCondition(o.Status.Conditions, "Ready")
-
-	if o.Status.IpAddressId == netboxIpAddressModel.ID &&
-		readyCondition != nil &&
-		readyCondition.Status == "True" &&
-		readyCondition.ObservedGeneration == o.Generation &&
-		annotations[IPManagedCustomFieldsAnnotationName] == currentCustomFields {
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
+	if netboxIpAddressModel == nil {
 		return ctrl.Result{}, nil
 	}
 
