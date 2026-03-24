@@ -23,7 +23,6 @@ import (
 	"io"
 	"net/http"
 
-	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -61,7 +60,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 					(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
 
 				readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
-				sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == prefixV1.Generation
+				sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == prefixV1.Generation
 				if sameLastUpdated && sameGeneration {
 					return nil, nil
 				}
@@ -79,7 +78,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 		(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
 
 	readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
-	sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == prefixV1.Generation
+	sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == prefixV1.Generation
 	if sameLastUpdated && sameGeneration {
 		return nil, nil
 	}
@@ -175,32 +174,32 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate
 			return nil, err
 		}
 
-		needsUpdate := utils.NeedsUpdate(
-			prefixToUpdate,
-			desiredPrefix,
-			func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-				return current.GetDescription() != desired.Description
-			},
-			func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-				return current.GetComments() != desired.Comments
-			},
-			func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-				return string(current.Status.GetValue()) != desired.Status
-			},
-			func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-				return utils.CompareCustomFields(
-					current.GetCustomFields(),
-					utils.NormalizeCustomFields(desired.CustomFields),
-				)
-			},
-			func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-				return current.GetScopeId() != int32(*desired.Site)
-			},
-		)
+		// needsUpdate := utils.NeedsUpdate(
+		// 	prefixToUpdate,
+		// 	desiredPrefix,
+		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
+		// 		return current.GetDescription() != desired.Description
+		// 	},
+		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
+		// 		return current.GetComments() != desired.Comments
+		// 	},
+		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
+		// 		return string(current.Status.GetValue()) != desired.Status
+		// 	},
+		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
+		// 		return utils.CompareCustomFields(
+		// 			current.GetCustomFields(),
+		// 			utils.NormalizeCustomFields(desired.CustomFields),
+		// 		)
+		// 	},
+		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
+		// 		return current.GetScopeId() != int32(*desired.Site)
+		// 	},
+		// )
 
-		if !needsUpdate {
-			return prefixToUpdate, nil
-		}
+		// if !needsUpdate {
+		// 	return prefixToUpdate, nil
+		// }
 
 		return c.clientV3.updatePrefixV3(int64(prefixToUpdate.Id), desiredPrefix)
 	}
@@ -210,32 +209,32 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate
 		return nil, err
 	}
 
-	needsUpdate := utils.NeedsUpdate(
-		prefixToUpdate,
-		desiredPrefix,
-		func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-			return current.GetDescription() != desired.GetDescription()
-		},
-		func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-			return current.GetComments() != desired.GetComments()
-		},
-		func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-			return string(*current.Status.Value) != string(*desired.Status)
-		},
-		func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-			return utils.CompareCustomFields(
-				current.GetCustomFields(),
-				desired.GetCustomFields(),
-			)
-		},
-		func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-			return current.GetScopeType() != desired.GetScopeType() || current.GetScopeId() != desired.GetScopeId()
-		},
-	)
+	// needsUpdate := utils.NeedsUpdate(
+	// 	prefixToUpdate,
+	// 	desiredPrefix,
+	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
+	// 		return current.GetDescription() != desired.GetDescription()
+	// 	},
+	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
+	// 		return current.GetComments() != desired.GetComments()
+	// 	},
+	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
+	// 		return string(*current.Status.Value) != string(*desired.Status)
+	// 	},
+	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
+	// 		return utils.CompareCustomFields(
+	// 			current.GetCustomFields(),
+	// 			desired.GetCustomFields(),
+	// 		)
+	// 	},
+	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
+	// 		return current.GetScopeType() != desired.GetScopeType() || current.GetScopeId() != desired.GetScopeId()
+	// 	},
+	// )
 
-	if !needsUpdate {
-		return prefixToUpdate, nil
-	}
+	// if !needsUpdate {
+	// 	return prefixToUpdate, nil
+	// }
 	return c.clientV4.updatePrefixV4(ctx, prefixToUpdate.Id, desiredPrefix)
 }
 

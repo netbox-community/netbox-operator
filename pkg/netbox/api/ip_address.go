@@ -97,7 +97,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 					(ipToUpdate.LastUpdated == nil || ipAddressV1.Status.LastUpdated.Time.Equal(time.Time(*ipToUpdate.LastUpdated)))
 
 				readyCondition := apismeta.FindStatusCondition(ipAddressV1.Status.Conditions, "Ready")
-				sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipAddressV1.Generation
+				sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == ipAddressV1.Generation
 				if sameLastUpdated && sameGeneration {
 					return nil, nil
 				}
@@ -114,7 +114,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 		(ipToUpdate.LastUpdated == nil || ipAddressV1.Status.LastUpdated.Time.Equal(time.Time(*ipToUpdate.LastUpdated)))
 
 	readyCondition := apismeta.FindStatusCondition(ipAddressV1.Status.Conditions, "Ready")
-	sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == ipAddressV1.Generation
+	sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == ipAddressV1.Generation
 	if sameLastUpdated && sameGeneration {
 		return nil, nil
 	}
