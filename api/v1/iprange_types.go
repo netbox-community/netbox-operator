@@ -80,6 +80,10 @@ type IpRangeStatus struct {
 	// The ID of the resource in NetBox
 	IpRangeId int64 `json:"id,omitempty"`
 
+	// Last updated
+	// Format: date-time
+	LastUpdated *metav1.Time `json:"last_updated,omitempty"`
+
 	// The URL to the resource in the NetBox UI. Note that the base of this
 	// URL depends on the runtime config of NetBox Operator
 	IpRangeUrl string `json:"url,omitempty"`

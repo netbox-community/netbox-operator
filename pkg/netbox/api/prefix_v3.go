@@ -20,6 +20,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
@@ -65,4 +66,36 @@ func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.Wri
 	}
 
 	return nclientPrefix, nil
+}
+
+func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Prefix) (*netboxModels.WritablePrefix, error) {
+	desiredPrefix := &netboxModels.WritablePrefix{
+		Prefix:       &prefix.Prefix,
+		Comments:     prefix.Metadata.Comments + warningComment,
+		CustomFields: prefix.Metadata.Custom,
+		Description:  prefix.Metadata.Description + warningComment,
+		Status:       "active",
+	}
+	if prefix.Metadata != nil {
+		desiredPrefix.CustomFields = prefix.Metadata.Custom
+		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
+		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
+
+		if prefix.Metadata.Tenant != "" {
+			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.Tenant = &tenantDetails.Id
+		}
+
+		if prefix.Metadata.Site != "" {
+			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.Site = &siteDetails.Id
+		}
+	}
+	return desiredPrefix, nil
 }

@@ -25,7 +25,9 @@ import (
 
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
+	apismeta "k8s.io/apimachinery/pkg/api/meta"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
@@ -34,7 +36,7 @@ import (
 /*
 ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 */
-func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix) (*v4client.Prefix, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix, prefixV1 *netboxv1.Prefix) (*v4client.Prefix, error) {
 	responsePrefix, err := c.getPrefix(ctx, prefix)
 	if err != nil {
 		return nil, err
@@ -53,6 +55,17 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	if prefix.Metadata != nil {
 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
+				// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
+				// and the observed generation of the ready condition
+				sameLastUpdated := (!prefixToUpdate.LastUpdated.IsSet()) == (prefixV1.Status.LastUpdated == nil) &&
+					(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
+
+				readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
+				sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == prefixV1.Generation
+				if sameLastUpdated && sameGeneration {
+					return nil, nil
+				}
+
 				//update ip address since it does exist and the restoration hash matches
 				return c.updatePrefix(ctx, prefixToUpdate, prefix)
 			}
@@ -60,8 +73,18 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 		}
 	}
 
-	//update ip address since it does exist
+	// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
+	// and the observed generation of the ready condition
+	sameLastUpdated := (!prefixToUpdate.LastUpdated.IsSet()) == (prefixV1.Status.LastUpdated == nil) &&
+		(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
 
+	readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
+	sameGeneration := readyCondition != nil && readyCondition.ObservedGeneration == prefixV1.Generation
+	if sameLastUpdated && sameGeneration {
+		return nil, nil
+	}
+
+	//update ip address since it does exist
 	return c.updatePrefix(ctx, prefixToUpdate, prefix)
 }
 
@@ -248,69 +271,4 @@ func (c *NetboxCompositeClient) DeletePrefix(ctx context.Context, prefixId int32
 	}
 
 	return nil
-}
-
-func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Prefix) (*netboxModels.WritablePrefix, error) {
-	desiredPrefix := &netboxModels.WritablePrefix{
-		Prefix:       &prefix.Prefix,
-		Comments:     prefix.Metadata.Comments + warningComment,
-		CustomFields: prefix.Metadata.Custom,
-		Description:  prefix.Metadata.Description + warningComment,
-		Status:       "active",
-	}
-	if prefix.Metadata != nil {
-		desiredPrefix.CustomFields = prefix.Metadata.Custom
-		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
-		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-
-		if prefix.Metadata.Tenant != "" {
-			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-			if err != nil {
-				return nil, err
-			}
-			desiredPrefix.Tenant = &tenantDetails.Id
-		}
-
-		if prefix.Metadata.Site != "" {
-			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-			if err != nil {
-				return nil, err
-			}
-			desiredPrefix.Site = &siteDetails.Id
-		}
-	}
-	return desiredPrefix, nil
-}
-
-func (c *NetboxCompositeClient) writablePrefixRequestV4(prefix *models.Prefix) (*v4client.WritablePrefixRequest, error) {
-	desiredPrefix := v4client.NewWritablePrefixRequest(prefix.Prefix)
-
-	if prefix.Metadata != nil {
-		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
-		// Convert map[string]string to map[string]interface{}
-		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
-		for k, v := range prefix.Metadata.Custom {
-			customFields[k] = v
-		}
-		desiredPrefix.SetCustomFields(customFields)
-		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
-
-		if prefix.Metadata.Tenant != "" {
-			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-			if err != nil {
-				return nil, err
-			}
-			tenantId := int32(tenantDetails.Id)
-			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
-		}
-		if prefix.Metadata.Site != "" {
-			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-			if err != nil {
-				return nil, err
-			}
-			desiredPrefix.SetScopeType("dcim.site")
-			desiredPrefix.SetScopeId(int32(siteDetails.Id))
-		}
-	}
-	return desiredPrefix, nil
 }

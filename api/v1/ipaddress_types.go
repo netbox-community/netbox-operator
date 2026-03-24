@@ -72,6 +72,10 @@ type IpAddressStatus struct {
 	// The ID of the resource in NetBox
 	IpAddressId int64 `json:"id,omitempty"`
 
+	// Last updated
+	// Format: date-time
+	LastUpdated *metav1.Time `json:"last_updated,omitempty"`
+
 	// The URL to the resource in the NetBox UI. Note that the base of this
 	// URL depends on the runtime config of NetBox Operator
 	IpAddressUrl string `json:"url,omitempty"`

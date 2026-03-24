@@ -191,7 +191,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, err
 	}
 
-	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel)
+	netboxPrefixModel, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
@@ -211,19 +211,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if k8s status and annotation already reflect the current state, skip patching
 	// 4. if no change in custom fields and status, skip update
-	currentCustomFields, err := generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	readyCondition := apismeta.FindStatusCondition(o.Status.Conditions, "Ready")
-
-	if o.Status.PrefixId == int64(netboxPrefixModel.GetId()) &&
-		readyCondition != nil &&
-		readyCondition.Status == "True" &&
-		readyCondition.ObservedGeneration == o.Generation &&
-		annotations[PXManagedCustomFieldsAnnotationName] == currentCustomFields {
+	if netboxPrefixModel == nil {
 		return ctrl.Result{}, nil
 	}
 

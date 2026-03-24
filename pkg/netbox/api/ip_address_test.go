@@ -24,10 +24,12 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -321,7 +323,7 @@ func TestIPAddress(t *testing.T) {
 		}
 
 		ipAddressModel := ipAddressModel("")
-		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel)
+		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertNil(t, err)
 	})
 
@@ -355,7 +357,7 @@ func TestIPAddress(t *testing.T) {
 		}
 
 		ipAddressModel := ipAddressModel(expectedHash)
-		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel)
+		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertNil(t, err)
 	})
 
@@ -397,14 +399,19 @@ func TestIPAddress(t *testing.T) {
 				Description: Description,
 				Comments:    Comments,
 			},
+		}, &netboxv1.IpAddress{
+			Status: netboxv1.IpAddressStatus{
+				Conditions: []metav1.Condition{
+					{
+						Type:               "Ready",
+						Status:             "True",
+						ObservedGeneration: 0,
+					},
+				},
+			},
 		})
 		AssertNil(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, expectedIPAddress().ID, result.ID)
-		assert.Equal(t, expectedIPAddress().Address, result.Address)
-		assert.Equal(t, expectedIPAddress().Description+warningComment, result.Description)
-		assert.Equal(t, expectedIPAddress().Comments+warningComment, result.Comments)
-		assert.Equal(t, *expectedIPAddress().Status, *result.Status)
+		assert.Nil(t, result)
 	})
 
 	t.Run("Check ReserveOrUpdate with hash mismatch", func(t *testing.T) {
@@ -432,7 +439,7 @@ func TestIPAddress(t *testing.T) {
 
 		expectedHash := "iwfohs7v82fe9w0"
 		ipAddressModel := ipAddressModel(expectedHash)
-		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel)
+		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
 	})
 }
