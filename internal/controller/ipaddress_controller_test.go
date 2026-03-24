@@ -214,11 +214,11 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 				mockTenancyTenancyTenantsList,
 			},
 			true, false, nil),
-		Entry("Create IpAddress CR, no change needed in NetBox",
+		Entry("Create IpAddress CR, skip update when already up to date in NetBox",
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithNoChange,
-				mockIpamIPAddressesUpdate,
+				mockIpAddressListWithLastUpdated,
+				mockIpamIPAddressesUpdateOnce,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
