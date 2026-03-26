@@ -55,10 +55,10 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
 				// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
-				// and the observed generation of the ready condition
 				sameLastUpdated := (!prefixToUpdate.LastUpdated.IsSet()) == (prefixV1.Status.LastUpdated == nil) &&
 					(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
 
+				// and the observed generation of the ready condition
 				readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
 				sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == prefixV1.Generation
 				if sameLastUpdated && sameGeneration {
@@ -73,10 +73,10 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	}
 
 	// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
-	// and the observed generation of the ready condition
 	sameLastUpdated := (!prefixToUpdate.LastUpdated.IsSet()) == (prefixV1.Status.LastUpdated == nil) &&
 		(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
 
+	// and the observed generation of the ready condition
 	readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
 	sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == prefixV1.Generation
 	if sameLastUpdated && sameGeneration {
