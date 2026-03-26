@@ -174,33 +174,6 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate
 			return nil, err
 		}
 
-		// needsUpdate := utils.NeedsUpdate(
-		// 	prefixToUpdate,
-		// 	desiredPrefix,
-		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-		// 		return current.GetDescription() != desired.Description
-		// 	},
-		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-		// 		return current.GetComments() != desired.Comments
-		// 	},
-		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-		// 		return string(current.Status.GetValue()) != desired.Status
-		// 	},
-		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-		// 		return utils.CompareCustomFields(
-		// 			current.GetCustomFields(),
-		// 			utils.NormalizeCustomFields(desired.CustomFields),
-		// 		)
-		// 	},
-		// 	func(current *v4client.Prefix, desired *netboxModels.WritablePrefix) bool {
-		// 		return current.GetScopeId() != int32(*desired.Site)
-		// 	},
-		// )
-
-		// if !needsUpdate {
-		// 	return prefixToUpdate, nil
-		// }
-
 		return c.clientV3.updatePrefixV3(int64(prefixToUpdate.Id), desiredPrefix)
 	}
 
@@ -209,32 +182,6 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate
 		return nil, err
 	}
 
-	// needsUpdate := utils.NeedsUpdate(
-	// 	prefixToUpdate,
-	// 	desiredPrefix,
-	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-	// 		return current.GetDescription() != desired.GetDescription()
-	// 	},
-	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-	// 		return current.GetComments() != desired.GetComments()
-	// 	},
-	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-	// 		return string(*current.Status.Value) != string(*desired.Status)
-	// 	},
-	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-	// 		return utils.CompareCustomFields(
-	// 			current.GetCustomFields(),
-	// 			desired.GetCustomFields(),
-	// 		)
-	// 	},
-	// 	func(current *v4client.Prefix, desired *v4client.WritablePrefixRequest) bool {
-	// 		return current.GetScopeType() != desired.GetScopeType() || current.GetScopeId() != desired.GetScopeId()
-	// 	},
-	// )
-
-	// if !needsUpdate {
-	// 	return prefixToUpdate, nil
-	// }
 	return c.clientV4.updatePrefixV4(ctx, prefixToUpdate.Id, desiredPrefix)
 }
 
