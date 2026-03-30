@@ -266,7 +266,7 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 	case o.Status.IpAddressUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, reconcileErr)
-	case o.Status.SyncState == netboxv1.SyncStateFailed:
+	case reconcileErr != nil:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, reconcileErr)
 	default:

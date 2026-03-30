@@ -318,7 +318,10 @@ func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv
 		statusPatch := client.MergeFrom(statusBase)
 		patchErr := r.Status().Patch(ctx, claim, statusPatch)
 		if patchErr != nil {
-			err = errors.Join(err, patchErr)
+			patchErr = client.IgnoreNotFound(patchErr)
+			if patchErr != nil {
+				err = errors.Join(err, patchErr)
+			}
 		}
 		result, err = IgnoreDomainError(result, err)
 	}()

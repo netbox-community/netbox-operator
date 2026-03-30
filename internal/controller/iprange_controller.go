@@ -79,27 +79,28 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	// merge-patch diff captures every change (IpRangeId, conditions, etc.).
 	statusBase := o.DeepCopy()
 
+	// Defer status update to ensure it happens regardless of how we exit
+	defer func() {
+		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
+	}()
+
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
-			if !o.Spec.PreserveInNetbox {
-				if o.Status.IpRangeId > math.MaxInt32 {
-					return ctrl.Result{}, fmt.Errorf("reconciliation of ip ranges with id's larger than 2147483647 is not supported")
-				}
-				err := r.NetboxClient.DeleteIpRange(ctx, int32(o.Status.IpRangeId))
-				if err != nil {
-					return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip range in netbox: %w", err)
-				}
+		if !controllerutil.ContainsFinalizer(o, IpRangeFinalizerName) {
+			return ctrl.Result{}, nil
+		}
+
+		if !o.Spec.PreserveInNetbox {
+			if o.Status.IpRangeId > math.MaxInt32 {
+				return ctrl.Result{}, fmt.Errorf("reconciliation of ip ranges with id's larger than 2147483647 is not supported")
+			}
+			if err := r.NetboxClient.DeleteIpRange(ctx, int32(o.Status.IpRangeId)); err != nil {
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip range in netbox: %w", err)
 			}
 		}
 
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
 	}
-
-	// Defer status update to ensure it happens regardless of how we exit
-	defer func() {
-		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
-	}()
 
 	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox {
@@ -226,6 +227,11 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 	result = reconcileRes
 	err = reconcileErr
 
+	if apierrors.IsConflict(err) {
+		// Object was modified concurrently — skip status update, will retry on requeue
+		return IgnoreDomainError(result, err)
+	}
+
 	logger.V(4).Info("updating iprange status")
 
 	switch {
@@ -235,17 +241,12 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 	case o.Status.IpRangeUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr)
-	case err != nil:
+	case reconcileErr != nil:
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, err)
+			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr)
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
-	}
-
-	if apierrors.IsConflict(err) {
-		// Object was modified concurrently — skip status update, will retry on requeue
-		return IgnoreDomainError(result, err)
 	}
 
 	// Align resource version so the patch targets the latest revision

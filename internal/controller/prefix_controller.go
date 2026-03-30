@@ -79,37 +79,37 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	// merge-patch diff captures every change (PrefixId, conditions, etc.).
 	statusBase := o.DeepCopy()
 
-	// if being deleted
-	if !o.DeletionTimestamp.IsZero() {
-		if controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
-			if !o.Spec.PreserveInNetbox {
-				if o.Status.PrefixId > math.MaxInt32 {
-					return ctrl.Result{}, fmt.Errorf("reconciliation of prefixes with id's larger than 2147483647 is not supported")
-				}
-				if err := r.NetboxClient.DeletePrefix(ctx, int32(o.Status.PrefixId)); err != nil {
-					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, err)
-					return ctrl.Result{Requeue: true}, nil
-				}
-			}
-
-			logger.V(4).Info("removing the finalizer")
-			if removed := controllerutil.RemoveFinalizer(o, PrefixFinalizerName); !removed {
-				return ctrl.Result{}, errors.New("failed to remove the finalizer")
-			}
-
-			if err := r.Update(ctx, o); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-
-		// end loop if deletion timestamp is not zero
-		return ctrl.Result{}, nil
-	}
-
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
 		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
 	}()
+
+	// if being deleted
+	if !o.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
+			return ctrl.Result{}, nil
+		}
+
+		if !o.Spec.PreserveInNetbox {
+			if o.Status.PrefixId > math.MaxInt32 {
+				return ctrl.Result{}, fmt.Errorf("reconciliation of prefixes with id's larger than 2147483647 is not supported")
+			}
+			if err := r.NetboxClient.DeletePrefix(ctx, int32(o.Status.PrefixId)); err != nil {
+				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete prefix in netbox: %w", err)
+			}
+		}
+
+		logger.V(4).Info("removing the finalizer")
+		if removed := controllerutil.RemoveFinalizer(o, PrefixFinalizerName); !removed {
+			return ctrl.Result{}, errors.New("failed to remove the finalizer")
+		}
+
+		if err := r.Update(ctx, o); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, nil
+	}
 
 	// register finalizer if not yet registered
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
@@ -270,6 +270,11 @@ func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix,
 	result = reconcileRes
 	err = reconcileErr
 
+	if apierrors.IsConflict(err) {
+		// Object was modified concurrently — skip status update, will retry on requeue
+		return IgnoreDomainError(result, err)
+	}
+
 	logger.V(4).Info("updating prefix status")
 
 	switch {
@@ -279,14 +284,12 @@ func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix,
 	case o.Status.PrefixUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	case reconcileErr != nil:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, reconcileErr)
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionPrefixReadyTrue, corev1.EventTypeNormal, nil)
-	}
-
-	if apierrors.IsConflict(err) {
-		// Object was modified concurrently — skip status update, will retry on requeue
-		return IgnoreDomainError(result, err)
 	}
 
 	// Align resource version so the patch targets the latest revision
