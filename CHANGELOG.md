@@ -5,6 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.46] - 2026-03-23
+
+<!-- Release notes generated using configuration in .github/release.yml at c6fec2ae067cf45fe2774dcaa331e5533382906d -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump google.golang.org/grpc from 1.79.2 to 1.79.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/539
+* Build(deps): bump the go-dependencies group across 1 directory with 8 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/541
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.45...v0.2.46
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.46)
+
+---
+
+## [v0.2.45] - 2026-03-16
+
+<!-- Release notes generated using configuration in .github/release.yml at 2a201f0da08406f656814825b30a234c84de72a1 -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 8 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/536
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.44...v0.2.45
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.45)
+
+---
+
+## [v0.2.44] - 2026-03-12
+
+<!-- Release notes generated using configuration in .github/release.yml at 92f7c58eabbdfe4d9bee72c967d88619e6a8359b -->
+
+## What's Changed
+### Contributions
+* get custom fields by name by @bruelea in https://github.com/netbox-community/netbox-operator/pull/534
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.43...v0.2.44
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.44)
+
+---
+
+## [v0.2.43] - 2026-03-10
+
+<!-- Release notes generated using configuration in .github/release.yml at 9181edead730a9a5a00972d923ef41fdbd39319f -->
+
+## What's Changed
+### Contributions
+* replace getavailable ips method by @bruelea in https://github.com/netbox-community/netbox-operator/pull/532
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.42...v0.2.43
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.43)
+
+---
+
+## [v0.2.42] - 2026-03-09
+
+<!-- Release notes generated using configuration in .github/release.yml at f63a44119a1e44136ec42a4fb9dc4710808f8feb -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 37 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/530
+* Build(deps): bump the github-actions group across 1 directory with 6 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/529
+* Build(deps): bump golang from 1.26.0 to 1.26.1 in the docker group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/528
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.41...v0.2.42
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.42)
+
+---
+
 ## [v0.2.41] - 2026-03-03
 
 <!-- Release notes generated using configuration in .github/release.yml at b64f0b7977db1566ca2777e2904b2bb8b7b4dde6 -->

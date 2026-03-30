@@ -271,16 +271,19 @@ func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(o *netboxv1.IpRangeC
 	startAddressDotDecimal := strings.Split(ipRange.Spec.StartAddress, "/")[0]
 	endAddressDotDecimal := strings.Split(ipRange.Spec.EndAddress, "/")[0]
 
-	availableIps, err := r.NetboxClient.GetAvailableIpAddressesByIpRange(ipRange.Status.IpRangeId)
+	ipAddressesDotDecimal, err := ipsInRange(startAddressDotDecimal, endAddressDotDecimal)
 	if err != nil {
 		return netboxv1.IpRangeClaimStatus{}, err
 	}
 
-	ipAddresses := []string{}
-	ipAddressesDotDecimal := []string{}
-	for _, ip := range availableIps.Payload {
-		ipAddresses = append(ipAddresses, ip.Address)
-		ipAddressesDotDecimal = append(ipAddressesDotDecimal, strings.Split(ip.Address, "/")[0])
+	// extract prefix length from start address for CIDR notation
+	prefix := ""
+	if parts := strings.SplitN(ipRange.Spec.StartAddress, "/", 2); len(parts) == 2 {
+		prefix = "/" + parts[1]
+	}
+	ipAddresses := make([]string, len(ipAddressesDotDecimal))
+	for i, ip := range ipAddressesDotDecimal {
+		ipAddresses[i] = ip + prefix
 	}
 
 	return netboxv1.IpRangeClaimStatus{
