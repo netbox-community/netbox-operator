@@ -110,36 +110,6 @@ func mockIpAddressListWithHashFilterMismatch(ipamMock *mock_interfaces.MockIpamI
 		}).MinTimes(1)
 }
 
-func mockIpAddressListWithLastUpdated(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
-	ipamMock.EXPECT().IpamIPAddressesList(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesListOK, error) {
-			got := params.(*ipam.IpamIPAddressesListParams)
-			diff := deep.Equal(got, ExpectedIpAddressListParamsWithIpAddressData)
-			if len(diff) > 0 {
-				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesList (fixed last updated), diff: %+v", diff)
-				catchUnexpectedParams <- err
-				return &ipam.IpamIPAddressesListOK{Payload: nil}, err
-			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesList (fixed last updated) was called with expected input,\n")
-			return &ipam.IpamIPAddressesListOK{Payload: mockedResponseIPAddressListWithLastUpdated()}, nil
-		}).MinTimes(1)
-}
-
-func mockIpamIPAddressesUpdateOnce(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
-	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
-		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {
-			got := params.(*ipam.IpamIPAddressesUpdateParams)
-			diff := deep.Equal(got, ExpectedIpAddressUpdateParams)
-			if len(diff) > 0 {
-				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesUpdate (once), diff: %+v", diff)
-				catchUnexpectedParams <- err
-				return &ipam.IpamIPAddressesUpdateOK{}, err
-			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesUpdate (once) was called with expected input\n")
-			return &ipam.IpamIPAddressesUpdateOK{Payload: mockedResponseIPAddressWithLastUpdated()}, nil
-		}).Times(1)
-}
-
 func mockPrefixesList(ipamAPIMock *mock_interfaces.MockIpamAPI, catchUnexpectedParams chan error) {
 	ipamAPIMock.EXPECT().IpamPrefixesList(gomock.Any()).
 		DoAndReturn(func(ctx interface{}) *mock_interfaces.MockIpamPrefixesListRequest {

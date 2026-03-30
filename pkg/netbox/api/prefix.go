@@ -26,7 +26,7 @@ import (
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
-	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
@@ -35,10 +35,10 @@ import (
 /*
 ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 */
-func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix, prefixV1 *netboxv1.Prefix) (*v4client.Prefix, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix, prefixV1 *netboxv1.Prefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
 	responsePrefix, err := c.getPrefix(ctx, prefix)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	// create prefix since it doesn't exist
@@ -48,43 +48,35 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 
 	prefixToUpdate := &responsePrefix.Results[0]
 
-	// if the desired ip address has a restoration hash
-	// check that the ip address to update has the same restoration hash
+	// if the desired prefix has a restoration hash
+	// check that the prefix to update has the same restoration hash
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
 	if prefix.Metadata != nil {
 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
-				sameLastUpdated := (!prefixToUpdate.LastUpdated.IsSet()) == (prefixV1.Status.LastUpdated == nil) &&
-					(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
-
-				// and the observed generation of the ready condition
-				readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
-				sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == prefixV1.Generation
-				if sameLastUpdated && sameGeneration {
-					return nil, nil
+				if utils.SkipsUpdate(prefixToUpdate.LastUpdated.IsSet(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation,
+					func(statusLastUpdated *metav1.Time) bool {
+						return statusLastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get())
+					}) {
+					return nil, true, nil
 				}
 
-				//update ip address since it does exist and the restoration hash matches
-				return c.updatePrefix(ctx, prefixToUpdate, prefix)
+				//update prefix since it does exist and the restoration hash matches
+				return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
 			}
-			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
+			return nil, true, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
 		}
 	}
 
-	// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
-	sameLastUpdated := (!prefixToUpdate.LastUpdated.IsSet()) == (prefixV1.Status.LastUpdated == nil) &&
-		(!prefixToUpdate.LastUpdated.IsSet() || prefixV1.Status.LastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get()))
-
-	// and the observed generation of the ready condition
-	readyCondition := apismeta.FindStatusCondition(prefixV1.Status.Conditions, "Ready")
-	sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == prefixV1.Generation
-	if sameLastUpdated && sameGeneration {
-		return nil, nil
+	if utils.SkipsUpdate(prefixToUpdate.LastUpdated.IsSet(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation,
+		func(statusLastUpdated *metav1.Time) bool {
+			return statusLastUpdated.Time.Equal(*prefixToUpdate.LastUpdated.Get())
+		}) {
+		return nil, true, nil
 	}
 
-	//update ip address since it does exist
-	return c.updatePrefix(ctx, prefixToUpdate, prefix)
+	//update prefix since it does exist
+	return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
 }
 
 func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.PaginatedPrefixList, err error) {
@@ -120,16 +112,16 @@ func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Pr
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
+func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if isLegacy {
 		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
 		return c.clientV3.createPrefixV3(desiredPrefix)
@@ -137,67 +129,37 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 
 	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	status, err := v4client.NewPatchedWritablePrefixRequestStatusFromValue("active")
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	desiredPrefix.SetStatus(*status)
 	return c.clientV4.createPrefixV4(ctx, desiredPrefix)
 }
 
-func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
-	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
-	resp, httpResp, execErr := req.Execute()
-
-	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusCreated, "create prefix")
-	if closeFunc != nil {
-		defer func() { err = errors.Join(err, closeFunc()) }()
-	}
-	if handleErr != nil {
-		return nil, handleErr
-	}
-
-	return resp, nil
-}
-
-func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixToUpdate *v4client.Prefix, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
+func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	if isLegacy {
 		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
 		if err != nil {
-			return nil, err
+			return nil, true, err
 		}
 
-		return c.clientV3.updatePrefixV3(int64(prefixToUpdate.Id), desiredPrefix)
+		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
 	}
 
 	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
-	return c.clientV4.updatePrefixV4(ctx, prefixToUpdate.Id, desiredPrefix)
-}
-
-func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
-	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
-	resp, httpResp, execErr := req.Execute()
-
-	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "update prefix")
-	if closeFunc != nil {
-		defer func() { err = errors.Join(err, closeFunc()) }()
-	}
-	if handleErr != nil {
-		return nil, handleErr
-	}
-
-	return resp, nil
+	return c.clientV4.updatePrefixV4(ctx, prefixId, desiredPrefix)
 }
 
 func (c *NetboxCompositeClient) DeletePrefix(ctx context.Context, prefixId int32) (err error) {

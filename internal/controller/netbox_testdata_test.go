@@ -200,45 +200,6 @@ func mockedResponseIPAddressListWithHash(customFields map[string]interface{}) *i
 	}
 }
 
-func mockedResponseIPAddressWithLastUpdated() *netboxModels.IPAddress {
-	lastUpdated := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
-	return &netboxModels.IPAddress{
-		ID:          int64(1),
-		Address:     &ipAddress,
-		Display:     ipAddress,
-		LastUpdated: &lastUpdated,
-		Comments:    comments,
-		Description: description,
-		Tenant:      mockedResponseNestedTenant(),
-		Status: &netboxModels.IPAddressStatus{
-			Label: &netboxLabel,
-			Value: &value,
-		},
-	}
-}
-
-func mockedResponseIPAddressListWithLastUpdated() *ipam.IpamIPAddressesListOKBody {
-	lastUpdated := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
-	return &ipam.IpamIPAddressesListOKBody{
-		Results: []*netboxModels.IPAddress{
-			{
-				ID:          int64(1),
-				Address:     &ipAddress,
-				LastUpdated: &lastUpdated,
-				Comments:    comments + warningComment,
-				Description: nsn + description + warningComment,
-				Display:     ipAddress,
-				Tenant:      mockedResponseNestedTenant(),
-				Status: &netboxModels.IPAddressStatus{
-					Label: &netboxLabel,
-					Value: &value,
-				},
-				CustomFields: customFieldsCR,
-			},
-		},
-	}
-}
-
 func mockedResponseIPAddressList() *ipam.IpamIPAddressesListOKBody {
 	return &ipam.IpamIPAddressesListOKBody{
 		Results: []*netboxModels.IPAddress{

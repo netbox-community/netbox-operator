@@ -344,12 +344,13 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(
+		_, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
+		assert.False(t, skipsUpdate)
 	})
 
 	t.Run("update without tenant and site (v4 netbox client)", func(t *testing.T) {
@@ -418,12 +419,13 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(
+		_, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesUpdate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
+		assert.False(t, skipsUpdate)
 	})
 
 	t.Run("restoration hash mismatch", func(t *testing.T) {
@@ -473,13 +475,15 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel, &netboxv1.Prefix{})
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
+		assert.True(t, skipsUpdate)
+		assert.Nil(t, result)
 	})
 
-	t.Run("ReserveOrUpdate, skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 
@@ -501,7 +505,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
@@ -513,10 +517,11 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.True(t, skipsUpdate)
 		assert.Nil(t, actual)
 	})
 
-	t.Run("ReserveOrUpdate, update when Condition is not Ready (no hash)", func(t *testing.T) {
+	t.Run("update when Condition is not Ready (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -553,7 +558,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
@@ -565,6 +570,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.Prefix, actual.Prefix)
@@ -572,7 +578,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when LastUpdated differs (no hash)", func(t *testing.T) {
+	t.Run("update when LastUpdated differs (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -609,7 +615,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
@@ -621,6 +627,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.Prefix, actual.Prefix)
@@ -628,7 +635,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Generation differs (no hash)", func(t *testing.T) {
+	t.Run("update when Generation differs (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -665,7 +672,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
@@ -678,6 +685,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.Prefix, actual.Prefix)
@@ -685,7 +693,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 
@@ -711,7 +719,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{
 				Prefix:   prefix,
@@ -726,10 +734,11 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.True(t, skipsUpdate)
 		assert.Nil(t, actual)
 	})
 
-	t.Run("ReserveOrUpdate, update when Condition is not Ready (with hash)", func(t *testing.T) {
+	t.Run("update when Condition is not Ready (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -770,7 +779,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{
 				Prefix:   prefix,
@@ -785,6 +794,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.Prefix, actual.Prefix)
@@ -792,7 +802,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when LastUpdated differs (with hash)", func(t *testing.T) {
+	t.Run("update when LastUpdated differs (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -833,7 +843,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{
 				Prefix:   prefix,
@@ -848,6 +858,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.Prefix, actual.Prefix)
@@ -855,7 +866,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Generation differs (with hash)", func(t *testing.T) {
+	t.Run("update when Generation differs (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -896,7 +907,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdatePrefix(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
 			&models.Prefix{
 				Prefix:   prefix,
@@ -912,6 +923,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		)
 
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.Prefix, actual.Prefix)

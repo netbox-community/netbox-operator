@@ -27,7 +27,7 @@ import (
 // to ensure compatibility with older NetBox versions the CreatePrefix and UpdatePrefix
 // functions for the v3 client are still required
 
-func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (*v4client.Prefix, error) {
+func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
 	requestCreatePrefix := ipam.
 		NewIpamPrefixesCreateParams().
 		WithDefaults().
@@ -35,7 +35,7 @@ func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (*v
 	responseCreatePrefix, err := c.Ipam.
 		IpamPrefixesCreate(requestCreatePrefix, nil)
 	if err != nil {
-		return nil, utils.NetboxError("failed to create Prefix", err)
+		return nil, true, utils.NetboxError("failed to create Prefix", err)
 	}
 	prefixPayload := responseCreatePrefix.Payload
 
@@ -45,17 +45,17 @@ func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (*v
 		Description: &prefix.Description,
 	}
 
-	return nclientPrefix, nil
+	return nclientPrefix, false, nil
 }
 
-func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (*v4client.Prefix, error) {
+func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
 	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
 		WithDefaults().
 		WithData(prefix).
 		WithID(prefixId)
 	responseUpdatePrefix, err := c.Ipam.IpamPrefixesUpdate(requestUpdatePrefix, nil)
 	if err != nil {
-		return nil, utils.NetboxError("failed to update Prefix", err)
+		return nil, true, utils.NetboxError("failed to update Prefix", err)
 	}
 	prefixPayload := responseUpdatePrefix.Payload
 
@@ -65,7 +65,7 @@ func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.Wri
 		Description: &prefix.Description,
 	}
 
-	return nclientPrefix, nil
+	return nclientPrefix, false, nil
 }
 
 func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Prefix) (*netboxModels.WritablePrefix, error) {
