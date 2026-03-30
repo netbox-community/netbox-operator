@@ -61,6 +61,9 @@ func IgnoreDomainError(reconcileRes ctrl.Result, err error) (ctrl.Result, error)
 
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
+		if reconcileRes.RequeueAfter > 0 {
+			return ctrl.Result{RequeueAfter: reconcileRes.RequeueAfter}, nil
+		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return ctrl.Result{}, err

@@ -94,7 +94,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		if !o.Spec.PreserveInNetbox && o.Status.IpAddressId != 0 {
-			if err := r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
+			if err = r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
 				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip address from netbox: %w", err)
 			}
 		}
@@ -116,7 +116,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
 		logger.V(4).Info("adding the finalizer")
 		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
+		if err = r.Update(ctx, o); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -232,9 +232,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "IpDescriptionTruncated", "ip address was created with truncated description")
 	}
 
-	logger.V(4).Info("reserved ip address in netbox", "ip", o.Spec.IpAddress)
-
-	logger.Info("reconcile loop finished")
 	return ctrl.Result{}, nil
 }
 
@@ -255,6 +252,11 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 	result = reconcileRes
 	err = reconcileErr
 
+	if apierrors.IsConflict(err) {
+		// Object was modified concurrently — skip status update, will retry on requeue
+		return IgnoreDomainError(result, err)
+	}
+
 	logger.V(4).Info("updating ipaddress status")
 
 	switch {
@@ -270,11 +272,6 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpaddressReadyTrue, corev1.EventTypeNormal, nil)
-	}
-
-	if apierrors.IsConflict(err) {
-		// Object was modified concurrently — skip status update, will retry on requeue
-		return IgnoreDomainError(result, err)
 	}
 
 	// Align resource version so the patch targets the latest revision

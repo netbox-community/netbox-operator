@@ -88,9 +88,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 				}
 				err := r.NetboxClient.DeleteIpRange(ctx, int32(o.Status.IpRangeId))
 				if err != nil {
-					r.EventStatusRecorder.Report(ctx, o, netboxv1.ConditionIpRangeReadyFalseDeletionFailed,
-						corev1.EventTypeWarning, err)
-					return ctrl.Result{Requeue: true}, nil
+					return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip range in netbox: %w", err)
 				}
 			}
 		}
@@ -237,6 +235,9 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 	case o.Status.IpRangeUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr)
+	case err != nil:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, err)
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
