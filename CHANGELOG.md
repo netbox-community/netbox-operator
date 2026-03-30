@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.47] - 2026-03-30
+
+<!-- Release notes generated using configuration in .github/release.yml at 50fd58dcee65e102a8b430bda173130b5c54e01b -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump github.com/pelletier/go-toml/v2 from 2.2.4 to 2.3.0 in the go-dependencies group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/543
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.46...v0.2.47
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.47)
+
+---
+
 ## [v0.2.46] - 2026-03-23
 
 <!-- Release notes generated using configuration in .github/release.yml at c6fec2ae067cf45fe2774dcaa331e5533382906d -->
