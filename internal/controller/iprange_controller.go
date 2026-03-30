@@ -159,7 +159,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, err
 	}
 
-	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel, o)
+	netboxIpRangeModel, skipsUpdate, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
@@ -180,7 +180,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// 4. if no change in custom fields and status, skip update
-	if netboxIpRangeModel == nil {
+	if skipsUpdate {
 		return ctrl.Result{}, nil
 	}
 

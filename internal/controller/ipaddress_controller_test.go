@@ -162,7 +162,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 
 		catchCtxCancel()
 	},
-		Entry("Create IpAddress CR, reserve new ip address in NetBox, ",
+		Entry("Create IpAddress CR, reserve new ip address in NetBox",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilterEmptyResult,
@@ -172,8 +172,8 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
-		Entry("Create IpAddress CR, ip address already reserved in NetBox, preserved in netbox, ",
+			false, true, ExpectedIpAddressStatus),
+		Entry("Create IpAddress CR, ip address already reserved in NetBox, preserved in netbox",
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
@@ -217,8 +217,8 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		Entry("Create IpAddress CR, skip update when already up to date in NetBox",
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithLastUpdated,
-				mockIpamIPAddressesUpdateOnce,
+				mockIpAddressListWithIpAddressFilter,
+				mockIpamIPAddressesUpdate,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,

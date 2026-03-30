@@ -73,7 +73,7 @@ func TestIpRange(t *testing.T) {
 		}
 	}
 
-	t.Run("getIpRange, retrieve Existing IP Range", func(t *testing.T) {
+	t.Run("get existing IP Range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		// Setup expectations
@@ -122,7 +122,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.Results[0].MarkPopulated)
 	})
 
-	t.Run("ReserveOrUpdate, reserve new ip range", func(t *testing.T) {
+	t.Run("reserve new ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockCreateRequest := mock_interfaces.NewMockIpamIpRangesCreateRequest(ctrl)
@@ -201,7 +201,7 @@ func TestIpRange(t *testing.T) {
 		ipRangeRequest.SetStatus("active")
 
 		// Test
-		actual, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
 				EndAddress:   endAddress,
@@ -212,6 +212,7 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, IpRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
@@ -224,7 +225,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
-	t.Run("ReserveOrUpdate, restoration hash mismatch", func(t *testing.T) {
+	t.Run("restoration hash mismatch", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
@@ -272,7 +273,7 @@ func TestIpRange(t *testing.T) {
 
 		// Test
 		expectedHash := "ffjrep8b29fdaikb"
-		_, err := compositeClient.ReserveOrUpdateIpRange(
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -286,9 +287,11 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.0.0.1-10.0.0.10")
+		assert.True(t, skipsUpdate)
+		assert.Nil(t, result)
 	})
 
-	t.Run("ReserveOrUpdate, update existing ip range", func(t *testing.T) {
+	t.Run("update existing ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
@@ -372,7 +375,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		// Test
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -384,6 +387,8 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
+		assert.NotNil(t, actual)
 		assert.Equal(t, ipRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
 		assert.Equal(t, expectedIPRange().Description, actual.Description)
@@ -395,7 +400,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
-	t.Run("ReserveOrUpdate, skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 
@@ -423,7 +428,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -437,10 +442,11 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
+		assert.True(t, skipsUpdate)
 		assert.Nil(t, actual)
 	})
 
-	t.Run("ReserveOrUpdate, update when Condition is not Ready (no hash)", func(t *testing.T) {
+	t.Run("update when Condition is not Ready (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
@@ -489,7 +495,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -503,6 +509,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
@@ -512,7 +519,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Generation differs (no hash)", func(t *testing.T) {
+	t.Run("update when Generation differs (no hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
@@ -556,7 +563,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -572,6 +579,7 @@ func TestIpRange(t *testing.T) {
 			})
 		AssertNil(t, err)
 		assert.NotNil(t, actual, "expected update when Generation differs")
+		assert.False(t, skipsUpdate)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
 		assert.Equal(t, expected.EndAddress, actual.EndAddress)
@@ -580,7 +588,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when LastUpdated differs (no hash)", func(t *testing.T) {
+	t.Run("update when LastUpdated differs (no hash)", func(t *testing.T) {
 		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
@@ -625,7 +633,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -640,6 +648,7 @@ func TestIpRange(t *testing.T) {
 			})
 		AssertNil(t, err)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
+		assert.False(t, skipsUpdate)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
 		assert.Equal(t, expected.EndAddress, actual.EndAddress)
@@ -648,7 +657,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 
@@ -681,7 +690,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -700,10 +709,11 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
+		assert.True(t, skipsUpdate)
 		assert.Nil(t, actual)
 	})
 
-	t.Run("ReserveOrUpdate, update when Condition is not Ready (with hash)", func(t *testing.T) {
+	t.Run("update when Condition is not Ready (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
@@ -755,7 +765,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -774,6 +784,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
@@ -783,7 +794,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Generation differs (with hash)", func(t *testing.T) {
+	t.Run("update when Generation differs (with hash)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
@@ -831,7 +842,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -852,6 +863,7 @@ func TestIpRange(t *testing.T) {
 			})
 		AssertNil(t, err)
 		assert.NotNil(t, actual, "expected update when Generation differs")
+		assert.False(t, skipsUpdate)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
 		assert.Equal(t, expected.EndAddress, actual.EndAddress)
@@ -860,7 +872,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when LastUpdated differs (no hash)", func(t *testing.T) {
+	t.Run("update when LastUpdated differs (no hash)", func(t *testing.T) {
 		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
@@ -910,7 +922,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -929,6 +941,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
@@ -938,7 +951,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 
-	t.Run("DeleteIpRange, delete ip range", func(t *testing.T) {
+	t.Run("delete ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
@@ -967,7 +980,7 @@ func TestIpRange(t *testing.T) {
 		AssertNil(t, err)
 	})
 
-	t.Run("DeleteIpRange, ignore 404 error", func(t *testing.T) {
+	t.Run("delete ip range ignore 404 error", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
@@ -996,7 +1009,7 @@ func TestIpRange(t *testing.T) {
 		AssertNil(t, err)
 	})
 
-	t.Run("DeleteIpRange, return non 404 errors", func(t *testing.T) {
+	t.Run("delete ip range return non 404 errors", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 

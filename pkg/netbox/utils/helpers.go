@@ -16,47 +16,24 @@ limitations under the License.
 
 package utils
 
-func NormalizeCustomFields(customFields interface{}) map[string]interface{} {
-	switch fields := customFields.(type) {
-	case nil:
-		return nil
-	case map[string]interface{}:
-		return fields
-	case map[string]string:
-		normalized := make(map[string]interface{}, len(fields))
-		for key, value := range fields {
-			normalized[key] = value
-		}
-		return normalized
-	default:
-		return nil
-	}
-}
+import (
+	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
-func NeedsUpdate[C any, D any](current *C, desired *D, checks ...func(*C, *D) bool) bool {
-	if current == nil && desired != nil {
-		return true
-	}
-	if current != nil && desired == nil {
-		return true
-	}
-	for _, check := range checks {
-		if check(current, desired) {
-			return true
-		}
-	}
-	return false
-}
-
-func CompareCustomFields(
-	current map[string]interface{},
-	desired map[string]interface{},
+func SkipsUpdate(netboxLastUpdatedIsSet bool,
+	statusLastUpdated *metav1.Time,
+	conditions []metav1.Condition,
+	generation int64,
+	lastUpdatedEqual func(statusLastUpdated *metav1.Time) bool,
 ) bool {
+	sameLastUpdated := netboxLastUpdatedIsSet == (statusLastUpdated != nil) &&
+		(!netboxLastUpdatedIsSet || lastUpdatedEqual(statusLastUpdated))
 
-	for k, v := range desired {
-		if current[k] != v {
-			return true
-		}
-	}
-	return false
+	return sameLastUpdated && sameReadyGeneration(conditions, generation)
+}
+
+func sameReadyGeneration(conditions []metav1.Condition, generation int64) bool {
+	readyCondition := apismeta.FindStatusCondition(conditions, "Ready")
+	return readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
 }

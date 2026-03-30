@@ -17,9 +17,43 @@ limitations under the License.
 package api
 
 import (
+	"context"
+	"errors"
+	"net/http"
+
 	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 )
+
+func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, skipsUpdate bool, err error) {
+	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
+	resp, httpResp, execErr := req.Execute()
+
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusCreated, "create prefix")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
+	}
+	if handleErr != nil {
+		return nil, true, handleErr
+	}
+
+	return resp, false, nil
+}
+
+func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, skipsUpdate bool, err error) {
+	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
+	resp, httpResp, execErr := req.Execute()
+
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "update prefix")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
+	}
+	if handleErr != nil {
+		return nil, true, handleErr
+	}
+
+	return resp, false, nil
+}
 
 func (c *NetboxCompositeClient) writablePrefixRequestV4(prefix *models.Prefix) (*v4client.WritablePrefixRequest, error) {
 	desiredPrefix := v4client.NewWritablePrefixRequest(prefix.Prefix)

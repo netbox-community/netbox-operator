@@ -226,7 +226,7 @@ func TestIPAddress(t *testing.T) {
 		assert.Zero(t, res.Payload.Count)
 	})
 
-	t.Run("createIpAddress, create Static IP Address", func(t *testing.T) {
+	t.Run("create Static IP Address", func(t *testing.T) {
 
 		// ip address mock input
 		input := ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(writeableAddress())
@@ -245,17 +245,18 @@ func TestIPAddress(t *testing.T) {
 			clientV3: clientV3,
 		}
 
-		ipaddress, err := compositeClient.createIpAddress(writeableAddress())
+		ipaddress, skipsUpdate, err := compositeClient.createIpAddress(writeableAddress())
 
 		// assert error return
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate, "expected create to not skip update")
 
 		// assert address elements
 		AssertIpAddress(t, writeableAddress(), ipaddress)
 
 	})
 
-	t.Run("updateIpAddress, update of Static IP Address", func(t *testing.T) {
+	t.Run("update of Static IP Address", func(t *testing.T) {
 
 		input := ipam.NewIpamIPAddressesUpdateParams().WithDefaults().WithData(writeableAddress()).WithID(IpAddressId)
 
@@ -272,17 +273,17 @@ func TestIPAddress(t *testing.T) {
 			clientV3: clientV3,
 		}
 
-		ipaddress, err := compositeClient.updateIpAddress(IpAddressId, writeableAddress())
+		ipaddress, skipsUpdate, err := compositeClient.updateIpAddress(IpAddressId, writeableAddress())
 
 		// assertion for errors
 		AssertNil(t, err)
+		assert.False(t, skipsUpdate, "expected update to not skip update")
 
 		// assert address properties
 		AssertIpAddress(t, writeableAddress(), ipaddress)
-
 	})
 
-	t.Run("DeleteIpAddress, delete IP Address", func(t *testing.T) {
+	t.Run("delete IP Address", func(t *testing.T) {
 
 		input := ipam.NewIpamIPAddressesDeleteParams().WithID(IpAddressId)
 		output := &ipam.IpamIPAddressesDeleteNoContent{}
@@ -300,7 +301,7 @@ func TestIPAddress(t *testing.T) {
 		AssertNil(t, err)
 	})
 
-	t.Run("ReserveOrUpdate, check without hash", func(t *testing.T) {
+	t.Run("check without hash", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
 			Payload: &ipam.IpamIPAddressesListOKBody{
@@ -329,11 +330,25 @@ func TestIPAddress(t *testing.T) {
 		}
 
 		ipAddressModel := ipAddressModel("")
-		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertNil(t, err)
+		assert.NotNil(t, result, "expected result when update is performed")
+		assert.False(t, skipsUpdate, "expected update to be performed")
+		assert.Equal(t, expectedIPAddress().ID, result.ID)
+		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
+		assert.Equal(t, expectedIPAddress().Description, result.Description)
+		assert.Equal(t, expectedIPAddress().Display, result.Display)
+		assert.Equal(t, expectedIPAddress().Address, result.Address)
+		assert.Equal(t, expectedIPAddress().Tenant.ID, result.Tenant.ID)
+		assert.Equal(t, expectedIPAddress().Tenant.Name, result.Tenant.Name)
+		assert.Equal(t, expectedIPAddress().Tenant.Slug, result.Tenant.Slug)
+		assert.Equal(t, expectedIPAddress().CustomFields, result.CustomFields)
+		assert.Equal(t, expectedIPAddress().Status.Label, result.Status.Label)
+		assert.Equal(t, expectedIPAddress().Status.Value, result.Status.Value)
+		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, check with hash", func(t *testing.T) {
+	t.Run("check with hash", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
 			Payload: &ipam.IpamIPAddressesListOKBody{
@@ -363,11 +378,25 @@ func TestIPAddress(t *testing.T) {
 		}
 
 		ipAddressModel := ipAddressModel(expectedHash)
-		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertNil(t, err)
+		assert.NotNil(t, result, "expected result when update is performed")
+		assert.False(t, skipsUpdate, "expected update to be performed")
+		assert.Equal(t, expectedIPAddress().ID, result.ID)
+		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
+		assert.Equal(t, expectedIPAddress().Description, result.Description)
+		assert.Equal(t, expectedIPAddress().Display, result.Display)
+		assert.Equal(t, expectedIPAddress().Address, result.Address)
+		assert.Equal(t, expectedIPAddress().Tenant.ID, result.Tenant.ID)
+		assert.Equal(t, expectedIPAddress().Tenant.Name, result.Tenant.Name)
+		assert.Equal(t, expectedIPAddress().Tenant.Slug, result.Tenant.Slug)
+		assert.Equal(t, expectedIPAddress().CustomFields, result.CustomFields)
+		assert.Equal(t, expectedIPAddress().Status.Label, result.Status.Label)
+		assert.Equal(t, expectedIPAddress().Status.Value, result.Status.Value)
+		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
 			Payload: &ipam.IpamIPAddressesListOKBody{
@@ -382,7 +411,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(*expectedIPAddress().LastUpdated))
-		result, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -391,10 +420,14 @@ func TestIPAddress(t *testing.T) {
 			},
 		})
 		AssertNil(t, err)
-		assert.Nil(t, result, "expected nil when LastUpdated matches and Condition is Ready and Generation matches")
+		assert.NotNil(t, result, "expected existing NetBox IP when LastUpdated matches and Condition is Ready and Generation matches")
+		assert.True(t, skipsUpdate, "expected skip update when LastUpdated matches and Condition is Ready and Generation matches")
+		assert.Equal(t, expectedIPAddress().ID, result.ID)
+		assert.Equal(t, expectedIPAddress().Address, result.Address)
+		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Condition is not Ready (no hash)", func(t *testing.T) {
+	t.Run("update when Condition is not Ready (no hash)", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
 			Payload: &ipam.IpamIPAddressesListOKBody{
@@ -410,26 +443,23 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		lastUpdatedV1 := metav1.NewTime(time.Time(*expectedIPAddress().LastUpdated))
-		result, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
 				Conditions: []metav1.Condition{
-					{Type: "Ready", Status: "False", ObservedGeneration: 0},
+					{Type: "Ready", Status: "True", ObservedGeneration: 0},
 				},
 			},
 		})
-
 		AssertNil(t, err)
-		assert.NotNil(t, result, "expected update when Condition is not Ready")
+		assert.NotNil(t, result)
+		assert.False(t, skipsUpdate)
 		assert.Equal(t, expectedIPAddress().ID, result.ID)
 		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
 		assert.Equal(t, expectedIPAddress().Description, result.Description)
 		assert.Equal(t, expectedIPAddress().Display, result.Display)
 		assert.Equal(t, expectedIPAddress().Address, result.Address)
-		assert.Equal(t, expectedIPAddress().Tenant.ID, result.Tenant.ID)
-		assert.Equal(t, expectedIPAddress().Tenant.Name, result.Tenant.Name)
-		assert.Equal(t, expectedIPAddress().Tenant.Slug, result.Tenant.Slug)
 		assert.Equal(t, expectedIPAddress().CustomFields, result.CustomFields)
 		assert.Equal(t, expectedIPAddress().Status.Label, result.Status.Label)
 		assert.Equal(t, expectedIPAddress().Status.Value, result.Status.Value)
@@ -453,7 +483,7 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		result, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1, // different from NetBox
 				Conditions: []metav1.Condition{
@@ -463,6 +493,7 @@ func TestIPAddress(t *testing.T) {
 		})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected update when LastUpdated differs")
+		assert.False(t, skipsUpdate, "expected update when LastUpdated differs")
 		assert.Equal(t, expectedIPAddress().ID, result.ID)
 		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
 		assert.Equal(t, expectedIPAddress().Description, result.Description)
@@ -477,7 +508,7 @@ func TestIPAddress(t *testing.T) {
 		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Generation differs (no hash)", func(t *testing.T) {
+	t.Run("update when Generation differs (no hash)", func(t *testing.T) {
 		lastUpdated := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
@@ -495,7 +526,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			ObjectMeta: metav1.ObjectMeta{Generation: 2}, // Generation 2
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
@@ -506,6 +537,7 @@ func TestIPAddress(t *testing.T) {
 		})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected update when Generation differs")
+		assert.False(t, skipsUpdate, "expected update when Generation differs")
 		assert.Equal(t, expectedIPAddress().ID, result.ID)
 		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
 		assert.Equal(t, expectedIPAddress().Description, result.Description)
@@ -520,7 +552,7 @@ func TestIPAddress(t *testing.T) {
 		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
 		lastUpdated := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
@@ -541,7 +573,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -550,10 +582,14 @@ func TestIPAddress(t *testing.T) {
 			},
 		})
 		AssertNil(t, err)
-		assert.Nil(t, result, "expected nil when LastUpdated matches and Condition is Ready and Generation matches (with hash)")
+		assert.NotNil(t, result, "expected existing NetBox IP when LastUpdated matches and Condition is Ready and Generation matches (with hash)")
+		assert.True(t, skipsUpdate, "expected skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)")
+		assert.Equal(t, expectedIPAddress().ID, result.ID)
+		assert.Equal(t, expectedIPAddress().Address, result.Address)
+		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Condition is not Ready (with hash)", func(t *testing.T) {
+	t.Run("update when Condition is not Ready (with hash)", func(t *testing.T) {
 		lastUpdated := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{
@@ -576,7 +612,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -586,6 +622,7 @@ func TestIPAddress(t *testing.T) {
 		})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected update when Condition is not Ready (with hash)")
+		assert.False(t, skipsUpdate, "expected update when Condition is not Ready (with hash)")
 		assert.Equal(t, expectedIPAddress().ID, result.ID)
 		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
 		assert.Equal(t, expectedIPAddress().Description, result.Description)
@@ -600,7 +637,7 @@ func TestIPAddress(t *testing.T) {
 		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when LastUpdated differs (with hash)", func(t *testing.T) {
+	t.Run("update when LastUpdated differs (with hash)", func(t *testing.T) {
 		lastUpdatedNetBox := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 
@@ -624,7 +661,7 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		result, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -634,6 +671,7 @@ func TestIPAddress(t *testing.T) {
 		})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected update when LastUpdated differs")
+		assert.False(t, skipsUpdate, "expected update when LastUpdated differs")
 		assert.Equal(t, expectedIPAddress().ID, result.ID)
 		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
 		assert.Equal(t, expectedIPAddress().Description, result.Description)
@@ -648,7 +686,7 @@ func TestIPAddress(t *testing.T) {
 		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
-	t.Run("ReserveOrUpdate, update when Generation differs (with hash)", func(t *testing.T) {
+	t.Run("update when Generation differs (with hash)", func(t *testing.T) {
 		lastUpdated := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
@@ -672,7 +710,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			ObjectMeta: metav1.ObjectMeta{Generation: 2}, // Generation 2
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: &lastUpdatedV1,
@@ -683,6 +721,7 @@ func TestIPAddress(t *testing.T) {
 		})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected update when LastUpdated differs")
+		assert.False(t, skipsUpdate, "expected update when Generation differs (with hash)")
 		assert.Equal(t, expectedIPAddress().ID, result.ID)
 		assert.Equal(t, expectedIPAddress().Comments, result.Comments)
 		assert.Equal(t, expectedIPAddress().Description, result.Description)
@@ -722,7 +761,9 @@ func TestIPAddress(t *testing.T) {
 
 		expectedHash := "iwfohs7v82fe9w0"
 		ipAddressModel := ipAddressModel(expectedHash)
-		_, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
+		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
+		assert.Nil(t, result)
+		assert.True(t, skipsUpdate)
 	})
 }

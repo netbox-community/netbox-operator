@@ -26,16 +26,16 @@ import (
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
-	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (*v4client.IPRange, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (resp *v4client.IPRange, skipsUpdate bool, err error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	desiredIpRange := v4client.NewWritableIPRangeRequest(ipRange.StartAddress, ipRange.EndAddress)
@@ -54,7 +54,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		if ipRange.Metadata.Tenant != "" {
 			tenantDetails, err := c.getTenantDetails(ipRange.Metadata.Tenant)
 			if err != nil {
-				return nil, err
+				return nil, true, err
 			}
 			tenantId := int32(tenantDetails.Id)
 			desiredIpRange.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
@@ -68,63 +68,31 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 
 	ipRangeToUpdate := &responseIpRangeList.Results[0]
 
-	// needsUpdate := utils.NeedsUpdate(
-	// 	ipRangeToUpdate,
-	// 	desiredIpRange,
-	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-	// 		return current.GetDescription() != desired.GetDescription()
-	// 	},
-	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-	// 		return current.GetComments() != desired.GetComments()
-	// 	},
-	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-	// 		return string(current.Status.GetValue()) != string(desired.GetStatus())
-	// 	},
-	// 	func(current *v4client.IPRange, desired *v4client.WritableIPRangeRequest) bool {
-	// 		return utils.CompareCustomFields(
-	// 			current.CustomFields,
-	// 			desired.CustomFields,
-	// 		)
-	// 	},
-	// )
-
-	// if !needsUpdate {
-	// 	return ipRangeToUpdate, nil
-	// }
-
-	// if the desired ip address has a restoration hash
-	// check that the ip address to update has the same restoration hash
+	// if the desired ip range has a restoration hash
+	// check that the ip range to update has the same restoration hash
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
 	if ipRange.Metadata != nil {
 		if restorationHash, ok := ipRange.Metadata.Custom[restorationHashKey]; ok {
 			if ipRangeToUpdate.CustomFields != nil && ipRangeToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
-				// and the observed generation of the ready condition
-				sameLastUpdated := (!ipRangeToUpdate.LastUpdated.IsSet()) == (ipRangeV1.Status.LastUpdated == nil) &&
-					(!ipRangeToUpdate.LastUpdated.IsSet() || ipRangeV1.Status.LastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get()))
-
-				readyCondition := apismeta.FindStatusCondition(ipRangeV1.Status.Conditions, "Ready")
-				sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == ipRangeV1.Generation
-				if sameLastUpdated && sameGeneration {
-					return nil, nil
+				if utils.SkipsUpdate(ipRangeToUpdate.LastUpdated.IsSet(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation,
+					func(statusLastUpdated *metav1.Time) bool {
+						return statusLastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get())
+					}) {
+					return nil, true, nil
 				}
 
-				//update ip address since it does exist and the restoration hash matches
+				//update ip range since it does exist and the restoration hash matches
 				return c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
 			}
-			return nil, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
+			return nil, true, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
 		}
 	}
 
-	// compare the LastUpdated of IPAddress in NetBox with the LastUpdated in the K8s status
-	// and the observed generation of the ready condition
-	sameLastUpdated := (!ipRangeToUpdate.LastUpdated.IsSet()) == (ipRangeV1.Status.LastUpdated == nil) &&
-		(!ipRangeToUpdate.LastUpdated.IsSet() || ipRangeV1.Status.LastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get()))
-
-	readyCondition := apismeta.FindStatusCondition(ipRangeV1.Status.Conditions, "Ready")
-	sameGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == ipRangeV1.Generation
-	if sameLastUpdated && sameGeneration {
-		return nil, nil
+	if utils.SkipsUpdate(ipRangeToUpdate.LastUpdated.IsSet(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation,
+		func(statusLastUpdated *metav1.Time) bool {
+			return statusLastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get())
+		}) {
+		return nil, true, nil
 	}
 
 	//update ip range since it does exist
@@ -166,7 +134,7 @@ func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, err error) {
+func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, skipsUpdate bool, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesCreate(ctx).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, execErr := req.Execute()
 
@@ -175,13 +143,13 @@ func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4cl
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
-		return nil, handleErr
+		return nil, true, handleErr
 	}
 
-	return resp, nil
+	return resp, false, nil
 }
 
-func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, err error) {
+func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, skipsUpdate bool, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, execErr := req.Execute()
 
@@ -190,10 +158,10 @@ func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
-		return nil, handleErr
+		return nil, true, handleErr
 	}
 
-	return resp, nil
+	return resp, false, nil
 }
 
 func (c *NetboxCompositeClient) DeleteIpRange(ctx context.Context, ipRangeId int32) (err error) {
