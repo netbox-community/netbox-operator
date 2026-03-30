@@ -104,7 +104,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			h := generatePrefixRestorationHash(o)
 			canBeRestored, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.Spec.PrefixLength)
 			if err != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to look up prefix by hash: %w", err)
+				return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 			}
 
 			if canBeRestored != nil {
@@ -148,7 +148,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				// fetch available prefixes from netbox
 				parentPrefixCandidates, err := r.NetboxClient.GetAvailablePrefixesByParentPrefixSelector(ctx, &o.Spec)
 				if err != nil {
-					return ctrl.Result{Requeue: true}, NewDomainError("failed to get available prefixes by parent prefix selector: %w", err)
+					return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 				}
 				if len(parentPrefixCandidates) == 0 {
 					return ctrl.Result{Requeue: true}, NewDomainError("no parent prefix found matching the parentPrefixSelector")
@@ -218,7 +218,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		h := generatePrefixRestorationHash(o)
 		prefixModel, err := r.NetboxClient.RestoreExistingPrefixByHash(h, o.Spec.PrefixLength)
 		if err != nil {
-			return ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing prefix by hash: %w", err)
+			return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 		}
 
 		if prefixModel == nil {
@@ -240,9 +240,10 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				if errors.Is(err, api.ErrParentPrefixExhausted) {
 					// we reset the selected parent prefix, since this one is already exhausted
 					o.Status.SelectedParentPrefix = ""
+					return ctrl.Result{Requeue: true}, NewDomainError("parent prefix exhausted, will restart the parent prefix selection process")
 				}
 
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to get available prefix: %w", err)
+				return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 			}
 			logger.V(4).Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
 		} else {

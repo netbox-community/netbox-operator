@@ -127,7 +127,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		h := generateIpAddressRestorationHash(o)
 		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(h)
 		if err != nil {
-			return ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing IP by hash: %w", err)
+			return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 		}
 
 		if ipAddressModel == nil {
@@ -142,7 +142,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 					},
 				})
 			if err != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to get available IP address from NetBox: %w", err)
+				return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 			}
 			logger.V(4).Info("ip address is not reserved in netbox, assigned new ip address", "ip", ipAddressModel.IpAddress)
 		} else {

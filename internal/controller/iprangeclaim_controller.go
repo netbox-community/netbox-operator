@@ -314,7 +314,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 	h := generateIpRangeRestorationHash(o)
 	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("failed to restore existing ip range by hash: %w", err)
+		return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 	}
 
 	if ipRangeModel == nil {
@@ -331,7 +331,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 			},
 		)
 		if err != nil {
-			return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("failed to get available ip range: %w", err)
+			return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 		}
 		logger.V(4).Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	} else {

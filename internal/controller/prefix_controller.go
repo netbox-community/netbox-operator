@@ -204,7 +204,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, NewDomainError("failed to reserve or update prefix in netbox: %w", err)
+		return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 	}
 
 	/* 3. unlock lease of parent prefix */

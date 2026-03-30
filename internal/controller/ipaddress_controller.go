@@ -191,7 +191,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, NewDomainError("failed to reserve or update ip address in netbox: %w", err)
+		return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 	}
 
 	// 3. unlock lease of parent prefix — allocation is done, lock no longer needed

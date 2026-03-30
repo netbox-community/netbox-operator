@@ -170,7 +170,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, NewDomainError("failed to reserve or update ip range in netbox: %w", err)
+		return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
 	}
 
 	// 3. unlock lease of parent prefix
