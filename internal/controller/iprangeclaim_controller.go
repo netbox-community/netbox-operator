@@ -201,6 +201,7 @@ func (r *IpRangeClaimReconciler) updateStatus(ctx context.Context, claim *netbox
 		if apierrors.IsNotFound(err) {
 			// IpRange doesn't exist yet
 			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeAssignedFalse, corev1.EventTypeWarning, reconcileErr)
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionIpRangeClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
 			// Preserve original result (e.g. RequeueAfter from lock contention)
 			if result.IsZero() {
 				result = ctrl.Result{RequeueAfter: 1 * time.Second}

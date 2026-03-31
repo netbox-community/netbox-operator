@@ -336,6 +336,7 @@ func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv
 		if apierrors.IsNotFound(err) {
 			// Prefix doesn't exist yet
 			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, reconcileErr)
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
 			// Preserve original result (e.g. RequeueAfter from lock contention)
 			if result.IsZero() {
 				result = ctrl.Result{RequeueAfter: 1 * time.Second}

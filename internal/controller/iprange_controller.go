@@ -240,10 +240,12 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeNormal, reconcileErr)
 	case o.Status.IpRangeUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr)
+			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr,
+			fmt.Sprintf("range: %s-%s", o.Spec.StartAddress, o.Spec.EndAddress))
 	case reconcileErr != nil:
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr)
+			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr,
+			fmt.Sprintf("range: %s-%s", o.Spec.StartAddress, o.Spec.EndAddress))
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpRangeReadyTrue, corev1.EventTypeNormal, nil)
