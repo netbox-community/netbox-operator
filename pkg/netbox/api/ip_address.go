@@ -25,13 +25,12 @@ import (
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress, ipAddressV1 *netboxv1.IpAddress) (resp *netboxModels.IPAddress, skipsUpdate bool, err error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress, ipAddressV1 *netboxv1.IpAddress) (resp *netboxModels.IPAddress, isUpToDate bool, err error) {
 	responseIpAddress, err := c.getIpAddress(ipAddress)
 	if err != nil {
 		return nil, false, err
@@ -59,10 +58,17 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 
 	// create ip address since it doesn't exist
 	if len(responseIpAddress.Payload.Results) == 0 {
-		return c.createIpAddress(desiredIPAddress)
+		resp, err := c.createIpAddress(desiredIPAddress)
+		return resp, false, err
 	}
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
+
+	if ipToUpdate.LastUpdated == nil {
+		return nil, true, fmt.Errorf("last updated field is not set in Netbox for ip address %s", ipAddress.IpAddress)
+	}
+
+	netboxLastUpdated := time.Time(*ipToUpdate.LastUpdated)
 
 	// if the desired ip address has a restoration hash
 	// check that the ip address to update has the same restoration hash
@@ -70,10 +76,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	if ipAddress.Metadata != nil {
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
-				if utils.SkipsUpdate(ipToUpdate.LastUpdated != nil, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation,
-					func(statusLastUpdated *metav1.Time) bool {
-						return statusLastUpdated.Time.Equal(time.Time(*ipToUpdate.LastUpdated))
-					}) {
+				if utils.IsUpToDate(&netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
 					return ipToUpdate, true, nil
 				}
 				//update ip address since it does exist and the restoration hash matches
@@ -83,10 +86,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 		}
 	}
 
-	if utils.SkipsUpdate(ipToUpdate.LastUpdated != nil, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation,
-		func(statusLastUpdated *metav1.Time) bool {
-			return statusLastUpdated.Time.Equal(time.Time(*ipToUpdate.LastUpdated))
-		}) {
+	if utils.IsUpToDate(&netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
 		return ipToUpdate, true, nil
 	}
 
@@ -107,7 +107,7 @@ func (c *NetboxCompositeClient) getIpAddress(ipAddress *models.IPAddress) (*ipam
 	return responseIpAddress, err
 }
 
-func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.WritableIPAddress) (resp *netboxModels.IPAddress, skipsUpdate bool, err error) {
+func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.WritableIPAddress) (resp *netboxModels.IPAddress, err error) {
 	requestCreateIp := ipam.
 		NewIpamIPAddressesCreateParams().
 		WithDefaults().
@@ -115,12 +115,12 @@ func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.Writable
 	responseCreateIp, err := c.clientV3.Ipam.
 		IpamIPAddressesCreate(requestCreateIp, nil)
 	if err != nil {
-		return nil, true, utils.NetboxError("failed to reserve IP Address", err)
+		return nil, utils.NetboxError("failed to reserve IP Address", err)
 	}
-	return responseCreateIp.Payload, false, nil
+	return responseCreateIp.Payload, nil
 }
 
-func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (resp *netboxModels.IPAddress, skipsUpdate bool, err error) {
+func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (resp *netboxModels.IPAddress, isUpToDate bool, err error) {
 	requestUpdateIp := ipam.
 		NewIpamIPAddressesUpdateParams().
 		WithDefaults().

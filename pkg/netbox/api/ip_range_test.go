@@ -57,9 +57,10 @@ func TestIpRange(t *testing.T) {
 	expectedStatus.SetValue(v4client.IPRangeStatusValue(Value))
 	expectedStatus.SetLabel(v4client.IPRangeStatusLabel(Label))
 
+	expectedLastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	// Create expected response
 	expectedIPRange := func() v4client.IPRange {
-		lastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+		lastUpdated := expectedLastUpdated
 		return v4client.IPRange{
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
@@ -201,7 +202,7 @@ func TestIpRange(t *testing.T) {
 		ipRangeRequest.SetStatus("active")
 
 		// Test
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
 				EndAddress:   endAddress,
@@ -212,7 +213,7 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, IpRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
@@ -248,6 +249,7 @@ func TestIpRange(t *testing.T) {
 			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{
 				{
 					CustomFields: map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
+					LastUpdated:  *v4client.NewNullableTime(&expectedLastUpdated),
 				},
 			}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
@@ -273,7 +275,7 @@ func TestIpRange(t *testing.T) {
 
 		// Test
 		expectedHash := "ffjrep8b29fdaikb"
-		result, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -287,7 +289,7 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.0.0.1-10.0.0.10")
-		assert.True(t, skipsUpdate)
+		assert.True(t, isUpToDate)
 		assert.Nil(t, result)
 	})
 
@@ -335,6 +337,7 @@ func TestIpRange(t *testing.T) {
 					Comments:      &comments,
 					Description:   &description,
 					MarkPopulated: &markPopulatedTrue,
+					LastUpdated:   *v4client.NewNullableTime(&expectedLastUpdated),
 				},
 			}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
@@ -375,7 +378,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		// Test
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -387,7 +390,7 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		AssertNil(t, err)
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, ipRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
@@ -428,7 +431,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -442,7 +445,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
-		assert.True(t, skipsUpdate)
+		assert.True(t, isUpToDate)
 		assert.Nil(t, actual)
 	})
 
@@ -495,7 +498,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -509,7 +512,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
@@ -563,7 +566,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -579,7 +582,7 @@ func TestIpRange(t *testing.T) {
 			})
 		AssertNil(t, err)
 		assert.NotNil(t, actual, "expected update when Generation differs")
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
 		assert.Equal(t, expected.EndAddress, actual.EndAddress)
@@ -633,7 +636,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -648,7 +651,7 @@ func TestIpRange(t *testing.T) {
 			})
 		AssertNil(t, err)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
 		assert.Equal(t, expected.EndAddress, actual.EndAddress)
@@ -690,7 +693,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -709,7 +712,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
-		assert.True(t, skipsUpdate)
+		assert.True(t, isUpToDate)
 		assert.Nil(t, actual)
 	})
 
@@ -765,7 +768,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -784,7 +787,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
@@ -842,7 +845,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -863,7 +866,7 @@ func TestIpRange(t *testing.T) {
 			})
 		AssertNil(t, err)
 		assert.NotNil(t, actual, "expected update when Generation differs")
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)
 		assert.Equal(t, expected.EndAddress, actual.EndAddress)
@@ -922,7 +925,7 @@ func TestIpRange(t *testing.T) {
 			clientV4: clientV4,
 		}
 
-		actual, skipsUpdate, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -941,7 +944,7 @@ func TestIpRange(t *testing.T) {
 				},
 			})
 		AssertNil(t, err)
-		assert.False(t, skipsUpdate)
+		assert.False(t, isUpToDate)
 		assert.NotNil(t, actual, "expected update when Condition is not Ready")
 		assert.Equal(t, expected.Id, actual.Id)
 		assert.Equal(t, expected.StartAddress, actual.StartAddress)

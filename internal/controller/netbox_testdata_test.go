@@ -38,6 +38,7 @@ var namespace = "default"
 var description = "integration test"
 
 var comments = "integration test comment"
+var netboxIPLastUpdated = strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 
 var siteSlug = "mars-ip-claim"
 
@@ -84,6 +85,24 @@ func defaultIpAddressCR(preserveInNetbox bool) *netboxv1.IpAddress {
 			PreserveInNetbox: preserveInNetbox,
 		},
 	}
+}
+
+func defaultIpAddressCRUpToDateInStatus(preserveInNetbox bool) *netboxv1.IpAddress {
+	o := defaultIpAddressCR(preserveInNetbox)
+	lastUpdated := metav1.NewTime(time.Time(netboxIPLastUpdated))
+	o.Status = netboxv1.IpAddressStatus{
+		IpAddressId: 1,
+		LastUpdated: &lastUpdated,
+		Conditions: []metav1.Condition{
+			{
+				Type:               netboxv1.ConditionIpaddressReadyTrue.Type,
+				Status:             metav1.ConditionTrue,
+				ObservedGeneration: 1,
+			},
+		},
+	}
+
+	return o
 }
 
 func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *netboxv1.IpAddress {
@@ -151,13 +170,12 @@ func mockedResponseExpectedAvailableIpAddress() []*netboxModels.AvailableIP {
 }
 
 func mockedResponseIPAddress() *netboxModels.IPAddress {
-	currentTime := strfmt.DateTime(time.Now())
 	return &netboxModels.IPAddress{
 		ID:          int64(1),
 		Address:     &ipAddress,
 		Display:     ipAddress,
-		Created:     &currentTime,
-		LastUpdated: &currentTime,
+		Created:     &netboxIPLastUpdated,
+		LastUpdated: &netboxIPLastUpdated,
 		Comments:    comments,
 		Description: description,
 		Tenant:      mockedResponseNestedTenant(),
@@ -194,6 +212,7 @@ func mockedResponseIPAddressListWithHash(customFields map[string]interface{}) *i
 				CustomFields: customFields,
 				Description:  mockedResponseIPAddress().Description,
 				Display:      mockedResponseIPAddress().Display,
+				LastUpdated:  mockedResponseIPAddress().LastUpdated,
 				Tenant:       mockedResponseIPAddress().Tenant,
 			},
 		},
@@ -209,6 +228,7 @@ func mockedResponseIPAddressList() *ipam.IpamIPAddressesListOKBody {
 				Comments:    mockedResponseIPAddress().Comments,
 				Description: mockedResponseIPAddress().Description,
 				Display:     mockedResponseIPAddress().Display,
+				LastUpdated: mockedResponseIPAddress().LastUpdated,
 				Tenant:      mockedResponseIPAddress().Tenant,
 			},
 		},
