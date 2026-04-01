@@ -218,7 +218,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			defaultIpAddressCRUpToDateInStatus(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
-				mockIpamIPAddressesUpdate,
+				mockIpamIPAddressesUpdateOnce,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,

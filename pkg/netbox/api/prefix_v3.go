@@ -70,11 +70,8 @@ func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.Wri
 
 func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Prefix) (*netboxModels.WritablePrefix, error) {
 	desiredPrefix := &netboxModels.WritablePrefix{
-		Prefix:       &prefix.Prefix,
-		Comments:     prefix.Metadata.Comments + warningComment,
-		CustomFields: prefix.Metadata.Custom,
-		Description:  prefix.Metadata.Description + warningComment,
-		Status:       "active",
+		Prefix: &prefix.Prefix,
+		Status: "active",
 	}
 	if prefix.Metadata != nil {
 		desiredPrefix.CustomFields = prefix.Metadata.Custom
