@@ -177,7 +177,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	netboxIpAddressModel, skipsUpdate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel, o)
+	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
@@ -200,7 +200,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// 4. if no change in spec generation and NetBox object, skip K8s status update
-	if skipsUpdate {
+	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 

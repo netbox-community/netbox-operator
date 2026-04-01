@@ -17,23 +17,25 @@ limitations under the License.
 package utils
 
 import (
+	"time"
+
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func SkipsUpdate(netboxLastUpdatedIsSet bool,
+func IsUpToDate(
+	netboxLastUpdated *time.Time,
 	statusLastUpdated *metav1.Time,
 	conditions []metav1.Condition,
 	generation int64,
-	lastUpdatedEqual func(statusLastUpdated *metav1.Time) bool,
 ) bool {
-	sameLastUpdated := netboxLastUpdatedIsSet == (statusLastUpdated != nil) &&
-		(!netboxLastUpdatedIsSet || lastUpdatedEqual(statusLastUpdated))
+	if statusLastUpdated == nil {
+		return false
+	}
+	sameLastUpdated := statusLastUpdated.Time.Equal(*netboxLastUpdated)
 
-	return sameLastUpdated && sameReadyGeneration(conditions, generation)
-}
-
-func sameReadyGeneration(conditions []metav1.Condition, generation int64) bool {
 	readyCondition := apismeta.FindStatusCondition(conditions, "Ready")
-	return readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
+	sameReadyCondition := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
+
+	return sameLastUpdated && sameReadyCondition
 }

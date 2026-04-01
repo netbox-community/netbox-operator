@@ -25,7 +25,7 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 )
 
-func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, skipsUpdate bool, err error) {
+func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
 	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
 	resp, httpResp, execErr := req.Execute()
 
@@ -34,13 +34,13 @@ func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.Wr
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
-		return nil, true, handleErr
+		return nil, handleErr
 	}
 
-	return resp, false, nil
+	return resp, nil
 }
 
-func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, skipsUpdate bool, err error) {
+func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, isUpToDate bool, err error) {
 	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
 	resp, httpResp, execErr := req.Execute()
 

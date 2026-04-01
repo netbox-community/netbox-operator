@@ -191,7 +191,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, err
 	}
 
-	netboxPrefixModel, skipsUpdate, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel, o)
+	netboxPrefixModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
@@ -211,8 +211,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change in custom fields and status, skip update
-	if skipsUpdate {
+	// 4. if no change, then end loop
+	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 

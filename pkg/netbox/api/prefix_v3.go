@@ -27,7 +27,7 @@ import (
 // to ensure compatibility with older NetBox versions the CreatePrefix and UpdatePrefix
 // functions for the v3 client are still required
 
-func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
+func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, err error) {
 	requestCreatePrefix := ipam.
 		NewIpamPrefixesCreateParams().
 		WithDefaults().
@@ -35,7 +35,7 @@ func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (re
 	responseCreatePrefix, err := c.Ipam.
 		IpamPrefixesCreate(requestCreatePrefix, nil)
 	if err != nil {
-		return nil, true, utils.NetboxError("failed to create Prefix", err)
+		return nil, utils.NetboxError("failed to create Prefix", err)
 	}
 	prefixPayload := responseCreatePrefix.Payload
 
@@ -45,10 +45,10 @@ func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (re
 		Description: &prefix.Description,
 	}
 
-	return nclientPrefix, false, nil
+	return nclientPrefix, nil
 }
 
-func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, skipsUpdate bool, err error) {
+func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, isUpToDate bool, err error) {
 	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
 		WithDefaults().
 		WithData(prefix).

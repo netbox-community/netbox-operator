@@ -215,7 +215,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			},
 			true, false, nil),
 		Entry("Create IpAddress CR, skip update when already up to date in NetBox",
-			defaultIpAddressCR(true),
+			defaultIpAddressCRUpToDateInStatus(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
 				mockIpamIPAddressesUpdate,

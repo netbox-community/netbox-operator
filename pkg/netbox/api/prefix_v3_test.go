@@ -76,9 +76,8 @@ func TestPrefix_CreatePrefix(t *testing.T) {
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, skipsUpdate, err := clientV3.createPrefixV3(prefixToCreate)
+	actual, err := clientV3.createPrefixV3(prefixToCreate)
 	assert.Nil(t, err)
-	assert.False(t, skipsUpdate)
 	assert.Greater(t, actual.Id, int32(0))
 	assert.Equal(t, prefix, actual.Prefix)
 	assert.Equal(t, description, *actual.Description)
@@ -133,9 +132,9 @@ func TestPrefix_UpdatePrefix(t *testing.T) {
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, skipsUpdate, err := clientV3.updatePrefixV3(prefixId, prefixToUpdate)
+	actual, isUpToDate, err := clientV3.updatePrefixV3(prefixId, prefixToUpdate)
 	assert.Nil(t, err)
-	assert.False(t, skipsUpdate)
+	assert.False(t, isUpToDate)
 	assert.Greater(t, actual.Id, int32(0))
 	assert.Equal(t, prefix, actual.Prefix)
 	assert.Equal(t, updatedDescription, *actual.Description)

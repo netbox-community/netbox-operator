@@ -26,13 +26,12 @@ import (
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (resp *v4client.IPRange, skipsUpdate bool, err error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (resp *v4client.IPRange, isUpToDate bool, err error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
 	if err != nil {
 		return nil, true, err
@@ -63,10 +62,15 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 
 	// create ip range since it doesn't exist
 	if len(responseIpRangeList.Results) == 0 {
-		return c.createIpRange(ctx, desiredIpRange)
+		resp, err := c.createIpRange(ctx, desiredIpRange)
+		return resp, false, err
 	}
 
 	ipRangeToUpdate := &responseIpRangeList.Results[0]
+
+	if !ipRangeToUpdate.LastUpdated.IsSet() {
+		return nil, true, fmt.Errorf("last updated field is not set in Netbox for ip range %s-%s", ipRange.StartAddress, ipRange.EndAddress)
+	}
 
 	// if the desired ip range has a restoration hash
 	// check that the ip range to update has the same restoration hash
@@ -74,10 +78,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	if ipRange.Metadata != nil {
 		if restorationHash, ok := ipRange.Metadata.Custom[restorationHashKey]; ok {
 			if ipRangeToUpdate.CustomFields != nil && ipRangeToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				if utils.SkipsUpdate(ipRangeToUpdate.LastUpdated.IsSet(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation,
-					func(statusLastUpdated *metav1.Time) bool {
-						return statusLastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get())
-					}) {
+				if utils.IsUpToDate(ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
 					return nil, true, nil
 				}
 
@@ -88,10 +89,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		}
 	}
 
-	if utils.SkipsUpdate(ipRangeToUpdate.LastUpdated.IsSet(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation,
-		func(statusLastUpdated *metav1.Time) bool {
-			return statusLastUpdated.Time.Equal(*ipRangeToUpdate.LastUpdated.Get())
-		}) {
+	if utils.IsUpToDate(ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
 		return nil, true, nil
 	}
 
@@ -134,7 +132,7 @@ func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, skipsUpdate bool, err error) {
+func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesCreate(ctx).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, execErr := req.Execute()
 
@@ -143,13 +141,13 @@ func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4cl
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
-		return nil, true, handleErr
+		return nil, handleErr
 	}
 
-	return resp, false, nil
+	return resp, nil
 }
 
-func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, skipsUpdate bool, err error) {
+func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, isUpToDate bool, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, execErr := req.Execute()
 
