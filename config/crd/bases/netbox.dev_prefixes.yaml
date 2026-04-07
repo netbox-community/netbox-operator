@@ -194,7 +194,7 @@ spec:
                 type: integer
               lastUpdated:
                 description: |-
-                  Last updated
+                  Last updated, corresponds to the 'last_updated' returned by NetBox when NetBox Operator updates a resource in NetBox.
                   Format: date-time
                 format: date-time
                 type: string

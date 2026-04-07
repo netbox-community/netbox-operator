@@ -64,7 +64,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
 
-	if ipToUpdate.LastUpdated == nil {
+	if ipToUpdate.LastUpdated.IsZero() {
 		return nil, true, fmt.Errorf("last updated field is not set in Netbox for ip address %s", ipAddress.IpAddress)
 	}
 
@@ -76,7 +76,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	if ipAddress.Metadata != nil {
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
-				if IsUpToDate(&netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
+				if IsUpToDate(netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
 					return ipToUpdate, true, nil
 				}
 				//update ip address since it does exist and the restoration hash matches
@@ -86,7 +86,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 		}
 	}
 
-	if IsUpToDate(&netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
+	if IsUpToDate(netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
 		return ipToUpdate, true, nil
 	}
 

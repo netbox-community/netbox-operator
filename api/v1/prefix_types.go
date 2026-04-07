@@ -78,9 +78,9 @@ type PrefixStatus struct {
 	// The ID of the resource in NetBox
 	PrefixId int64 `json:"id,omitempty"`
 
-	// Last updated
+	// Last updated, corresponds to the 'last_updated' returned by NetBox when NetBox Operator updates a resource in NetBox.
 	// Format: date-time
-	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
+	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
 
 	// The URL to the resource in the NetBox UI. Note that the base of this
 	// URL depends on the runtime config of NetBox Operator
