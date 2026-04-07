@@ -166,6 +166,12 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			// this case should not be triggered anymore, as we have validation rules put in place on the CR
 			return ctrl.Result{}, NewDomainError("either ParentPrefixSelector or ParentPrefix needs to be set")
 		}
+
+		// Persist SelectedParentPrefix to the API server before creating the
+		// Prefix CR. Without this early return the Prefix controller can race
+		// and read an empty SelectedParentPrefix, producing a spurious
+		// "the parent prefix is not selected" error.
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	/* 2. check if the matching Prefix object exists */
