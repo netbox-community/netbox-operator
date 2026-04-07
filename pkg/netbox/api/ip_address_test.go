@@ -413,7 +413,7 @@ func TestIPAddress(t *testing.T) {
 		lastUpdatedV1 := metav1.NewTime(time.Time(*expectedIPAddress().LastUpdated))
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 0},
 				},
@@ -446,7 +446,7 @@ func TestIPAddress(t *testing.T) {
 		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 0},
 				},
@@ -485,7 +485,7 @@ func TestIPAddress(t *testing.T) {
 
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1, // different from NetBox
+				LastUpdated: lastUpdatedV1, // different from NetBox
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 0},
 				},
@@ -529,7 +529,7 @@ func TestIPAddress(t *testing.T) {
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			ObjectMeta: metav1.ObjectMeta{Generation: 2}, // Generation 2
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 1}, // Generation 1
 				},
@@ -575,7 +575,7 @@ func TestIPAddress(t *testing.T) {
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 0},
 				},
@@ -614,7 +614,7 @@ func TestIPAddress(t *testing.T) {
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "False", ObservedGeneration: 0}, // not ready
 				},
@@ -663,7 +663,7 @@ func TestIPAddress(t *testing.T) {
 
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 0},
 				},
@@ -713,7 +713,7 @@ func TestIPAddress(t *testing.T) {
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			ObjectMeta: metav1.ObjectMeta{Generation: 2}, // Generation 2
 			Status: netboxv1.IpAddressStatus{
-				LastUpdated: &lastUpdatedV1,
+				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
 					{Type: "Ready", Status: "True", ObservedGeneration: 1}, // Generation 1
 				},

@@ -58,7 +58,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	if prefix.Metadata != nil {
 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				if IsUpToDate(prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
+				if IsUpToDate(*prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
 					return nil, true, nil
 				}
 
@@ -69,7 +69,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 		}
 	}
 
-	if IsUpToDate(prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
+	if IsUpToDate(*prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
 		return nil, true, nil
 	}
 

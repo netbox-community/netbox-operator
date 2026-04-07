@@ -92,7 +92,7 @@ func defaultIpAddressCRUpToDateInStatus(preserveInNetbox bool) *netboxv1.IpAddre
 	lastUpdated := metav1.NewTime(time.Time(netboxIPLastUpdated))
 	o.Status = netboxv1.IpAddressStatus{
 		IpAddressId: 1,
-		LastUpdated: &lastUpdated,
+		LastUpdated: lastUpdated,
 		Conditions: []metav1.Condition{
 			{
 				Type:               netboxv1.ConditionIpaddressReadyTrue.Type,

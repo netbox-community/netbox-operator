@@ -24,15 +24,15 @@ import (
 )
 
 func IsUpToDate(
-	netboxLastUpdated *time.Time,
-	statusLastUpdated *metav1.Time,
+	netboxLastUpdated time.Time,
+	statusLastUpdated metav1.Time,
 	conditions []metav1.Condition,
 	generation int64,
 ) bool {
-	if statusLastUpdated == nil {
+	if statusLastUpdated.IsZero() {
 		return false
 	}
-	sameLastUpdated := statusLastUpdated.Time.Equal(*netboxLastUpdated)
+	sameLastUpdated := statusLastUpdated.Time.Equal(netboxLastUpdated)
 
 	readyCondition := apismeta.FindStatusCondition(conditions, "Ready")
 	sameReadyCondition := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation

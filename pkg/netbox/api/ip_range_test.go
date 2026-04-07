@@ -438,7 +438,7 @@ func TestIpRange(t *testing.T) {
 				EndAddress:   endAddress,
 			}, &netboxv1.IpRange{
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "True", ObservedGeneration: 0},
 					},
@@ -505,7 +505,7 @@ func TestIpRange(t *testing.T) {
 				EndAddress:   endAddress,
 			}, &netboxv1.IpRange{
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "False", ObservedGeneration: 0},
 					},
@@ -574,7 +574,7 @@ func TestIpRange(t *testing.T) {
 			}, &netboxv1.IpRange{
 				ObjectMeta: metav1.ObjectMeta{Generation: 2},
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &metav1.Time{Time: *expected.LastUpdated.Get()},
+					LastUpdated: metav1.NewTime(*expected.LastUpdated.Get()),
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "True", ObservedGeneration: 1},
 					},
@@ -643,7 +643,7 @@ func TestIpRange(t *testing.T) {
 				EndAddress:   endAddress,
 			}, &netboxv1.IpRange{
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "True", ObservedGeneration: 0},
 					},
@@ -705,7 +705,7 @@ func TestIpRange(t *testing.T) {
 				},
 			}, &netboxv1.IpRange{
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "True", ObservedGeneration: 0},
 					},
@@ -780,7 +780,7 @@ func TestIpRange(t *testing.T) {
 				},
 			}, &netboxv1.IpRange{
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "False", ObservedGeneration: 0},
 					},
@@ -858,7 +858,7 @@ func TestIpRange(t *testing.T) {
 			}, &netboxv1.IpRange{
 				ObjectMeta: metav1.ObjectMeta{Generation: 2},
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &metav1.Time{Time: *expected.LastUpdated.Get()},
+					LastUpdated: metav1.NewTime(*expected.LastUpdated.Get()),
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "True", ObservedGeneration: 1},
 					},
@@ -937,7 +937,7 @@ func TestIpRange(t *testing.T) {
 				},
 			}, &netboxv1.IpRange{
 				Status: netboxv1.IpRangeStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions: []metav1.Condition{
 						{Type: "Ready", Status: "True", ObservedGeneration: 0},
 					},

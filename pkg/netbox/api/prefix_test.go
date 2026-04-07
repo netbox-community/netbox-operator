@@ -516,7 +516,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
 				},
 			},
@@ -569,7 +569,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "False", ObservedGeneration: 0}},
 				},
 			},
@@ -626,7 +626,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			&models.Prefix{Prefix: prefix},
 			&netboxv1.Prefix{
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
 				},
 			},
@@ -684,7 +684,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			&netboxv1.Prefix{
 				ObjectMeta: metav1.ObjectMeta{Generation: 2},
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 1}},
 				},
 			},
@@ -733,7 +733,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 			&netboxv1.Prefix{
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
 				},
 			},
@@ -793,7 +793,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 			&netboxv1.Prefix{
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "False", ObservedGeneration: 0}},
 				},
 			},
@@ -857,7 +857,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 			&netboxv1.Prefix{
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
 				},
 			},
@@ -922,7 +922,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			&netboxv1.Prefix{
 				ObjectMeta: metav1.ObjectMeta{Generation: 2},
 				Status: netboxv1.PrefixStatus{
-					LastUpdated: &lastUpdatedV1,
+					LastUpdated: lastUpdatedV1,
 					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 1}},
 				},
 			},
