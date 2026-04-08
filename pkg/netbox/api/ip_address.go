@@ -128,7 +128,7 @@ func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *ne
 		WithID(ipAddressId)
 	responseUpdateIp, err := c.clientV3.Ipam.IpamIPAddressesUpdate(requestUpdateIp, nil)
 	if err != nil {
-		return nil, true, utils.NetboxError("failed to update IP Address", err)
+		return nil, false, utils.NetboxError("failed to update IP Address", err)
 	}
 	return responseUpdateIp.Payload, false, nil
 }
