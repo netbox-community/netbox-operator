@@ -34,7 +34,7 @@ import (
 func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (resp *v4client.IPRange, isUpToDate bool, err error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
 	if err != nil {
-		return nil, true, err
+		return nil, false, err
 	}
 
 	desiredIpRange := v4client.NewWritableIPRangeRequest(ipRange.StartAddress, ipRange.EndAddress)
