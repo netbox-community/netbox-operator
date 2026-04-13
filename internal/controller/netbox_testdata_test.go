@@ -87,24 +87,6 @@ func defaultIpAddressCR(preserveInNetbox bool) *netboxv1.IpAddress {
 	}
 }
 
-func defaultIpAddressCRUpToDateInStatus(preserveInNetbox bool) *netboxv1.IpAddress {
-	o := defaultIpAddressCR(preserveInNetbox)
-	lastUpdated := metav1.NewTime(time.Time(netboxIPLastUpdated))
-	o.Status = netboxv1.IpAddressStatus{
-		IpAddressId: 1,
-		LastUpdated: lastUpdated,
-		Conditions: []metav1.Condition{
-			{
-				Type:               netboxv1.ConditionIpaddressReadyTrue.Type,
-				Status:             metav1.ConditionTrue,
-				ObservedGeneration: 1,
-			},
-		},
-	}
-
-	return o
-}
-
 func defaultIpAddressCreatedByClaim(preserveInNetbox bool) *netboxv1.IpAddress {
 	return &netboxv1.IpAddress{
 		ObjectMeta: metav1.ObjectMeta{

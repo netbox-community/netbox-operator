@@ -192,36 +192,18 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			false, true, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox, preserved in netbox",
 			defaultIpAddressCR(true),
-<<<<<<< HEAD
-			[]func(*mock_interfaces.MockIpamInterface, chan error){
-				mockIpAddressListWithIpAddressFilter,
-				mockIpamIPAddressesUpdate,
-			},
-			[]func(*mock_interfaces.MockTenancyInterface, chan error){
-				mockTenancyTenancyTenantsList,
-			},
-			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
-=======
-			ipAddressListThenUpdate(mockIpamIPAddressesUpdate),
+			ipAddressListThenUpdate(mockIpamIPAddressesUpdateOnce),
 			tenancyMocks,
 			false, true, ExpectedIpAddressStatus),
->>>>>>> 14e64a3 (remove pointer for lastUpdated)
 		Entry("Create IpAddress CR, ip address already reserved in NetBox",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
-				mockIpamIPAddressesUpdate,
+				mockIpamIPAddressesUpdateOnce,
 				mockIpAddressesDelete,
 			},
-<<<<<<< HEAD
-			[]func(*mock_interfaces.MockTenancyInterface, chan error){
-				mockTenancyTenancyTenantsList,
-			},
-			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
-=======
 			tenancyMocks,
 			false, true, ExpectedIpAddressStatus),
->>>>>>> 14e64a3 (remove pointer for lastUpdated)
 		Entry("Create IpAddress CR, reserve or update failure",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -229,15 +211,10 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 				mockIpamIPAddressesUpdateFail,
 				mockIpAddressesDeleteFail,
 			},
-<<<<<<< HEAD
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
 			false, netboxv1.ConditionIpaddressReadyFalse, ExpectedIpAddressFailedStatus),
-=======
-			tenancyMocks,
-			false, false, ExpectedIpAddressFailedStatus),
->>>>>>> 14e64a3 (remove pointer for lastUpdated)
 		Entry("Create IpAddress CR, restoration hash mismatch",
 			defaultIpAddressCreatedByClaim(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -246,7 +223,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			tenancyMocks,
 			true, false, nil),
 		Entry("Create IpAddress CR, skip update when already up to date in NetBox (after convergence)",
-			defaultIpAddressCRUpToDateInStatus(true),
+			defaultIpAddressCR(true),
 			ipAddressListThenUpdateTwice(),
 			tenancyMocks,
 			false, true, ExpectedIpAddressStatus),
