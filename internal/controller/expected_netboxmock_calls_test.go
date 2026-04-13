@@ -187,10 +187,6 @@ func mockIpAddressesDeleteFail(ipamMock *mock_interfaces.MockIpamInterface, catc
 		}).MinTimes(1)
 }
 
-func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
-	mockIpamIPAddressesUpdateWithCount(ipamMock, catchUnexpectedParams, false)
-}
-
 func mockIpamIPAddressesUpdateOnce(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
 	mockIpamIPAddressesUpdateWithCount(ipamMock, catchUnexpectedParams, true)
 }
