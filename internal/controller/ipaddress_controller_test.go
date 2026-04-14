@@ -174,6 +174,6 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
 			},
-			true, nil, nil),
+			true, metav1.Condition{}, netboxv1.IpAddressStatus{}),
 	)
 })

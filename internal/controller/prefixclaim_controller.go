@@ -251,7 +251,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 				return ctrl.Result{}, NewDomainError("%w", err)
 			}
-			logger.V(4).Info(fmt.Sprintf("prefix is not reserved in netbox, assignined new prefix: %s", prefixModel.Prefix))
+			logger.V(4).Info(fmt.Sprintf("prefix is not reserved in netbox, assigned new prefix: %s", prefixModel.Prefix))
 		} else {
 			// 6.b reassign reserved Prefix from netbox
 
