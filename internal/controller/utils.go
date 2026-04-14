@@ -34,7 +34,7 @@ import (
 )
 
 // DomainError wraps an error that should update status conditions.
-// Use NewStatusError to create errors that should be reflected in status.
+// Use NewDomainError to create errors that should be reflected in status.
 type DomainError struct {
 	err error
 }
@@ -53,20 +53,48 @@ func NewDomainError(format string, args ...interface{}) error {
 	return &DomainError{err: fmt.Errorf(format, args...)}
 }
 
-// IgnoreDomainError checks if an error should update status conditions.
+// IgnoreDomainError strips DomainErrors from err (they have already been
+// recorded in the status condition) while preserving any non-domain errors
+// (e.g. a failed status patch) so they are returned to controller-runtime.
 func IgnoreDomainError(reconcileRes ctrl.Result, err error) (ctrl.Result, error) {
 	if err == nil {
 		return reconcileRes, nil
 	}
 
+	remaining := excludeDomainErrors(err)
+	if remaining != nil {
+		return ctrl.Result{}, remaining
+	}
+
+	if reconcileRes.RequeueAfter > 0 {
+		return ctrl.Result{RequeueAfter: reconcileRes.RequeueAfter}, nil
+	}
+	return ctrl.Result{Requeue: true}, nil
+}
+
+// excludeDomainErrors unwraps a (possibly joined) error and returns only the
+// non-DomainError parts. Returns nil when every leaf is a DomainError.
+func excludeDomainErrors(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// If err directly wraps multiple errors (errors.Join), filter each one.
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		var kept []error
+		for _, e := range joined.Unwrap() {
+			if r := excludeDomainErrors(e); r != nil {
+				kept = append(kept, r)
+			}
+		}
+		return errors.Join(kept...)
+	}
+
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
-		if reconcileRes.RequeueAfter > 0 {
-			return ctrl.Result{RequeueAfter: reconcileRes.RequeueAfter}, nil
-		}
-		return ctrl.Result{Requeue: true}, nil
+		return nil
 	}
-	return ctrl.Result{}, err
+	return err
 }
 
 func convertCIDRToLeaseLockName(cidr string) string {
