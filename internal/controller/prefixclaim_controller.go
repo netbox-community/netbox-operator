@@ -340,15 +340,9 @@ func (r *PrefixClaimReconciler) updateStatus(ctx context.Context, claim *netboxv
 	err = r.Client.Get(ctx, lookupKey, prefix)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			// Prefix doesn't exist yet — only report warning conditions if
-			// the reconcile loop actually encountered an error (e.g. lock
-			// contention, NetBox failure). When reconcileErr is nil the loop
-			// returned early on purpose (e.g. to persist SelectedParentPrefix)
-			// and the Prefix CR will be created on the next reconcile.
-			if reconcileErr != nil {
-				r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, reconcileErr)
-				r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
-			}
+			// Prefix doesn't exist yet
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionPrefixAssignedFalse, corev1.EventTypeWarning, reconcileErr)
+			r.EventStatusRecorder.Report(ctx, claim, netboxv1.ConditionPrefixClaimReadyFalse, corev1.EventTypeWarning, reconcileErr)
 			// Preserve original result (e.g. RequeueAfter from lock contention)
 			if result.IsZero() {
 				result = ctrl.Result{RequeueAfter: 1 * time.Second}
