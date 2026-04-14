@@ -95,7 +95,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 				return ctrl.Result{}, fmt.Errorf("reconciliation of ip ranges with id's larger than 2147483647 is not supported")
 			}
 			if err := r.NetboxClient.DeleteIpRange(ctx, int32(o.Status.IpRangeId)); err != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip range in netbox: %w", err)
+				return ctrl.Result{}, NewDomainError("failed to delete ip range in netbox: %w", err)
 			}
 		}
 
@@ -164,13 +164,13 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete IpRange CR with restoration hash mismatch: %w", deleteErr)
+				return ctrl.Result{}, NewDomainError("failed to delete IpRange CR with restoration hash mismatch: %w", deleteErr)
 			}
 			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
+		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
 	// 3. unlock lease of parent prefix
@@ -185,7 +185,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	annotations[IPRManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
+		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
 	// snapshot before annotation mutation for merge-patch

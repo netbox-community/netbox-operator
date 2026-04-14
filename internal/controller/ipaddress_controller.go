@@ -75,7 +75,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (SyncState, IpAddressId, conditions, etc.).
+	// merge-patch diff captures every change (IpAddressId, conditions, etc.).
 	statusBase := o.DeepCopy()
 
 	// cancelLock stops the lease renewal goroutine on early returns (lease expires naturally).
@@ -95,7 +95,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		if !o.Spec.PreserveInNetbox && o.Status.IpAddressId != 0 {
 			if err = r.NetboxClient.DeleteIpAddress(o.Status.IpAddressId); err != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete ip address from netbox: %w", err)
+				return ctrl.Result{}, NewDomainError("failed to delete ip address from netbox: %w", err)
 			}
 		}
 
@@ -179,19 +179,18 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
 	if err != nil {
-		o.Status.SyncState = netboxv1.SyncStateFailed
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
 			// delete the ip address so it can be recreated by the ip address claim controller
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete IpAddress CR with restoration hash mismatch: %w", deleteErr)
+				return ctrl.Result{}, NewDomainError("failed to delete IpAddress CR with restoration hash mismatch: %w", deleteErr)
 			}
 			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
+		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
 	// 3. unlock lease of parent prefix — allocation is done, lock no longer needed
@@ -207,7 +206,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
+		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
 	// snapshot before annotation mutation for merge-patch
@@ -222,7 +221,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// 4. update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.SyncState = netboxv1.SyncStateSucceeded
 	o.Status.IpAddressId = netboxIpAddressModel.ID
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 

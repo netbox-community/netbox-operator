@@ -76,10 +76,6 @@ type IpAddressStatus struct {
 	// URL depends on the runtime config of NetBox Operator
 	IpAddressUrl string `json:"url,omitempty"`
 
-	// Indicates if Sync with the backend was successful
-	// If connection to the backend failed but the spec did not change it is set to unknown
-	SyncState SyncState `json:"syncState,omitempty"`
-
 	// Conditions represent the latest available observations of an object's state
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
@@ -133,10 +129,3 @@ var ConditionIpaddressReadyFalse = metav1.Condition{
 	Reason:  "FailedToReserveIpInNetbox",
 	Message: "Failed to reserve IP in NetBox",
 }
-
-type SyncState string
-
-const (
-	SyncStateSucceeded SyncState = "Succeeded"
-	SyncStateFailed    SyncState = "Failed"
-)

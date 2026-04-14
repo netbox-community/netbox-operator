@@ -315,7 +315,7 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 	h := generateIpRangeRestorationHash(o)
 	ipRangeModel, err := r.NetboxClient.RestoreExistingIpRangeByHash(h)
 	if err != nil {
-		return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("%w", err)
+		return nil, cancelLock, ctrl.Result{}, NewDomainError("%w", err)
 	}
 
 	if ipRangeModel == nil {
@@ -332,13 +332,13 @@ func (r *IpRangeClaimReconciler) restoreOrAssignIpRangeAndSetCondition(ctx conte
 			},
 		)
 		if err != nil {
-			return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("%w", err)
+			return nil, cancelLock, ctrl.Result{}, NewDomainError("%w", err)
 		}
 		logger.V(4).Info(fmt.Sprintf("ip range is not reserved in netbox, assigned new ip range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	} else {
 		// reassign reserved ip range from netbox
 		if int(ipRangeModel.Size) != o.Spec.Size {
-			return nil, cancelLock, ctrl.Result{Requeue: true}, NewDomainError("ip range size mismatch: expected %d, got %d", o.Spec.Size, ipRangeModel.Size)
+			return nil, cancelLock, ctrl.Result{}, NewDomainError("ip range size mismatch: expected %d, got %d", o.Spec.Size, ipRangeModel.Size)
 		}
 		logger.V(4).Info(fmt.Sprintf("reassign reserved ip range from netbox, range: %s-%s", ipRangeModel.StartAddress, ipRangeModel.EndAddress))
 	}

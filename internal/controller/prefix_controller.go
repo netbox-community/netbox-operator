@@ -95,7 +95,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 				return ctrl.Result{}, fmt.Errorf("reconciliation of prefixes with id's larger than 2147483647 is not supported")
 			}
 			if err := r.NetboxClient.DeletePrefix(ctx, int32(o.Status.PrefixId)); err != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete prefix in netbox: %w", err)
+				return ctrl.Result{}, NewDomainError("failed to delete prefix in netbox: %w", err)
 			}
 		}
 
@@ -142,9 +142,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 		if prefixClaim.Status.SelectedParentPrefix == "" {
 			// the parent prefix is not selected
-			return ctrl.Result{
-				Requeue: true,
-			}, NewDomainError("the parent prefix is not selected")
+			return ctrl.Result{}, NewDomainError("the parent prefix is not selected")
 		}
 
 		if prefixClaim.Status.SelectedParentPrefix != msgCanNotInferParentPrefix {
@@ -198,13 +196,13 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
-				return ctrl.Result{Requeue: true}, NewDomainError("failed to delete prefix CR with restoration hash mismatch: %w", deleteErr)
+				return ctrl.Result{}, NewDomainError("failed to delete prefix CR with restoration hash mismatch: %w", deleteErr)
 			}
 			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{Requeue: true}, NewDomainError("%w", err)
+		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
 	/* 3. unlock lease of parent prefix */
@@ -219,7 +217,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	annotations[PXManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
+		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
 
 	// snapshot before annotation mutation for merge-patch
@@ -241,7 +239,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	// check if the created prefix contains the entire description from spec
 	if netboxPrefixModel.Description == nil {
-		return ctrl.Result{Requeue: true}, NewDomainError("prefix in netbox is missing a description")
+		return ctrl.Result{}, NewDomainError("prefix in netbox is missing a description")
 	}
 	if _, found := strings.CutPrefix(*netboxPrefixModel.Description, req.String()+" // "+o.Spec.Description); !found {
 		r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "PrefixDescriptionTruncated", "prefix was created with truncated description")
