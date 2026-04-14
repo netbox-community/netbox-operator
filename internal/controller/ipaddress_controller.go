@@ -257,15 +257,13 @@ func (r *IpAddressReconciler) updateStatus(ctx context.Context, o *netboxv1.IpAd
 
 	logger.V(4).Info("updating ipaddress status")
 
-	eventType := corev1.EventTypeNormal
-	if reconcileErr != nil {
-		eventType = corev1.EventTypeWarning
-	}
-
 	switch {
+	case !o.DeletionTimestamp.IsZero() && reconcileErr != nil:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpaddressReadyFalseDeletionFailed, corev1.EventTypeWarning, reconcileErr)
 	case !o.DeletionTimestamp.IsZero():
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpaddressReadyFalse, eventType, reconcileErr)
+			netboxv1.ConditionIpaddressReadyFalseDeletionInProgress, corev1.EventTypeNormal, nil)
 	case o.Status.IpAddressUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpaddressReadyFalse, corev1.EventTypeWarning, reconcileErr)

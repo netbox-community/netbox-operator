@@ -100,11 +100,13 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			}, timeout, interval).Should(BeTrue())
 
 			// Now check if conditions are set as expected
-			Eventually(k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)).Should(Succeed())
-
-			Eventually(apismeta.IsStatusConditionPresentAndEqual(createdCR.Status.Conditions, expectedConditionReady.Type, expectedConditionReady.Status)).Should(BeTrue())
-
-			Eventually(apismeta.FindStatusCondition(createdCR.Status.Conditions, expectedConditionReady.Type).Reason).Should(Equal(expectedConditionReady.Reason))
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)).To(Succeed())
+				cond := apismeta.FindStatusCondition(createdCR.Status.Conditions, expectedConditionReady.Type)
+				g.Expect(cond).NotTo(BeNil())
+				g.Expect(cond.Status).To(Equal(expectedConditionReady.Status))
+				g.Expect(cond.Reason).To(Equal(expectedConditionReady.Reason))
+			}, timeout, interval).Should(Succeed())
 
 			// Check that the expected ip address is present in the status
 			Expect(createdCR.Status.IpAddressId).To(Equal(expectedCRStatus.IpAddressId))

@@ -268,7 +268,11 @@ func (r *IpRangeClaimReconciler) tryLockOnParentPrefix(ctx context.Context, o *n
 	}
 	logger.V(4).Info(fmt.Sprintf("successfully locked parent prefix %s", o.Spec.ParentPrefix))
 
-	return ll, cancel, ctrl.Result{}, nil
+	cleanup := func() {
+		cancel()
+		ll.UnlockWithRetry(ctx)
+	}
+	return ll, cleanup, ctrl.Result{}, nil
 }
 
 func (r *IpRangeClaimReconciler) generateIpRangeClaimStatus(o *netboxv1.IpRangeClaim, ipRange *netboxv1.IpRange) (netboxv1.IpRangeClaimStatus, error) {

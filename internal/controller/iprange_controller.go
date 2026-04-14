@@ -234,15 +234,13 @@ func (r *IpRangeReconciler) updateStatus(ctx context.Context, o *netboxv1.IpRang
 
 	logger.V(4).Info("updating iprange status")
 
-	eventType := corev1.EventTypeNormal
-	if reconcileErr != nil {
-		eventType = corev1.EventTypeWarning
-	}
-
 	switch {
+	case !o.DeletionTimestamp.IsZero() && reconcileErr != nil:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionIpRangeReadyFalseDeletionFailed, corev1.EventTypeWarning, reconcileErr)
 	case !o.DeletionTimestamp.IsZero():
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionIpRangeReadyFalse, eventType, reconcileErr)
+			netboxv1.ConditionIpRangeReadyFalseDeletionInProgress, corev1.EventTypeNormal, nil)
 	case o.Status.IpRangeUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionIpRangeReadyFalse, corev1.EventTypeWarning, reconcileErr,

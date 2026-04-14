@@ -275,15 +275,13 @@ func (r *PrefixReconciler) updateStatus(ctx context.Context, o *netboxv1.Prefix,
 
 	logger.V(4).Info("updating prefix status")
 
-	eventType := corev1.EventTypeNormal
-	if reconcileErr != nil {
-		eventType = corev1.EventTypeWarning
-	}
-
 	switch {
+	case !o.DeletionTimestamp.IsZero() && reconcileErr != nil:
+		r.EventStatusRecorder.Report(ctx, o,
+			netboxv1.ConditionPrefixReadyFalseDeletionFailed, corev1.EventTypeWarning, reconcileErr)
 	case !o.DeletionTimestamp.IsZero():
 		r.EventStatusRecorder.Report(ctx, o,
-			netboxv1.ConditionPrefixReadyFalse, eventType, reconcileErr)
+			netboxv1.ConditionPrefixReadyFalseDeletionInProgress, corev1.EventTypeNormal, nil)
 	case o.Status.PrefixUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionPrefixReadyFalse, corev1.EventTypeWarning, reconcileErr)
