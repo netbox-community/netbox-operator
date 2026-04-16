@@ -139,6 +139,13 @@ var ConditionIpRangeReadyFalse = metav1.Condition{
 	Message: "Failed to reserve IP Range in NetBox",
 }
 
+var ConditionIpRangeReadyFalseDeletionInProgress = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "DeletionInProgress",
+	Message: "IP range deletion in progress",
+}
+
 var ConditionIpRangeReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",

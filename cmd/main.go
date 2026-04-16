@@ -180,7 +180,7 @@ func main() {
 	if err = (&controller.IpAddressReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-address-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("ip-address-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
@@ -191,7 +191,7 @@ func main() {
 	if err = (&controller.IpAddressClaimReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-address-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("ip-address-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
@@ -202,7 +202,7 @@ func main() {
 	if err = (&controller.PrefixReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("prefix-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
@@ -213,7 +213,7 @@ func main() {
 	if err = (&controller.PrefixClaimReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("prefix-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("prefix-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
@@ -224,7 +224,7 @@ func main() {
 	if err = (&controller.IpRangeClaimReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("ip-range-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),
@@ -235,7 +235,7 @@ func main() {
 	if err = (&controller.IpRangeReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
-		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetClient(), mgr.GetEventRecorderFor("ip-range-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("ip-range-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
 		OperatorNamespace:   operatorNamespace,
 		RestConfig:          mgr.GetConfig(),

@@ -135,6 +135,13 @@ var ConditionPrefixReadyFalse = metav1.Condition{
 	Message: "Failed to reserve prefix in NetBox",
 }
 
+var ConditionPrefixReadyFalseDeletionInProgress = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "DeletionInProgress",
+	Message: "Prefix deletion in progress",
+}
+
 var ConditionPrefixReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",

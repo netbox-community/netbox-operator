@@ -130,6 +130,13 @@ var ConditionIpaddressReadyFalse = metav1.Condition{
 	Message: "Failed to reserve IP in NetBox",
 }
 
+var ConditionIpaddressReadyFalseDeletionInProgress = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "DeletionInProgress",
+	Message: "IP address deletion in progress",
+}
+
 var ConditionIpaddressReadyFalseDeletionFailed = metav1.Condition{
 	Type:    "Ready",
 	Status:  "False",
