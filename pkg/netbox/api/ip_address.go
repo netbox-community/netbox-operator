@@ -80,7 +80,11 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 					return ipToUpdate, true, nil
 				}
 				//update ip address since it does exist and the restoration hash matches
-				return c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
+				resp, err := c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
 			}
 			return nil, false, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
 		}
@@ -91,7 +95,11 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	}
 
 	ipAddressId := responseIpAddress.Payload.Results[0].ID
-	return c.updateIpAddress(ipAddressId, desiredIPAddress)
+	resp, err = c.updateIpAddress(ipAddressId, desiredIPAddress)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
 }
 
 func (c *NetboxCompositeClient) getIpAddress(ipAddress *models.IPAddress) (*ipam.IpamIPAddressesListOK, error) {
@@ -120,7 +128,7 @@ func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.Writable
 	return responseCreateIp.Payload, nil
 }
 
-func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, bool, error) {
+func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, error) {
 	requestUpdateIp := ipam.
 		NewIpamIPAddressesUpdateParams().
 		WithDefaults().
@@ -128,9 +136,9 @@ func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *ne
 		WithID(ipAddressId)
 	responseUpdateIp, err := c.clientV3.Ipam.IpamIPAddressesUpdate(requestUpdateIp, nil)
 	if err != nil {
-		return nil, false, utils.NetboxError("failed to update IP Address", err)
+		return nil, utils.NetboxError("failed to update IP Address", err)
 	}
-	return responseUpdateIp.Payload, false, nil
+	return responseUpdateIp.Payload, nil
 }
 
 func (c *NetboxCompositeClient) DeleteIpAddress(ipAddressId int64) error {

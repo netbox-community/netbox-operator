@@ -40,7 +40,7 @@ func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.Wr
 	return resp, nil
 }
 
-func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, isUpToDate bool, err error) {
+func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
 	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
 	resp, httpResp, execErr := req.Execute()
 
@@ -49,10 +49,10 @@ func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, pre
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
-		return nil, true, handleErr
+		return nil, handleErr
 	}
 
-	return resp, false, nil
+	return resp, nil
 }
 
 func (c *NetboxCompositeClient) writablePrefixRequestV4(prefix *models.Prefix) (*v4client.WritablePrefixRequest, error) {

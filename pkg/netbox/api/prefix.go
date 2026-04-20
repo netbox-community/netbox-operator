@@ -63,8 +63,13 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 				}
 
 				//update prefix since it does exist and the restoration hash matches
-				return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+				resp, err := c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
 			}
+
 			return nil, false, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
 		}
 	}
@@ -74,7 +79,11 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	}
 
 	//update prefix since it does exist
-	return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+	resp, err = c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
 }
 
 func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.PaginatedPrefixList, error) {
@@ -137,16 +146,16 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 	return c.clientV4.createPrefixV4(ctx, desiredPrefix)
 }
 
-func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (*v4client.Prefix, bool, error) {
+func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	if isLegacy {
 		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 
 		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
@@ -154,7 +163,7 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 
 	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	return c.clientV4.updatePrefixV4(ctx, prefixId, desiredPrefix)

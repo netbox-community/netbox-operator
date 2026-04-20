@@ -83,7 +83,11 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 				}
 
 				//update ip range since it does exist and the restoration hash matches
-				return c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
+				resp, err := c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
 			}
 			return nil, false, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
 		}
@@ -95,7 +99,11 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 
 	//update ip range since it does exist
 	ipRangeId := responseIpRangeList.Results[0].Id
-	return c.updateIpRange(ctx, ipRangeId, desiredIpRange)
+	resp, err = c.updateIpRange(ctx, ipRangeId, desiredIpRange)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
 }
 
 func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (*v4client.PaginatedIPRangeList, error) {
@@ -147,7 +155,7 @@ func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4cl
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, isUpToDate bool, err error) {
+func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int32, ipRange *v4client.WritableIPRangeRequest) (resp *v4client.IPRange, err error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesUpdate(ctx, ipRangeId).WritableIPRangeRequest(*ipRange)
 	resp, httpResp, execErr := req.Execute()
 
@@ -156,10 +164,10 @@ func (c *NetboxCompositeClient) updateIpRange(ctx context.Context, ipRangeId int
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
-		return nil, true, handleErr
+		return nil, handleErr
 	}
 
-	return resp, false, nil
+	return resp, nil
 }
 
 func (c *NetboxCompositeClient) DeleteIpRange(ctx context.Context, ipRangeId int32) (err error) {

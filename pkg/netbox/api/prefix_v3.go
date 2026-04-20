@@ -48,14 +48,14 @@ func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (re
 	return nclientPrefix, nil
 }
 
-func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, isUpToDate bool, err error) {
+func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, err error) {
 	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
 		WithDefaults().
 		WithData(prefix).
 		WithID(prefixId)
 	responseUpdatePrefix, err := c.Ipam.IpamPrefixesUpdate(requestUpdatePrefix, nil)
 	if err != nil {
-		return nil, true, utils.NetboxError("failed to update Prefix", err)
+		return nil, utils.NetboxError("failed to update Prefix", err)
 	}
 	prefixPayload := responseUpdatePrefix.Payload
 
@@ -65,7 +65,7 @@ func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.Wri
 		Description: &prefix.Description,
 	}
 
-	return nclientPrefix, false, nil
+	return nclientPrefix, nil
 }
 
 func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Prefix) (*netboxModels.WritablePrefix, error) {
