@@ -65,7 +65,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	ipToUpdate := responseIpAddress.Payload.Results[0]
 
 	if ipToUpdate.LastUpdated.IsZero() {
-		return nil, true, fmt.Errorf("last updated field is not set in Netbox for ip address %s", ipAddress.IpAddress)
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for ip address %s", ipAddress.IpAddress)
 	}
 
 	netboxLastUpdated := time.Time(*ipToUpdate.LastUpdated)
@@ -82,7 +82,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 				//update ip address since it does exist and the restoration hash matches
 				return c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
 			}
-			return nil, true, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
+			return nil, false, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
 		}
 	}
 
@@ -107,7 +107,7 @@ func (c *NetboxCompositeClient) getIpAddress(ipAddress *models.IPAddress) (*ipam
 	return responseIpAddress, err
 }
 
-func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.WritableIPAddress) (resp *netboxModels.IPAddress, err error) {
+func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, error) {
 	requestCreateIp := ipam.
 		NewIpamIPAddressesCreateParams().
 		WithDefaults().
@@ -120,7 +120,7 @@ func (c *NetboxCompositeClient) createIpAddress(ipAddress *netboxModels.Writable
 	return responseCreateIp.Payload, nil
 }
 
-func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (resp *netboxModels.IPAddress, isUpToDate bool, err error) {
+func (c *NetboxCompositeClient) updateIpAddress(ipAddressId int64, ipAddress *netboxModels.WritableIPAddress) (*netboxModels.IPAddress, bool, error) {
 	requestUpdateIp := ipam.
 		NewIpamIPAddressesUpdateParams().
 		WithDefaults().

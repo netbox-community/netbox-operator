@@ -289,7 +289,7 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.0.0.1-10.0.0.10")
-		assert.True(t, isUpToDate)
+		assert.False(t, isUpToDate)
 		assert.Nil(t, result)
 	})
 

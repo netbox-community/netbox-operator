@@ -88,25 +88,6 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		resetMockFunctions(ipamMockIpAddress, ipamMockIpAddressClaim, tenancyMock)
 	})
 
-	tenancyMocks := []func(*mock_interfaces.MockTenancyInterface, chan error){
-		mockTenancyTenancyTenantsList,
-	}
-
-	ipAddressListThenUpdate := func(updateMock func(*mock_interfaces.MockIpamInterface, chan error)) []func(*mock_interfaces.MockIpamInterface, chan error) {
-		return []func(*mock_interfaces.MockIpamInterface, chan error){
-			mockIpAddressListWithIpAddressFilter,
-			updateMock,
-		}
-	}
-
-	ipAddressListThenUpdateTwice := func() []func(*mock_interfaces.MockIpamInterface, chan error) {
-		return []func(*mock_interfaces.MockIpamInterface, chan error){
-			mockIpAddressListWithIpAddressFilter,
-			mockIpamIPAddressesUpdateOnce,
-			mockIpamIPAddressesUpdateOnce,
-		}
-	}
-
 	DescribeTable("Reconciler (ip address CR without owner reference)", func(
 		cr *netboxv1.IpAddress, // our CR as typed object
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
@@ -188,13 +169,20 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 				mockIpamIPAddressesCreate,
 				mockIpAddressesDelete,
 			},
-			tenancyMocks,
-			false, true, ExpectedIpAddressStatus),
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox, preserved in netbox",
 			defaultIpAddressCR(true),
-			ipAddressListThenUpdate(mockIpamIPAddressesUpdateOnce),
-			tenancyMocks,
-			false, true, ExpectedIpAddressStatus),
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithIpAddressFilter,
+				mockIpamIPAddressesUpdateOnce,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, ip address already reserved in NetBox",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -202,8 +190,10 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 				mockIpamIPAddressesUpdateOnce,
 				mockIpAddressesDelete,
 			},
-			tenancyMocks,
-			false, true, ExpectedIpAddressStatus),
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			false, netboxv1.ConditionIpaddressReadyTrue, ExpectedIpAddressStatus),
 		Entry("Create IpAddress CR, reserve or update failure",
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -220,13 +210,10 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithHashFilterMismatch,
 			},
-			tenancyMocks,
-			true, false, nil),
-		Entry("Create IpAddress CR, skip update when already up to date in NetBox (after convergence)",
-			defaultIpAddressCR(true),
-			ipAddressListThenUpdateTwice(),
-			tenancyMocks,
-			false, true, ExpectedIpAddressStatus),
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			true, metav1.Condition{}, netboxv1.IpAddressStatus{}),
 	)
 })
 

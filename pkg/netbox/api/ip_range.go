@@ -53,7 +53,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		if ipRange.Metadata.Tenant != "" {
 			tenantDetails, err := c.getTenantDetails(ipRange.Metadata.Tenant)
 			if err != nil {
-				return nil, true, err
+				return nil, false, err
 			}
 			tenantId := int32(tenantDetails.Id)
 			desiredIpRange.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
@@ -69,7 +69,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	ipRangeToUpdate := &responseIpRangeList.Results[0]
 
 	if !ipRangeToUpdate.LastUpdated.IsSet() {
-		return nil, true, fmt.Errorf("last updated field is not set in Netbox for ip range %s-%s", ipRange.StartAddress, ipRange.EndAddress)
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for ip range %s-%s", ipRange.StartAddress, ipRange.EndAddress)
 	}
 
 	// if the desired ip range has a restoration hash
@@ -85,7 +85,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 				//update ip range since it does exist and the restoration hash matches
 				return c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
 			}
-			return nil, true, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
+			return nil, false, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
 		}
 	}
 
@@ -98,7 +98,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	return c.updateIpRange(ctx, ipRangeId, desiredIpRange)
 }
 
-func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (resp *v4client.PaginatedIPRangeList, err error) {
+func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (*v4client.PaginatedIPRangeList, error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesList(ctx).
 		StartAddress([]string{ipRange.StartAddress}).
 		EndAddress([]string{ipRange.EndAddress})
