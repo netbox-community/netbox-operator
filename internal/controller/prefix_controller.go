@@ -32,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -242,6 +243,9 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	// update status fields (set after r.Patch to avoid being overwritten by API response)
 	o.Status.PrefixId = int64(netboxPrefixModel.Id)
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
+	if netboxPrefixModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxPrefixModel.LastUpdated.Get())
+	}
 
 	// check if the created prefix contains the entire description from spec
 	if netboxPrefixModel.Description == nil {

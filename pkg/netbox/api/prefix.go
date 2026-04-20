@@ -37,7 +37,7 @@ ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix, prefixV1 *netboxv1.Prefix) (resp *v4client.Prefix, isUpToDate bool, err error) {
 	responsePrefix, err := c.getPrefix(ctx, prefix)
 	if err != nil {
-		return nil, true, err
+		return nil, false, err
 	}
 
 	// create prefix since it doesn't exist
@@ -49,7 +49,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	prefixToUpdate := &responsePrefix.Results[0]
 
 	if !prefixToUpdate.LastUpdated.IsSet() {
-		return nil, true, fmt.Errorf("last updated field is not set in Netbox for prefix %s", prefix.Prefix)
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for prefix %s", prefix.Prefix)
 	}
 
 	// if the desired prefix has a restoration hash
@@ -65,7 +65,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 				//update prefix since it does exist and the restoration hash matches
 				return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
 			}
-			return nil, true, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
+			return nil, false, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
 		}
 	}
 
@@ -77,7 +77,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefi
 	return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
 }
 
-func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.PaginatedPrefixList, err error) {
+func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.PaginatedPrefixList, error) {
 	req := c.clientV4.IpamAPI.IpamPrefixesList(ctx).
 		Prefix([]string{prefix.Prefix})
 	resp, httpResp, err := req.Execute()
@@ -110,7 +110,7 @@ func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Pr
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
+func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.Prefix, error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
@@ -137,16 +137,16 @@ func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models
 	return c.clientV4.createPrefixV4(ctx, desiredPrefix)
 }
 
-func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *v4client.Prefix, isUpToDate bool, err error) {
+func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (*v4client.Prefix, bool, error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
-		return nil, true, err
+		return nil, false, err
 	}
 
 	if isLegacy {
 		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
 		if err != nil {
-			return nil, true, err
+			return nil, false, err
 		}
 
 		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
@@ -154,7 +154,7 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 
 	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
 	if err != nil {
-		return nil, true, err
+		return nil, false, err
 	}
 
 	return c.clientV4.updatePrefixV4(ctx, prefixId, desiredPrefix)

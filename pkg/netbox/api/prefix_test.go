@@ -485,7 +485,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
-		assert.True(t, isUpToDate)
+		assert.False(t, isUpToDate)
 		assert.Nil(t, result)
 	})
 

@@ -765,6 +765,6 @@ func TestIPAddress(t *testing.T) {
 		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
 		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
 		assert.Nil(t, result)
-		assert.True(t, isUpToDate)
+		assert.False(t, isUpToDate)
 	})
 }
