@@ -271,11 +271,10 @@ func TestIPAddress(t *testing.T) {
 			clientV3: clientV3,
 		}
 
-		ipaddress, isUpToDate, err := compositeClient.updateIpAddress(IpAddressId, writeableAddress())
+		ipaddress, err := compositeClient.updateIpAddress(IpAddressId, writeableAddress())
 
 		// assertion for errors
 		AssertNil(t, err)
-		assert.False(t, isUpToDate, "expected update to not skip update")
 
 		// assert address properties
 		AssertIpAddress(t, writeableAddress(), ipaddress)

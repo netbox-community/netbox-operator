@@ -132,9 +132,8 @@ func TestPrefix_UpdatePrefix(t *testing.T) {
 		Ipam: mockPrefixIpam,
 	}
 
-	actual, isUpToDate, err := clientV3.updatePrefixV3(prefixId, prefixToUpdate)
+	actual, err := clientV3.updatePrefixV3(prefixId, prefixToUpdate)
 	assert.Nil(t, err)
-	assert.False(t, isUpToDate)
 	assert.Greater(t, actual.Id, int32(0))
 	assert.Equal(t, prefix, actual.Prefix)
 	assert.Equal(t, updatedDescription, *actual.Description)
