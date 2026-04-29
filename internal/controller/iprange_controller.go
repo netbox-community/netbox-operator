@@ -35,6 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -159,7 +160,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, err
 	}
 
-	netboxIpRangeModel, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel)
+	netboxIpRangeModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
 			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
@@ -179,6 +180,12 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		ll.UnlockWithRetry(ctx)
 	}
 
+	// 4. if no change, then end loop
+	if statusUpToDate {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update annotation
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
@@ -205,6 +212,9 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	// update status fields (set after r.Patch to avoid being overwritten by API response)
 	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
 	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
+	if netboxIpRangeModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
+	}
 
 	logger.Info("reconcile loop finished")
 

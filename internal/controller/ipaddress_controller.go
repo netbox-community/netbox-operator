@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -177,7 +178,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	netboxIpAddressModel, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel)
+	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
@@ -199,7 +200,12 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. update annotations
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
+	if statusUpToDate {
+		return ctrl.Result{}, nil
+	}
+
+	// 4.1 update annotations
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
@@ -223,6 +229,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// 4. update status fields (set after r.Patch to avoid being overwritten by API response)
 	o.Status.IpAddressId = netboxIpAddressModel.ID
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
+	if netboxIpAddressModel.LastUpdated != nil {
+		o.Status.LastUpdated = metav1.NewTime(time.Time(*netboxIpAddressModel.LastUpdated))
+	}
 
 	// check if created ip address contains entire description from spec
 	_, found := strings.CutPrefix(netboxIpAddressModel.Description, req.String()+" // "+o.Spec.Description)

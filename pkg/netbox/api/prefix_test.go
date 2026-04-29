@@ -20,16 +20,19 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestPrefix_ListExistingPrefix(t *testing.T) {
@@ -40,7 +43,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 
 	//tenant mock input
-	tenant := "Tenant1"
+	tenantName := "Tenant1"
 	tenantId := int32(1)
 	tenantSlug := "tenant1"
 
@@ -53,7 +56,9 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	scopeType := "dcim.site"
 	comments := "blabla"
 	description := "very useful prefix"
-	expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+	expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenantName, tenantSlug)
+
+	expectedLastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	prefixListOutput := v4client.PaginatedPrefixList{
 		Results: []v4client.Prefix{
@@ -66,6 +71,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 				ScopeType:   *v4client.NewNullableString(&scopeType),
 				ScopeId:     *v4client.NewNullableInt32(&siteId),
 				Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
+				LastUpdated: *v4client.NewNullableTime(&expectedLastUpdated),
 			},
 		},
 	}
@@ -94,7 +100,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 		&models.Prefix{
 			Prefix: prefix,
 			Metadata: &models.NetboxMetadata{
-				Tenant:      tenant,
+				Tenant:      tenantName,
 				Comments:    comments,
 				Description: description,
 			},
@@ -106,7 +112,7 @@ func TestPrefix_ListExistingPrefix(t *testing.T) {
 	assert.Equal(t, description, *actual.Results[0].Description)
 	assert.Equal(t, prefix, actual.Results[0].Display)
 	assert.Equal(t, prefix, actual.Results[0].Prefix)
-	assert.Equal(t, tenant, actual.Results[0].Tenant.Get().Name)
+	assert.Equal(t, tenantName, actual.Results[0].Tenant.Get().Name)
 	assert.Equal(t, tenantId, actual.Results[0].Tenant.Get().Id)
 	assert.Equal(t, tenantSlug, actual.Results[0].Tenant.Get().Slug)
 	assert.Equal(t, "dcim.site", *actual.Results[0].ScopeType.Get())
@@ -124,7 +130,7 @@ func TestPrefix_ListNonExistingPrefix(t *testing.T) {
 	prefix := "10.112.140.0/24"
 
 	//tenant mock input
-	tenant := "tenant1"
+	tenantName := "Tenant1"
 
 	//prefix mock output
 	prefixListOutput := v4client.PaginatedPrefixList{
@@ -155,7 +161,7 @@ func TestPrefix_ListNonExistingPrefix(t *testing.T) {
 		&models.Prefix{
 			Prefix: prefix,
 			Metadata: &models.NetboxMetadata{
-				Tenant: tenant,
+				Tenant: tenantName,
 			},
 		})
 
@@ -194,9 +200,12 @@ func TestPrefix_DeletePrefix(t *testing.T) {
 }
 
 func TestPrefix_ReserveOrUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	// tenant mock input
-	tenant := "Tenant1"
-	tenantListRequestInput := tenancy.NewTenancyTenantsListParams().WithName(&tenant)
+	tenantName := "Tenant1"
+	tenantListRequestInput := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
 	// tenant mock output
 	tenantOutputId := int64(1)
@@ -206,7 +215,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			Results: []*netboxModels.Tenant{
 				{
 					ID:   tenantOutputId,
-					Name: &tenant,
+					Name: &tenantName,
 					Slug: &tenantOutputSlug,
 				},
 			},
@@ -244,10 +253,19 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		Results: []v4client.Prefix{},
 	}
 
-	t.Run("reserve with tenant and site (v4 NetBox client)", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
+	expectedStatusValue := v4client.PrefixStatusValue("active")
+	expectedPrefix := func() v4client.Prefix {
+		lastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+		return v4client.Prefix{
+			Id:          prefixId,
+			Display:     prefix,
+			Prefix:      prefix,
+			Status:      &v4client.PrefixStatus{Value: &expectedStatusValue},
+			LastUpdated: *v4client.NewNullableTime(&lastUpdated),
+		}
+	}
 
+	t.Run("reserve with tenant and site (v4 NetBox client)", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockCreateRequest := mock_interfaces.NewMockIpamPrefixesCreateRequest(ctrl)
@@ -260,9 +278,11 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		completeDescription := description + warningComment
 		scopeType := "dcim.site"
 		scopeId := int32(siteOutputId)
-		tenantId := int32(1)
-		tenantSlug := "tenant1"
-		expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
+
+		//tenant mock input
+		tenantId := int32(tenantOutputId)
+
+		expectedTenant := v4client.NewBriefTenant(tenantId, "", "", tenantName, tenantOutputSlug)
 
 		//prefix mock output
 		createPrefixOutput := &v4client.Prefix{
@@ -323,22 +343,20 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 				Description: description,
 				Site:        site,
 				Custom:      make(map[string]string),
-				Tenant:      tenant,
+				Tenant:      tenantName,
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(
+		_, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			&prefixModel)
+			&prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
+		assert.False(t, isUpToDate)
 	})
 
 	t.Run("update without tenant and site (v4 netbox client)", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
@@ -356,6 +374,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			CustomFields: map[string]interface{}{
 				config.GetOperatorConfig().NetboxRestorationHashFieldName: "wrongHash",
 			},
+			LastUpdated: expectedPrefix().LastUpdated,
 		}
 
 		mockIpamAPI.EXPECT().
@@ -404,18 +423,17 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(
+		_, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
 			context.TODO(),
-			&prefixModel)
+			&prefixModel, &netboxv1.Prefix{})
+
 		// skip assertion on returned values as the payload of IpamPrefixesUpdate() is returned
 		// without manipulation by the code
 		assert.Nil(t, err)
+		assert.False(t, isUpToDate)
 	})
 
 	t.Run("restoration hash mismatch", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 		prefixListOutput := &v4client.PaginatedPrefixList{
@@ -429,6 +447,7 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 					CustomFields: map[string]interface{}{
 						config.GetOperatorConfig().NetboxRestorationHashFieldName: "wrongHash",
 					},
+					LastUpdated: expectedPrefix().LastUpdated,
 				},
 			},
 		}
@@ -462,9 +481,459 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 			},
 		}
 
-		_, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel)
+		result, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(context.TODO(), &prefixModel, &netboxv1.Prefix{})
 		// skip assertion on returned values as the payload of IpamPrefixesCreate() is returned
 		// without manipulation by the code
 		AssertError(t, err, "restoration hash mismatch, assigned prefix 10.112.140.0/24")
+		assert.False(t, isUpToDate)
+		assert.Nil(t, result)
+	})
+
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+
+		expected := expectedPrefix()
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{Prefix: prefix},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.True(t, isUpToDate)
+		assert.Nil(t, actual)
+	})
+
+	t.Run("update when Condition is not Ready (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
+
+		expected := expectedPrefix()
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesUpdate(gomock.Any(), prefixId).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			WritablePrefixRequest(gomock.Any()).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{Prefix: prefix},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "False", ObservedGeneration: 0}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when LastUpdated differs (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
+
+		expected := expectedPrefix()
+		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesUpdate(gomock.Any(), prefixId).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			WritablePrefixRequest(gomock.Any()).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{Prefix: prefix},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when Generation differs (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
+
+		expected := expectedPrefix()
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesUpdate(gomock.Any(), prefixId).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			WritablePrefixRequest(gomock.Any()).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{Prefix: prefix},
+			&netboxv1.Prefix{
+				ObjectMeta: metav1.ObjectMeta{Generation: 2},
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 1}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+
+		expectedHash := "some_hash_value"
+		expected := expectedPrefix()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{
+				Prefix:   prefix,
+				Metadata: &models.NetboxMetadata{Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash}},
+			},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.True(t, isUpToDate)
+		assert.Nil(t, actual)
+	})
+
+	t.Run("update when Condition is not Ready (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
+
+		expectedHash := "some_hash_value"
+		expected := expectedPrefix()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesUpdate(gomock.Any(), prefixId).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			WritablePrefixRequest(gomock.Any()).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{
+				Prefix:   prefix,
+				Metadata: &models.NetboxMetadata{Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash}},
+			},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "False", ObservedGeneration: 0}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when LastUpdated differs (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
+
+		expectedHash := "some_hash_value"
+		expected := expectedPrefix()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesUpdate(gomock.Any(), prefixId).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			WritablePrefixRequest(gomock.Any()).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{
+				Prefix:   prefix,
+				Metadata: &models.NetboxMetadata{Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash}},
+			},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when Generation differs (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamPrefixesUpdateRequest(ctrl)
+		mockStatusAPI, mockStatusRequest := GetNetBoxVersionMock(ctrl, "4.2.0")
+		_ = mockStatusRequest
+
+		expectedHash := "some_hash_value"
+		expected := expectedPrefix()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{prefix}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamPrefixesUpdate(gomock.Any(), prefixId).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			WritablePrefixRequest(gomock.Any()).
+			Return(mockUpdateRequest)
+
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI, StatusAPI: mockStatusAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{
+				Prefix:   prefix,
+				Metadata: &models.NetboxMetadata{Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash}},
+			},
+			&netboxv1.Prefix{
+				ObjectMeta: metav1.ObjectMeta{Generation: 2},
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 1}},
+				},
+			},
+		)
+
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.Prefix, actual.Prefix)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
 }

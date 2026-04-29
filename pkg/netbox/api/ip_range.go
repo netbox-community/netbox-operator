@@ -24,16 +24,17 @@ import (
 	"net/http"
 
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange) (*v4client.IPRange, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (resp *v4client.IPRange, isUpToDate bool, err error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	desiredIpRange := v4client.NewWritableIPRangeRequest(ipRange.StartAddress, ipRange.EndAddress)
@@ -52,7 +53,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		if ipRange.Metadata.Tenant != "" {
 			tenantDetails, err := c.getTenantDetails(ipRange.Metadata.Tenant)
 			if err != nil {
-				return nil, err
+				return nil, false, err
 			}
 			tenantId := int32(tenantDetails.Id)
 			desiredIpRange.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
@@ -61,30 +62,51 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 
 	// create ip range since it doesn't exist
 	if len(responseIpRangeList.Results) == 0 {
-		return c.createIpRange(ctx, desiredIpRange)
+		resp, err := c.createIpRange(ctx, desiredIpRange)
+		return resp, false, err
 	}
 
-	ipRangeToUpdate := responseIpRangeList.Results[0]
+	ipRangeToUpdate := &responseIpRangeList.Results[0]
 
-	// if the desired ip address has a restoration hash
-	// check that the ip address to update has the same restoration hash
+	if !ipRangeToUpdate.LastUpdated.IsSet() {
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for ip range %s-%s", ipRange.StartAddress, ipRange.EndAddress)
+	}
+
+	// if the desired ip range has a restoration hash
+	// check that the ip range to update has the same restoration hash
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
 	if ipRange.Metadata != nil {
 		if restorationHash, ok := ipRange.Metadata.Custom[restorationHashKey]; ok {
 			if ipRangeToUpdate.CustomFields != nil && ipRangeToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				//update ip address since it does exist and the restoration hash matches
-				return c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
+				if IsUpToDate(*ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
+					return nil, true, nil
+				}
+
+				//update ip range since it does exist and the restoration hash matches
+				resp, err := c.updateIpRange(ctx, ipRangeToUpdate.Id, desiredIpRange)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
 			}
-			return nil, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
+			return nil, false, fmt.Errorf("%w, assigned ip range %s-%s", ErrRestorationHashMismatch, ipRange.StartAddress, ipRange.EndAddress)
 		}
+	}
+
+	if IsUpToDate(*ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
+		return nil, true, nil
 	}
 
 	//update ip range since it does exist
 	ipRangeId := responseIpRangeList.Results[0].Id
-	return c.updateIpRange(ctx, ipRangeId, desiredIpRange)
+	resp, err = c.updateIpRange(ctx, ipRangeId, desiredIpRange)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
 }
 
-func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (resp *v4client.PaginatedIPRangeList, err error) {
+func (c *NetboxCompositeClient) getIpRange(ctx context.Context, ipRange *models.IpRange) (*v4client.PaginatedIPRangeList, error) {
 	req := c.clientV4.IpamAPI.IpamIpRangesList(ctx).
 		StartAddress([]string{ipRange.StartAddress}).
 		EndAddress([]string{ipRange.EndAddress})

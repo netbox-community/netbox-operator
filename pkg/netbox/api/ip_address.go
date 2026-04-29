@@ -19,19 +19,21 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress) (*netboxModels.IPAddress, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress, ipAddressV1 *netboxv1.IpAddress) (resp *netboxModels.IPAddress, isUpToDate bool, err error) {
 	responseIpAddress, err := c.getIpAddress(ipAddress)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	desiredIPAddress := &netboxModels.WritableIPAddress{
@@ -49,17 +51,24 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	if ipAddress.Metadata != nil && ipAddress.Metadata.Tenant != "" {
 		tenantDetails, err := c.getTenantDetails(ipAddress.Metadata.Tenant)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		desiredIPAddress.Tenant = &tenantDetails.Id
 	}
 
 	// create ip address since it doesn't exist
 	if len(responseIpAddress.Payload.Results) == 0 {
-		return c.createIpAddress(desiredIPAddress)
+		resp, err := c.createIpAddress(desiredIPAddress)
+		return resp, false, err
 	}
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
+
+	if ipToUpdate.LastUpdated.IsZero() {
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for ip address %s", ipAddress.IpAddress)
+	}
+
+	netboxLastUpdated := time.Time(*ipToUpdate.LastUpdated)
 
 	// if the desired ip address has a restoration hash
 	// check that the ip address to update has the same restoration hash
@@ -67,15 +76,30 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	if ipAddress.Metadata != nil {
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
+				if IsUpToDate(netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
+					return ipToUpdate, true, nil
+				}
 				//update ip address since it does exist and the restoration hash matches
-				return c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
+				resp, err := c.updateIpAddress(ipToUpdate.ID, desiredIPAddress)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
 			}
-			return nil, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
+			return nil, false, fmt.Errorf("%w, assigned ip address %s", ErrRestorationHashMismatch, ipAddress.IpAddress)
 		}
 	}
 
+	if IsUpToDate(netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
+		return ipToUpdate, true, nil
+	}
+
 	ipAddressId := responseIpAddress.Payload.Results[0].ID
-	return c.updateIpAddress(ipAddressId, desiredIPAddress)
+	resp, err = c.updateIpAddress(ipAddressId, desiredIPAddress)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
 }
 
 func (c *NetboxCompositeClient) getIpAddress(ipAddress *models.IPAddress) (*ipam.IpamIPAddressesListOK, error) {

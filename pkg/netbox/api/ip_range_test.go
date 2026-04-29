@@ -20,15 +20,18 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -45,7 +48,7 @@ func TestIpRange(t *testing.T) {
 	tenantName := "Tenant1"
 	Label := "Status"
 	Value := "active"
-	comment := Comments
+	comments := Comments
 	description := Description
 	markPopulatedTrue := true
 
@@ -54,22 +57,24 @@ func TestIpRange(t *testing.T) {
 	expectedStatus.SetValue(v4client.IPRangeStatusValue(Value))
 	expectedStatus.SetLabel(v4client.IPRangeStatusLabel(Label))
 
+	expectedLastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	// Create expected response
 	expectedIPRange := func() v4client.IPRange {
+		lastUpdated := expectedLastUpdated
 		return v4client.IPRange{
-
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
-			Comments:      &comment,
+			Comments:      &comments,
 			Description:   &description,
 			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
 			Status:        expectedStatus,
 			MarkPopulated: &markPopulatedTrue,
+			LastUpdated:   *v4client.NewNullableTime(&lastUpdated),
 		}
 	}
 
-	t.Run("Retrieve Existing IP Range.", func(t *testing.T) {
+	t.Run("get existing IP Range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
 		// Setup expectations
@@ -118,7 +123,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.Results[0].MarkPopulated)
 	})
 
-	t.Run("ReserveOrUpdate, reserve new ip range", func(t *testing.T) {
+	t.Run("reserve new ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockCreateRequest := mock_interfaces.NewMockIpamIpRangesCreateRequest(ctrl)
@@ -155,7 +160,7 @@ func TestIpRange(t *testing.T) {
 			Id:            IpRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
-			Comments:      &comment,
+			Comments:      &comments,
 			Description:   &description,
 			MarkPopulated: &markPopulatedTrue,
 			Tenant:        expectedIPRange().Tenant,
@@ -197,17 +202,18 @@ func TestIpRange(t *testing.T) {
 		ipRangeRequest.SetStatus("active")
 
 		// Test
-		actual, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
 				EndAddress:   endAddress,
 				Metadata: &models.NetboxMetadata{
 					Tenant: tenantName,
 				},
-			})
+			}, &netboxv1.IpRange{})
 
 		// Assert
 		assert.NoError(t, err)
+		assert.False(t, isUpToDate)
 		assert.NotNil(t, actual)
 		assert.Equal(t, IpRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
@@ -220,7 +226,7 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
-	t.Run("ReserveOrUpdate, restoration hash mismatch", func(t *testing.T) {
+	t.Run("restoration hash mismatch", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
@@ -243,6 +249,7 @@ func TestIpRange(t *testing.T) {
 			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{
 				{
 					CustomFields: map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
+					LastUpdated:  *v4client.NewNullableTime(&expectedLastUpdated),
 				},
 			}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
@@ -268,7 +275,7 @@ func TestIpRange(t *testing.T) {
 
 		// Test
 		expectedHash := "ffjrep8b29fdaikb"
-		_, err := compositeClient.ReserveOrUpdateIpRange(
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -278,13 +285,15 @@ func TestIpRange(t *testing.T) {
 						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
 					},
 				},
-			})
+			}, &netboxv1.IpRange{})
 
 		// Assert
 		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.0.0.1-10.0.0.10")
+		assert.False(t, isUpToDate)
+		assert.Nil(t, result)
 	})
 
-	t.Run("ReserveOrUpdate, update existing ip range", func(t *testing.T) {
+	t.Run("update existing ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
@@ -325,9 +334,10 @@ func TestIpRange(t *testing.T) {
 				{
 					Id:            ipRangeId,
 					CustomFields:  map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
-					Comments:      &comment,
+					Comments:      &comments,
 					Description:   &description,
 					MarkPopulated: &markPopulatedTrue,
+					LastUpdated:   *v4client.NewNullableTime(&expectedLastUpdated),
 				},
 			}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
@@ -345,7 +355,7 @@ func TestIpRange(t *testing.T) {
 			Id:            ipRangeId,
 			StartAddress:  startAddress,
 			EndAddress:    endAddress,
-			Comments:      &comment,
+			Comments:      &comments,
 			Description:   &description,
 			Tenant:        *v4client.NewNullableBriefTenant(expectedTenant),
 			MarkPopulated: &markPopulatedTrue,
@@ -368,7 +378,7 @@ func TestIpRange(t *testing.T) {
 		}
 
 		// Test
-		actual, err := compositeClient.ReserveOrUpdateIpRange(
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
 			context.TODO(),
 			&models.IpRange{
 				StartAddress: startAddress,
@@ -376,10 +386,12 @@ func TestIpRange(t *testing.T) {
 				Metadata: &models.NetboxMetadata{
 					Tenant: tenantName,
 				},
-			})
+			}, &netboxv1.IpRange{})
 
 		// Assert
 		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
 		assert.Equal(t, ipRangeId, actual.Id)
 		assert.Equal(t, expectedIPRange().Comments, actual.Comments)
 		assert.Equal(t, expectedIPRange().Description, actual.Description)
@@ -391,7 +403,558 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
-	t.Run("Delete ip range", func(t *testing.T) {
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "True", ObservedGeneration: 0},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.True(t, isUpToDate)
+		assert.Nil(t, actual)
+	})
+
+	t.Run("update when Condition is not Ready (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		ipRangeId := int32(4)
+		expectedHash := "some_hash_value"
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesUpdate(gomock.Any(), ipRangeId).
+			Return(mockIpamIpRangesUpdate)
+
+		expected := expectedIPRange()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "False", ObservedGeneration: 0},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual, "expected update when Condition is not Ready")
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.StartAddress, actual.StartAddress)
+		assert.Equal(t, expected.EndAddress, actual.EndAddress)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.MarkPopulated, actual.MarkPopulated)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when Generation differs (no hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		ipRangeId := int32(4)
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expectedIPRange()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesUpdate(gomock.Any(), ipRangeId).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockIpamIpRangesUpdate)
+
+		expected := expectedIPRange()
+
+		mockIpamIpRangesUpdate.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+			}, &netboxv1.IpRange{
+				ObjectMeta: metav1.ObjectMeta{Generation: 2},
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: metav1.NewTime(*expected.LastUpdated.Get()),
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "True", ObservedGeneration: 1},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.NotNil(t, actual, "expected update when Generation differs")
+		assert.False(t, isUpToDate)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.StartAddress, actual.StartAddress)
+		assert.Equal(t, expected.EndAddress, actual.EndAddress)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.MarkPopulated, actual.MarkPopulated)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when LastUpdated differs (no hash)", func(t *testing.T) {
+		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		ipRangeId := int32(4)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesUpdate(gomock.Any(), ipRangeId).
+			Return(mockIpamIpRangesUpdate)
+
+		expected := expectedIPRange()
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "True", ObservedGeneration: 0},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.NotNil(t, actual, "expected update when Condition is not Ready")
+		assert.False(t, isUpToDate)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.StartAddress, actual.StartAddress)
+		assert.Equal(t, expected.EndAddress, actual.EndAddress)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.MarkPopulated, actual.MarkPopulated)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		expectedHash := "some_hash_value"
+		expected := expectedIPRange()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		lastUpdatedV1 := metav1.NewTime(*expectedIPRange().LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+					},
+				},
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "True", ObservedGeneration: 0},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.True(t, isUpToDate)
+		assert.Nil(t, actual)
+	})
+
+	t.Run("update when Condition is not Ready (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		ipRangeId := int32(4)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesUpdate(gomock.Any(), ipRangeId).
+			Return(mockIpamIpRangesUpdate)
+
+		expectedHash := "some_hash_value"
+		expected := expectedIPRange()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		req := v4client.NewWritableIPRangeRequest(startAddress, endAddress)
+		req.SetStatus("active")
+		req.SetMarkPopulated(true)
+		mockIpamIpRangesUpdate.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		lastUpdatedV1 := metav1.NewTime(*expected.LastUpdated.Get())
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+					},
+				},
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "False", ObservedGeneration: 0},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual, "expected update when Condition is not Ready")
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.StartAddress, actual.StartAddress)
+		assert.Equal(t, expected.EndAddress, actual.EndAddress)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.MarkPopulated, actual.MarkPopulated)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when Generation differs (with hash)", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		ipRangeId := int32(4)
+
+		expectedHash := "some_hash_value"
+		expected := expectedIPRange()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesUpdate(gomock.Any(), ipRangeId).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+					},
+				},
+			}, &netboxv1.IpRange{
+				ObjectMeta: metav1.ObjectMeta{Generation: 2},
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: metav1.NewTime(*expected.LastUpdated.Get()),
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "True", ObservedGeneration: 1},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.NotNil(t, actual, "expected update when Generation differs")
+		assert.False(t, isUpToDate)
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.StartAddress, actual.StartAddress)
+		assert.Equal(t, expected.EndAddress, actual.EndAddress)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.MarkPopulated, actual.MarkPopulated)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("update when LastUpdated differs (no hash)", func(t *testing.T) {
+		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockIpamIpRangesUpdate := mock_interfaces.NewMockIpamIpRangesUpdateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		ipRangeId := int32(4)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesUpdate(gomock.Any(), ipRangeId).
+			Return(mockIpamIpRangesUpdate)
+
+		expectedHash := "some_hash_value"
+		expected := expectedIPRange()
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{expected}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockIpamIpRangesUpdate)
+
+		mockIpamIpRangesUpdate.EXPECT().
+			Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+		}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+					},
+				},
+			}, &netboxv1.IpRange{
+				Status: netboxv1.IpRangeStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions: []metav1.Condition{
+						{Type: "Ready", Status: "True", ObservedGeneration: 0},
+					},
+				},
+			})
+		AssertNil(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual, "expected update when Condition is not Ready")
+		assert.Equal(t, expected.Id, actual.Id)
+		assert.Equal(t, expected.StartAddress, actual.StartAddress)
+		assert.Equal(t, expected.EndAddress, actual.EndAddress)
+		assert.Equal(t, expected.Status, actual.Status)
+		assert.Equal(t, expected.MarkPopulated, actual.MarkPopulated)
+		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
+	})
+
+	t.Run("delete ip range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
@@ -420,7 +983,7 @@ func TestIpRange(t *testing.T) {
 		AssertNil(t, err)
 	})
 
-	t.Run("Delete ip range, ignore 404 error", func(t *testing.T) {
+	t.Run("delete ip range ignore 404 error", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 
@@ -449,7 +1012,7 @@ func TestIpRange(t *testing.T) {
 		AssertNil(t, err)
 	})
 
-	t.Run("Delete ip range, return non 404 errors", func(t *testing.T) {
+	t.Run("delete ip range return non 404 errors", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockDestroyRequest := mock_interfaces.NewMockIpamIpRangesDestroyRequest(ctrl)
 

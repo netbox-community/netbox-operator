@@ -20,13 +20,14 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
 // to ensure compatibility with older NetBox versions the CreatePrefix and UpdatePrefix
 // functions for the v3 client are still required
 
-func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (*v4client.Prefix, error) {
+func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, err error) {
 	requestCreatePrefix := ipam.
 		NewIpamPrefixesCreateParams().
 		WithDefaults().
@@ -47,7 +48,7 @@ func (c *NetboxClientV3) createPrefixV3(prefix *netboxModels.WritablePrefix) (*v
 	return nclientPrefix, nil
 }
 
-func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (*v4client.Prefix, error) {
+func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.WritablePrefix) (resp *v4client.Prefix, err error) {
 	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
 		WithDefaults().
 		WithData(prefix).
@@ -65,4 +66,33 @@ func (c *NetboxClientV3) updatePrefixV3(prefixId int64, prefix *netboxModels.Wri
 	}
 
 	return nclientPrefix, nil
+}
+
+func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Prefix) (*netboxModels.WritablePrefix, error) {
+	desiredPrefix := &netboxModels.WritablePrefix{
+		Prefix: &prefix.Prefix,
+		Status: "active",
+	}
+	if prefix.Metadata != nil {
+		desiredPrefix.CustomFields = prefix.Metadata.Custom
+		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
+		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
+
+		if prefix.Metadata.Tenant != "" {
+			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.Tenant = &tenantDetails.Id
+		}
+
+		if prefix.Metadata.Site != "" {
+			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
+			if err != nil {
+				return nil, err
+			}
+			desiredPrefix.Site = &siteDetails.Id
+		}
+	}
+	return desiredPrefix, nil
 }
