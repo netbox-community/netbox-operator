@@ -146,7 +146,7 @@ type PrefixClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&PrefixClaim{}, &PrefixClaimList{})
+	register(&PrefixClaim{}, &PrefixClaimList{})
 }
 
 var ConditionPrefixClaimReadyTrue = metav1.Condition{

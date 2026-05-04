@@ -118,7 +118,7 @@ type PrefixList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Prefix{}, &PrefixList{})
+	register(&Prefix{}, &PrefixList{})
 }
 
 var ConditionPrefixReadyTrue = metav1.Condition{

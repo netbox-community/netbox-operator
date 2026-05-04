@@ -113,7 +113,7 @@ type IpAddressList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IpAddress{}, &IpAddressList{})
+	register(&IpAddress{}, &IpAddressList{})
 }
 
 var ConditionIpaddressReadyTrue = metav1.Condition{
