@@ -936,4 +936,82 @@ func TestPrefix_ReserveOrUpdate(t *testing.T) {
 		assert.Equal(t, expected.Status, actual.Status)
 		assert.Equal(t, expected.LastUpdated, actual.LastUpdated)
 	})
+
+	t.Run("skip update when NetBox LastUpdated has nanosecond precision and Condition is Ready (no hash)", func(t *testing.T) {
+		// NetBox returns a timestamp with nanoseconds; status stores the same second with zero nanoseconds.
+		// Truncate(time.Second) must be applied before comparison so they are treated as equal.
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+
+		lastUpdatedNetBox := time.Date(2024, 1, 1, 0, 0, 0, 123456789, time.UTC)
+		lastUpdatedV1 := metav1.NewTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		expected := expectedPrefix()
+		expected.LastUpdated = *v4client.NewNullableTime(&lastUpdatedNetBox)
+
+		mockIpamAPI.EXPECT().IpamPrefixesList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().Prefix([]string{prefix}).Return(mockListRequest)
+		mockListRequest.EXPECT().Execute().Return(
+			&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}},
+			&http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{Prefix: prefix},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+				},
+			},
+		)
+		AssertNil(t, err)
+		assert.True(t, isUpToDate, "expected skip update when NetBox timestamp has sub-second precision matching status at second precision")
+		assert.Nil(t, actual)
+	})
+
+	t.Run("skip update when NetBox LastUpdated has nanosecond precision and Condition is Ready (with hash)", func(t *testing.T) {
+		// Same scenario as above but via the restoration-hash code path.
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
+
+		lastUpdatedNetBox := time.Date(2024, 1, 1, 0, 0, 0, 123456789, time.UTC)
+		lastUpdatedV1 := metav1.NewTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+		expectedHash := "some_hash_value"
+
+		expected := expectedPrefix()
+		expected.LastUpdated = *v4client.NewNullableTime(&lastUpdatedNetBox)
+		expected.CustomFields = map[string]interface{}{
+			config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+		}
+
+		mockIpamAPI.EXPECT().IpamPrefixesList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().Prefix([]string{prefix}).Return(mockListRequest)
+		mockListRequest.EXPECT().Execute().Return(
+			&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expected}},
+			&http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdatePrefix(
+			context.TODO(),
+			&models.Prefix{
+				Prefix:   prefix,
+				Metadata: &models.NetboxMetadata{Custom: map[string]string{config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash}},
+			},
+			&netboxv1.Prefix{
+				Status: netboxv1.PrefixStatus{
+					LastUpdated: lastUpdatedV1,
+					Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+				},
+			},
+		)
+		AssertNil(t, err)
+		assert.True(t, isUpToDate, "expected skip update when NetBox timestamp has sub-second precision matching status at second precision (with hash)")
+		assert.Nil(t, actual)
+	})
 }

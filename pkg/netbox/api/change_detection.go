@@ -32,10 +32,10 @@ func IsUpToDate(
 	if statusLastUpdated.IsZero() {
 		return false
 	}
-	sameLastUpdated := statusLastUpdated.Time.Equal(netboxLastUpdated)
+	sameLastUpdated := statusLastUpdated.Time.Equal(netboxLastUpdated.Truncate(time.Second))
 
 	readyCondition := apismeta.FindStatusCondition(conditions, "Ready")
-	sameReadyCondition := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
+	sameReadyConditionForLatestGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
 
-	return sameLastUpdated && sameReadyCondition
+	return sameLastUpdated && sameReadyConditionForLatestGeneration
 }

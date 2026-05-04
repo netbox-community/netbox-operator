@@ -766,4 +766,68 @@ func TestIPAddress(t *testing.T) {
 		assert.Nil(t, result)
 		assert.False(t, isUpToDate)
 	})
+
+	t.Run("skip update when NetBox LastUpdated has nanosecond precision and Condition is Ready (no hash)", func(t *testing.T) {
+		// NetBox returns a timestamp with nanoseconds; status stores the same second with zero nanoseconds.
+		// Truncate(time.Second) must be applied before comparison so they are treated as equal.
+		lastUpdatedNetBox := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 123456789, time.UTC))
+		lastUpdatedV1 := metav1.NewTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{ID: expectedIPAddress().ID, Address: expectedIPAddress().Address, LastUpdated: &lastUpdatedNetBox},
+				},
+			},
+		}
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
+
+		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
+		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
+
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+			Status: netboxv1.IpAddressStatus{
+				LastUpdated: lastUpdatedV1,
+				Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+			},
+		})
+		AssertNil(t, err)
+		assert.NotNil(t, result, "expected existing NetBox IP when timestamps match at second precision")
+		assert.True(t, isUpToDate, "expected skip update when NetBox timestamp has sub-second precision matching status at second precision")
+	})
+
+	t.Run("skip update when NetBox LastUpdated has nanosecond precision and Condition is Ready (with hash)", func(t *testing.T) {
+		// Same scenario as above but via the restoration-hash code path.
+		lastUpdatedNetBox := strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 123456789, time.UTC))
+		lastUpdatedV1 := metav1.NewTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{
+						ID:           expectedIPAddress().ID,
+						Address:      expectedIPAddress().Address,
+						LastUpdated:  &lastUpdatedNetBox,
+						CustomFields: expectedIPAddress().CustomFields, // contains expectedHash
+					},
+				},
+			},
+		}
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil).AnyTimes()
+
+		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
+		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
+
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+			Status: netboxv1.IpAddressStatus{
+				LastUpdated: lastUpdatedV1,
+				Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
+			},
+		})
+		AssertNil(t, err)
+		assert.NotNil(t, result, "expected existing NetBox IP when timestamps match at second precision (with hash)")
+		assert.True(t, isUpToDate, "expected skip update when NetBox timestamp has sub-second precision matching status at second precision (with hash)")
+	})
 }
