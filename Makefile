@@ -55,7 +55,7 @@ GO_PACKAGE_NAME_CHAINSAW := chainsaw
 install-$(GO_PACKAGE_NAME_CHAINSAW):
 	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_CHAINSAW)" ]; then \
 		echo "Installing $(GO_PACKAGE_NAME_CHAINSAW)..." ; \
-		go install github.com/kyverno/chainsaw@v0.2.12 ; \
+		GOTOOLCHAIN=go1.25.9 go install github.com/kyverno/chainsaw@v0.2.14 ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_CHAINSAW) is installed" ; \
 	fi
