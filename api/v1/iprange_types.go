@@ -122,7 +122,7 @@ type IpRangeList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IpRange{}, &IpRangeList{})
+	register(&IpRange{}, &IpRangeList{})
 }
 
 var ConditionIpRangeReadyTrue = metav1.Condition{

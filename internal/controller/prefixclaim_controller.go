@@ -209,7 +209,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			if !locked {
 				// lock for parent prefix was not available, rescheduling
 				errorMsg := fmt.Sprintf("failed to lock parent prefix %s", o.Status.SelectedParentPrefix)
-				r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+				r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 				return ctrl.Result{
 					RequeueAfter: 2 * time.Second,
 				}, NewDomainError("%s", errorMsg)

@@ -118,7 +118,7 @@ type IpAddressClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IpAddressClaim{}, &IpAddressClaimList{})
+	register(&IpAddressClaim{}, &IpAddressClaimList{})
 }
 
 var ConditionIpClaimReadyTrue = metav1.Condition{
