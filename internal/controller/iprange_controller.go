@@ -139,7 +139,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		locked := ll.TryLock(lockCtx)
 		if !locked {
 			errorMsg := fmt.Sprintf("failed to lock parent prefix %s", parentPrefix)
-			r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
+			r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockParentPrefix", errorMsg)
 			return ctrl.Result{
 				RequeueAfter: 2 * time.Second,
 			}, NewDomainError("%s", errorMsg)
