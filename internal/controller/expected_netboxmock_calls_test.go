@@ -187,7 +187,11 @@ func mockIpAddressesDeleteFail(ipamMock *mock_interfaces.MockIpamInterface, catc
 		}).MinTimes(1)
 }
 
-func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpamIPAddressesUpdateOnce(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	mockIpamIPAddressesUpdateWithCount(ipamMock, catchUnexpectedParams, 1)
+}
+
+func mockIpamIPAddressesUpdateWithCount(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error, times int) {
 	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {
 			got := params.(*ipam.IpamIPAddressesUpdateParams)
@@ -199,7 +203,7 @@ func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catc
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesUpdate was called with expected input\n")
 			return &ipam.IpamIPAddressesUpdateOK{Payload: mockedResponseIPAddress()}, nil
-		}).MinTimes(1)
+		}).Times(times)
 }
 
 func mockIpamIPAddressesUpdateWithHash(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {

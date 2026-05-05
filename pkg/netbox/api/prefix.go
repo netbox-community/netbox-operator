@@ -23,8 +23,8 @@ import (
 	"io"
 	"net/http"
 
-	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -34,38 +34,59 @@ import (
 /*
 ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 */
-func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix) (*v4client.Prefix, error) {
+func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix, prefixV1 *netboxv1.Prefix) (resp *v4client.Prefix, isUpToDate bool, err error) {
 	responsePrefix, err := c.getPrefix(ctx, prefix)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// create prefix since it doesn't exist
 	if len(responsePrefix.Results) == 0 {
-		return c.createPrefix(ctx, prefix)
+		resp, err := c.createPrefix(ctx, prefix)
+		return resp, false, err
 	}
 
-	prefixToUpdate := responsePrefix.Results[0]
+	prefixToUpdate := &responsePrefix.Results[0]
 
-	// if the desired ip address has a restoration hash
-	// check that the ip address to update has the same restoration hash
+	if !prefixToUpdate.LastUpdated.IsSet() {
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for prefix %s", prefix.Prefix)
+	}
+
+	// if the desired prefix has a restoration hash
+	// check that the prefix to update has the same restoration hash
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
 	if prefix.Metadata != nil {
 		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
 			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				//update ip address since it does exist and the restoration hash matches
-				return c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+				if IsUpToDate(*prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
+					return nil, true, nil
+				}
+
+				//update prefix since it does exist and the restoration hash matches
+				resp, err := c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
 			}
-			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
+
+			return nil, false, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
 		}
 	}
 
-	//update ip address since it does exist
-	prefixId := responsePrefix.Results[0].Id
-	return c.updatePrefix(ctx, prefixId, prefix)
+	if IsUpToDate(*prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
+		return nil, true, nil
+	}
+
+	//update prefix since it does exist
+	resp, err = c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
 }
 
-func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.PaginatedPrefixList, err error) {
+func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.PaginatedPrefixList, error) {
 	req := c.clientV4.IpamAPI.IpamPrefixesList(ctx).
 		Prefix([]string{prefix.Prefix})
 	resp, httpResp, err := req.Execute()
@@ -98,98 +119,31 @@ func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Pr
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
+func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.Prefix, error) {
 	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if isLegacy {
-
-		desiredPrefix := &netboxModels.WritablePrefix{
-			Prefix:       &prefix.Prefix,
-			Comments:     prefix.Metadata.Comments + warningComment,
-			CustomFields: prefix.Metadata.Custom,
-			Description:  prefix.Metadata.Description + warningComment,
-			Status:       "active",
+		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
+		if err != nil {
+			return nil, err
 		}
 
-		if prefix.Metadata != nil {
-			desiredPrefix.CustomFields = prefix.Metadata.Custom
-			desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
-			desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-
-			if prefix.Metadata.Tenant != "" {
-				tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-				if err != nil {
-					return nil, err
-				}
-				desiredPrefix.Tenant = &tenantDetails.Id
-			}
-			if prefix.Metadata.Site != "" {
-				siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-				if err != nil {
-					return nil, err
-				}
-				desiredPrefix.Site = &siteDetails.Id
-			}
-		}
 		return c.clientV3.createPrefixV3(desiredPrefix)
 	}
 
-	desiredPrefix := v4client.NewWritablePrefixRequest(prefix.Prefix)
-
-	if prefix.Metadata != nil {
-		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
-		// Convert map[string]string to map[string]interface{}
-		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
-		for k, v := range prefix.Metadata.Custom {
-			customFields[k] = v
-		}
-		desiredPrefix.SetCustomFields(customFields)
-		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
-
-		if prefix.Metadata.Tenant != "" {
-			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-			if err != nil {
-				return nil, err
-			}
-			tenantId := int32(tenantDetails.Id)
-			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
-		}
-
-		if prefix.Metadata.Site != "" {
-			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-			if err != nil {
-				return nil, err
-			}
-			desiredPrefix.SetScopeType("dcim.site")
-			desiredPrefix.SetScopeId(int32(siteDetails.Id))
-		}
+	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
+	if err != nil {
+		return nil, err
 	}
-
 	status, err := v4client.NewPatchedWritablePrefixRequestStatusFromValue("active")
 	if err != nil {
 		return nil, err
 	}
 	desiredPrefix.SetStatus(*status)
 	return c.clientV4.createPrefixV4(ctx, desiredPrefix)
-
-}
-
-func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
-	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
-	resp, httpResp, execErr := req.Execute()
-
-	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusCreated, "create prefix")
-	if closeFunc != nil {
-		defer func() { err = errors.Join(err, closeFunc()) }()
-	}
-	if handleErr != nil {
-		return nil, handleErr
-	}
-
-	return resp, nil
 }
 
 func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
@@ -199,86 +153,20 @@ func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32
 	}
 
 	if isLegacy {
-
-		desiredPrefix := &netboxModels.WritablePrefix{
-			Prefix:       &prefix.Prefix,
-			Comments:     prefix.Metadata.Comments + warningComment,
-			CustomFields: prefix.Metadata.Custom,
-			Description:  prefix.Metadata.Description + warningComment,
-			Status:       "active",
+		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
+		if err != nil {
+			return nil, err
 		}
 
-		if prefix.Metadata != nil {
-			desiredPrefix.CustomFields = prefix.Metadata.Custom
-			desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
-			desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-
-			if prefix.Metadata.Tenant != "" {
-				tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-				if err != nil {
-					return nil, err
-				}
-				desiredPrefix.Tenant = &tenantDetails.Id
-			}
-
-			if prefix.Metadata.Site != "" {
-				siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-				if err != nil {
-					return nil, err
-				}
-				desiredPrefix.Site = &siteDetails.Id
-			}
-		}
 		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
 	}
 
-	desiredPrefix := v4client.NewWritablePrefixRequest(prefix.Prefix)
-
-	if prefix.Metadata != nil {
-		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
-		// Convert map[string]string to map[string]interface{}
-		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
-		for k, v := range prefix.Metadata.Custom {
-			customFields[k] = v
-		}
-		desiredPrefix.SetCustomFields(customFields)
-		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
-
-		if prefix.Metadata.Tenant != "" {
-			tenantDetails, err := c.getTenantDetails(prefix.Metadata.Tenant)
-			if err != nil {
-				return nil, err
-			}
-			tenantId := int32(tenantDetails.Id)
-			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
-		}
-
-		if prefix.Metadata.Site != "" {
-			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
-			if err != nil {
-				return nil, err
-			}
-			desiredPrefix.SetScopeType("dcim.site")
-			desiredPrefix.SetScopeId(int32(siteDetails.Id))
-		}
+	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
+	if err != nil {
+		return nil, err
 	}
+
 	return c.clientV4.updatePrefixV4(ctx, prefixId, desiredPrefix)
-
-}
-
-func (c *NetboxClientV4) updatePrefixV4(ctx context.Context, prefixId int32, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
-	req := c.IpamAPI.IpamPrefixesUpdate(ctx, prefixId).WritablePrefixRequest(*prefix)
-	resp, httpResp, execErr := req.Execute()
-
-	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "update prefix")
-	if closeFunc != nil {
-		defer func() { err = errors.Join(err, closeFunc()) }()
-	}
-	if handleErr != nil {
-		return nil, handleErr
-	}
-
-	return resp, nil
 }
 
 func (c *NetboxCompositeClient) DeletePrefix(ctx context.Context, prefixId int32) (err error) {
