@@ -35,7 +35,7 @@ func IsUpToDate(
 	sameLastUpdated := statusLastUpdated.Time.Equal(netboxLastUpdated.Truncate(time.Second))
 
 	readyCondition := apismeta.FindStatusCondition(conditions, "Ready")
-	sameReadyConditionForLatestGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
+	readyForLatestGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
 
-	return sameLastUpdated && sameReadyConditionForLatestGeneration
+	return sameLastUpdated && readyForLatestGeneration
 }
