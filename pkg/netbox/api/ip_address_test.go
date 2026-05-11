@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -328,7 +329,7 @@ func TestIPAddress(t *testing.T) {
 		}
 
 		ipAddressModel := ipAddressModel("")
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel, &netboxv1.IpAddress{})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected result when update is performed")
 		assert.False(t, isUpToDate, "expected update to be performed")
@@ -377,7 +378,7 @@ func TestIPAddress(t *testing.T) {
 		}
 
 		ipAddressModel := ipAddressModel(expectedHash)
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel, &netboxv1.IpAddress{})
 		AssertNil(t, err)
 		assert.NotNil(t, result, "expected result when update is performed")
 		assert.False(t, isUpToDate, "expected update to be performed")
@@ -410,7 +411,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(*expectedIPAddress().LastUpdated))
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -443,7 +444,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC))
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -482,7 +483,7 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1, // different from NetBox
 				Conditions: []metav1.Condition{
@@ -525,7 +526,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			ObjectMeta: metav1.ObjectMeta{Generation: 2}, // Generation 2
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
@@ -572,7 +573,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -611,7 +612,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -660,7 +661,7 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions: []metav1.Condition{
@@ -709,7 +710,7 @@ func TestIPAddress(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
 		lastUpdatedV1 := metav1.NewTime(time.Time(lastUpdated))
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			ObjectMeta: metav1.ObjectMeta{Generation: 2}, // Generation 2
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
@@ -761,7 +762,7 @@ func TestIPAddress(t *testing.T) {
 
 		expectedHash := "iwfohs7v82fe9w0"
 		ipAddressModel := ipAddressModel(expectedHash)
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel, &netboxv1.IpAddress{})
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel, &netboxv1.IpAddress{})
 		AssertError(t, err, "restoration hash mismatch, assigned ip address 10.112.140.0")
 		assert.Nil(t, result)
 		assert.False(t, isUpToDate)
@@ -786,7 +787,7 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(&models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{IpAddress: ipAddress}, &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},
@@ -820,7 +821,7 @@ func TestIPAddress(t *testing.T) {
 		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
 		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
 
-		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(ipAddressModel(expectedHash), &netboxv1.IpAddress{
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), ipAddressModel(expectedHash), &netboxv1.IpAddress{
 			Status: netboxv1.IpAddressStatus{
 				LastUpdated: lastUpdatedV1,
 				Conditions:  []metav1.Condition{{Type: "Ready", Status: "True", ObservedGeneration: 0}},

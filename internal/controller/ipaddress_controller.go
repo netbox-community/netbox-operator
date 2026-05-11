@@ -178,7 +178,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ipAddressModel, o)
+	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ctx, ipAddressModel, o)
 	if err != nil {
 		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
