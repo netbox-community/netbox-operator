@@ -177,7 +177,10 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			defaultIpAddressCR(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
-				mockIpamIPAddressesUpdateOnce,
+				// allow the update mock to be called twice
+				// there are race conditions where the cr is reconciled again
+				// before the ready condition is set to true
+				mockIpamIPAddressesUpdateTwice,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){
 				mockTenancyTenancyTenantsList,
@@ -187,7 +190,10 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 			defaultIpAddressCR(false),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithIpAddressFilter,
-				mockIpamIPAddressesUpdateOnce,
+				// allow the update mock to be called twice
+				// there are race conditions where the cr is reconciled again
+				// before the ready condition is set to true
+				mockIpamIPAddressesUpdateTwice,
 				mockIpAddressesDelete,
 			},
 			[]func(*mock_interfaces.MockTenancyInterface, chan error){

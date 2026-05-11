@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -30,7 +31,7 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAddress, ipAddressV1 *netboxv1.IpAddress) (resp *netboxModels.IPAddress, isUpToDate bool, err error) {
+func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ctx context.Context, ipAddress *models.IPAddress, ipAddressV1 *netboxv1.IpAddress) (resp *netboxModels.IPAddress, isUpToDate bool, err error) {
 	responseIpAddress, err := c.getIpAddress(ipAddress)
 	if err != nil {
 		return nil, false, err
@@ -76,7 +77,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 	if ipAddress.Metadata != nil {
 		if restorationHash, ok := ipAddress.Metadata.Custom[restorationHashKey]; ok {
 			if ipToUpdate.CustomFields != nil && ipToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
-				if IsUpToDate(netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
+				if IsUpToDate(ctx, netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
 					return ipToUpdate, true, nil
 				}
 				//update ip address since it does exist and the restoration hash matches
@@ -90,7 +91,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ipAddress *models.IPAdd
 		}
 	}
 
-	if IsUpToDate(netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
+	if IsUpToDate(ctx, netboxLastUpdated, ipAddressV1.Status.LastUpdated, ipAddressV1.Status.Conditions, ipAddressV1.Generation) {
 		return ipToUpdate, true, nil
 	}
 

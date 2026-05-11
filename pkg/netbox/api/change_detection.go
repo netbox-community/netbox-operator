@@ -17,25 +17,35 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"time"
 
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func IsUpToDate(
+	ctx context.Context,
 	netboxLastUpdated time.Time,
 	statusLastUpdated metav1.Time,
 	conditions []metav1.Condition,
 	generation int64,
 ) bool {
+	logger := log.FromContext(ctx)
 	if statusLastUpdated.IsZero() {
 		return false
 	}
 	sameLastUpdated := statusLastUpdated.Time.Equal(netboxLastUpdated.Truncate(time.Second))
+	if !sameLastUpdated {
+		logger.Info("resource in NetBox not up to date, different lastUpdated in NetBox")
+	}
 
 	readyCondition := apismeta.FindStatusCondition(conditions, "Ready")
 	readyForLatestGeneration := readyCondition != nil && readyCondition.Status == "True" && readyCondition.ObservedGeneration == generation
+	if !readyForLatestGeneration {
+		logger.Info("resource in NetBox not up to date, cr not ready for latest generation")
+	}
 
 	return sameLastUpdated && readyForLatestGeneration
 }

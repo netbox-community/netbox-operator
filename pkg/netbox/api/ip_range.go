@@ -78,7 +78,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	if ipRange.Metadata != nil {
 		if restorationHash, ok := ipRange.Metadata.Custom[restorationHashKey]; ok {
 			if ipRangeToUpdate.CustomFields != nil && ipRangeToUpdate.CustomFields[restorationHashKey] == restorationHash {
-				if IsUpToDate(*ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
+				if IsUpToDate(ctx, *ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
 					return nil, true, nil
 				}
 
@@ -93,7 +93,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		}
 	}
 
-	if IsUpToDate(*ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
+	if IsUpToDate(ctx, *ipRangeToUpdate.LastUpdated.Get(), ipRangeV1.Status.LastUpdated, ipRangeV1.Status.Conditions, ipRangeV1.Generation) {
 		return nil, true, nil
 	}
 
