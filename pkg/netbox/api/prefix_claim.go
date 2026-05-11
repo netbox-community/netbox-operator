@@ -166,16 +166,24 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 
 	// TODO: find a better way?
 	if list.Payload.Count != nil && *list.Payload.Count == 0 {
-		return nil, nil
+		return nil, errors.New("no parent prefixes found for this selector")
 	}
 
 	prefixes := make([]*models.Prefix, 0)
 	for _, prefix := range list.Payload.Results {
-		if prefix.Prefix != nil && c.isParentPrefixCandidate(ctx, prefixClaimSpec, *prefix.Prefix) {
+		if prefix.Prefix != nil {
+			errCandidate := c.isParentPrefixCandidate(ctx, prefixClaimSpec, *prefix.Prefix)
+			if err != nil {
+				err = errors.Join(err, fmt.Errorf("prefix %s is not a valid parent prefix candidate, %w", *prefix.Prefix, errCandidate))
+			}
 			prefixes = append(prefixes, &models.Prefix{
 				Prefix: *prefix.Prefix,
 			})
 		}
+	}
+
+	if len(prefixes) == 0 && err != nil {
+		return prefixes, err
 	}
 
 	return prefixes, nil
@@ -201,7 +209,7 @@ func (c *NetboxCompositeClient) customFieldsExistsOrErr(customfieldFilterEntries
 	return nil
 }
 
-func (c *NetboxCompositeClient) isParentPrefixCandidate(ctx context.Context, prefixClaimSpec *netboxv1.PrefixClaimSpec, prefix string) bool {
+func (c *NetboxCompositeClient) isParentPrefixCandidate(ctx context.Context, prefixClaimSpec *netboxv1.PrefixClaimSpec, prefix string) error {
 	// if we can allocate a prefix from it, we can take it as a parent prefix
 	if _, err := c.GetAvailablePrefixByClaim(
 		ctx,
@@ -212,10 +220,10 @@ func (c *NetboxCompositeClient) isParentPrefixCandidate(ctx context.Context, pre
 				Tenant: prefixClaimSpec.Tenant,
 				Site:   prefixClaimSpec.Site,
 			},
-		}); err == nil {
-		return true
+		}); err != nil {
+		return err
 	}
-	return false
+	return nil
 }
 
 // GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
