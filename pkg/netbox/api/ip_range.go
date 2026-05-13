@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -30,6 +31,35 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
+
+type OverlapError struct {
+	Range string
+	VRF   string
+	Msg   string
+}
+
+var overlapRegex = regexp.MustCompile(`(?i)Defined addresses overlap with range (.*?) in VRF (.*)$`)
+
+func (e *OverlapError) Error() string {
+	return e.Msg
+}
+
+func tryConvertOverlapError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	msg := err.Error()
+	matches := overlapRegex.FindStringSubmatch(msg)
+	if len(matches) == 3 {
+		return &OverlapError{
+			Range: matches[1],
+			VRF:   matches[2],
+			Msg:   msg,
+		}
+	}
+	return err // return original if not a match
+}
 
 func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRange *models.IpRange, ipRangeV1 *netboxv1.IpRange) (resp *v4client.IPRange, isUpToDate bool, err error) {
 	responseIpRangeList, err := c.getIpRange(ctx, ipRange)
@@ -149,6 +179,7 @@ func (c *NetboxCompositeClient) createIpRange(ctx context.Context, ipRange *v4cl
 		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
 	if handleErr != nil {
+		handleErr = tryConvertOverlapError(handleErr)
 		return nil, handleErr
 	}
 

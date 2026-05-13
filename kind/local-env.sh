@@ -2,7 +2,7 @@
 set -e -u -o pipefail
 
 NAMESPACE=""
-VERSION="4.1.10" # default value
+VERSION="4.4.9" # default value
 while [[ $# -gt 0 ]]; do
   case $1 in
     -n|--namespace)
