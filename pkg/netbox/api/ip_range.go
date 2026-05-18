@@ -33,9 +33,7 @@ import (
 )
 
 type OverlapError struct {
-	Range string
-	VRF   string
-	Msg   string
+	Msg string
 }
 
 var overlapRegex = regexp.MustCompile(`(?i)Defined addresses overlap with range (.*?) in VRF (.*)$`)
@@ -53,9 +51,7 @@ func tryConvertOverlapError(err error) error {
 	matches := overlapRegex.FindStringSubmatch(msg)
 	if len(matches) == 3 {
 		return &OverlapError{
-			Range: matches[1],
-			VRF:   matches[2],
-			Msg:   msg,
+			Msg: msg,
 		}
 	}
 	return err // return original if not a match

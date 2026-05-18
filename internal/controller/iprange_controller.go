@@ -160,9 +160,9 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, err
 	}
 
-	overlapErr := &api.OverlapError{}
 	netboxIpRangeModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel, o)
 	if err != nil {
+		overlapErr := &api.OverlapError{}
 		if (errors.Is(err, api.ErrRestorationHashMismatch) ||
 			errors.As(err, &overlapErr)) && o.Status.IpRangeId == 0 {
 			logger.Info("conflict in claimed ip range, deleting ip range custom resource", "ip-range-start",
