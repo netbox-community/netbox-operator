@@ -18,7 +18,9 @@ package api
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -289,6 +291,91 @@ func TestIpRange(t *testing.T) {
 
 		// Assert
 		AssertError(t, err, "restoration hash mismatch, assigned ip range 10.0.0.1-10.0.0.10")
+		assert.False(t, isUpToDate)
+		assert.Nil(t, result)
+	})
+
+	t.Run("ip range overlap", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+		mockCreateRequest := mock_interfaces.NewMockIpamIpRangesCreateRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			StartAddress([]string{startAddress}).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			EndAddress([]string{endAddress}).
+			Return(mockListRequest)
+
+		// List should return empty results to trigger create path
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{}},
+				&http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().
+			IpamIpRangesCreate(gomock.Any()).
+			Return(mockCreateRequest)
+
+		mockCreateRequest.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Return(mockCreateRequest)
+
+		mockCreateRequest.EXPECT().
+			Execute().
+			Return(nil,
+				&http.Response{
+					StatusCode: 400,
+					Body: io.NopCloser(strings.NewReader(
+						"Defined addresses overlap with range 10.114.49.72-79/32 in VRF None",
+					)),
+				},
+				nil,
+			)
+
+		startAddress := "10.0.0.1"
+		endAddress := "10.0.0.10"
+
+		// Create client with mock
+		clientV3 := &NetboxClientV3{
+			Tenancy: mockTenancy,
+		}
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV4: clientV4,
+			clientV3: clientV3,
+		}
+
+		// Create request
+		ipRangeRequest := v4client.NewWritableIPRangeRequest(startAddress, endAddress)
+		ipRangeRequest.SetStatus("active")
+		ipRangeRequest.SetDescription("Updated range")
+
+		// Test
+		expectedHash := "ffjrep8b29fdaikb"
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpRange(
+			context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: expectedHash,
+					},
+				},
+			}, &netboxv1.IpRange{})
+
+		// Assert
+		var overlapErr *OverlapError
+		assert.ErrorAs(t, err, &overlapErr, "expected OverlapError")
 		assert.False(t, isUpToDate)
 		assert.Nil(t, result)
 	})

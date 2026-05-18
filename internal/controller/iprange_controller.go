@@ -162,10 +162,13 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 
 	netboxIpRangeModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpRange(ctx, ipRangeModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpRangeId == 0 {
-			logger.Info("restoration hash mismatch, deleting ip range custom resource", "ip-range-start", o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress)
+		overlapErr := &api.OverlapError{}
+		if (errors.Is(err, api.ErrRestorationHashMismatch) ||
+			errors.As(err, &overlapErr)) && o.Status.IpRangeId == 0 {
+			logger.Info("conflict in claimed ip range, deleting ip range custom resource", "ip-range-start",
+				o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress, "error", err)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
-				return ctrl.Result{}, NewDomainError("failed to delete IpRange CR with restoration hash mismatch: %w", deleteErr)
+				return ctrl.Result{}, NewDomainError("failed to delete IpRange CR with conflict: %w", deleteErr)
 			}
 			// Object deleted - status update in deferred function will be ignored via client.IgnoreNotFound
 			return ctrl.Result{}, nil
