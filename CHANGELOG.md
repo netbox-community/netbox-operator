@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.53] - 2026-05-18
+
+<!-- Release notes generated using configuration in .github/release.yml at ce7b8b722586988750fb38a18edb7aab755e5c5a -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 13 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/566
+* handle iprange overlap error by @bruelea in https://github.com/netbox-community/netbox-operator/pull/565
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.52...v0.2.53
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.53)
+
+---
+
 ## [v0.2.52] - 2026-05-11
 
 <!-- Release notes generated using configuration in .github/release.yml at af290e4584f48387b61f193cc4347317eae502c1 -->
