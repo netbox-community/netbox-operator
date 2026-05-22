@@ -18,10 +18,12 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/go-test/deep"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"go.uber.org/mock/gomock"
 )
@@ -108,19 +110,34 @@ func mockIpAddressListWithHashFilterMismatch(ipamMock *mock_interfaces.MockIpamI
 		}).MinTimes(1)
 }
 
-func mockPrefixesListWithPrefixFilter(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
-	ipamMock.EXPECT().IpamPrefixesList(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamPrefixesListOK, error) {
-			got := params.(*ipam.IpamPrefixesListParams)
+func mockPrefixesList(ipamAPIMock *mock_interfaces.MockIpamAPI, catchUnexpectedParams chan error) {
+	ipamAPIMock.EXPECT().IpamPrefixesList(gomock.Any()).
+		DoAndReturn(func(ctx interface{}) *mock_interfaces.MockIpamPrefixesListRequest {
+			fmt.Printf("NETBOXMOCK\t ipam.IpamPrefixesListRequest was called with expected input,\n")
+			return mockIpamPrefixesListRequest
+		}).MinTimes(1)
+}
+
+func mockPrefixesListRequestSetPrefix(mockprefixesListRequest *mock_interfaces.MockIpamPrefixesListRequest, catchUnexpectedParams chan error) {
+	mockprefixesListRequest.EXPECT().Prefix(gomock.Any()).
+		DoAndReturn(func(params interface{}) *mock_interfaces.MockIpamPrefixesListRequest {
+			got := params.([]string)
 			diff := deep.Equal(got, ExpectedPrefixListParams)
 			// skip check for the 3rd input parameter as it is a method, method is a non comparable type
 			if len(diff) > 0 {
-				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamPrefixesList, diff to expected params diff: %+v", diff)
+				err := fmt.Errorf("netboxmock: unexpected call to PrefixesListRequest.Prefix, diff to expected params diff: %+v", diff)
 				catchUnexpectedParams <- err
-				return &ipam.IpamPrefixesListOK{Payload: nil}, err
 			}
-			fmt.Printf("NETBOXMOCK\t ipam.IpamPrefixesList was called with expected input,\n")
-			return &ipam.IpamPrefixesListOK{Payload: mockedResponsePrefixList()}, nil
+			fmt.Printf("NETBOXMOCK\t PrefixesListRequest.Prefix was called with expected input,\n")
+			return mockIpamPrefixesListRequest
+		}).MinTimes(1)
+}
+
+func mockPrefixesListRequestExecute(mockprefixesListRequest *mock_interfaces.MockIpamPrefixesListRequest, catchUnexpectedParams chan error) {
+	mockprefixesListRequest.EXPECT().Execute().
+		DoAndReturn(func() (*v4client.PaginatedPrefixList, *http.Response, error) {
+			fmt.Printf("NETBOXMOCK\t PrefixesListRequest.Execute was called with expected input,\n")
+			return mockedResponsePrefixList(), &http.Response{StatusCode: 200, Body: http.NoBody}, nil
 		}).MinTimes(1)
 }
 
@@ -170,7 +187,11 @@ func mockIpAddressesDeleteFail(ipamMock *mock_interfaces.MockIpamInterface, catc
 		}).MinTimes(1)
 }
 
-func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+func mockIpamIPAddressesUpdateTwice(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	mockIpamIPAddressesUpdateWithCount(ipamMock, catchUnexpectedParams, 2)
+}
+
+func mockIpamIPAddressesUpdateWithCount(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error, times int) {
 	ipamMock.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).
 		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesUpdateOK, error) {
 			got := params.(*ipam.IpamIPAddressesUpdateParams)
@@ -182,7 +203,7 @@ func mockIpamIPAddressesUpdate(ipamMock *mock_interfaces.MockIpamInterface, catc
 			}
 			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesUpdate was called with expected input\n")
 			return &ipam.IpamIPAddressesUpdateOK{Payload: mockedResponseIPAddress()}, nil
-		}).MinTimes(1)
+		}).Times(times)
 }
 
 func mockIpamIPAddressesUpdateWithHash(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {

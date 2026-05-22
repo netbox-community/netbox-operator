@@ -15,7 +15,7 @@ linters:
     goheader:
       values:
         regexp:
-          AUTHOR: ^Copyright 2024 (The Kubernetes authors|Swisscom \(Schweiz\) AG)\.
+          AUTHOR: ^Copyright (2024|2026) (The Kubernetes authors|Swisscom \(Schweiz\) AG)\.
       template: |-
         {{ AUTHOR }}
 

@@ -17,9 +17,9 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -36,14 +36,14 @@ var (
 	ErrNoPrefixMatchsSizeCriteria = errors.New("no available prefix matches size criteria")
 )
 
-func (r *NetboxClient) RestoreExistingPrefixByHash(hash string, requestedPrefixLength string) (*models.Prefix, error) {
+func (c *NetboxCompositeClient) RestoreExistingPrefixByHash(hash string, requestedPrefixLength string) (*models.Prefix, error) {
 	customPrefixSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
 		{
 			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
 			value: hash,
 		},
 	})
-	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, customPrefixSearch)
+	list, err := c.clientV3.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, customPrefixSearch)
 	if err != nil {
 		return nil, err
 	}
@@ -106,11 +106,11 @@ func validatePrefixLengthOrError(prefixClaim *models.PrefixClaim, prefixFamily i
 	return nil
 }
 
-func (r *NetboxClient) GetAvailablePrefixesByParentPrefixSelector(prefixClaimSpec *netboxv1.PrefixClaimSpec) ([]*models.Prefix, error) {
+func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx context.Context, prefixClaimSpec *netboxv1.PrefixClaimSpec) ([]*models.Prefix, error) {
 	fieldEntries := make(map[string]string)
 
 	if tenant, ok := prefixClaimSpec.ParentPrefixSelector["tenant"]; ok {
-		details, err := r.GetTenantDetails(tenant)
+		details, err := c.getTenantDetails(tenant)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +119,7 @@ func (r *NetboxClient) GetAvailablePrefixesByParentPrefixSelector(prefixClaimSpe
 	}
 
 	if site, ok := prefixClaimSpec.ParentPrefixSelector["site"]; ok {
-		details, err := r.GetSiteDetails(site)
+		details, err := c.getSiteDetails(site)
 		if err != nil {
 			return nil, err
 		}
@@ -128,11 +128,12 @@ func (r *NetboxClient) GetAvailablePrefixesByParentPrefixSelector(prefixClaimSpe
 	}
 
 	if family, ok := prefixClaimSpec.ParentPrefixSelector["family"]; ok {
-		if family == "IPv4" {
+		switch family {
+		case "IPv4":
 			family = "4"
-		} else if family == "IPv6" {
+		case "IPv6":
 			family = "6"
-		} else {
+		default:
 			return nil, ErrInvalidIpFamily
 		}
 		fieldEntries["family"] = family
@@ -151,123 +152,113 @@ func (r *NetboxClient) GetAvailablePrefixesByParentPrefixSelector(prefixClaimSpe
 		}
 	}
 
-	err := r.customFieldsExistsOrErr(parentPrefixSelectorCustomFields)
+	err := c.customFieldsExistsOrErr(parentPrefixSelectorCustomFields)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid parent prefix selector, %w", err)
 	}
 
 	conditions := newQueryFilterOperation(fieldEntries, parentPrefixSelectorCustomFields)
 
-	list, err := r.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, conditions)
+	list, err := c.clientV3.Ipam.IpamPrefixesList(ipam.NewIpamPrefixesListParams(), nil, conditions)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO: find a better way?
 	if list.Payload.Count != nil && *list.Payload.Count == 0 {
-		return nil, nil
+		return nil, errors.New("no parent prefixes found for this selector")
 	}
 
 	prefixes := make([]*models.Prefix, 0)
 	for _, prefix := range list.Payload.Results {
-		if prefix.Prefix != nil && r.isParentPrefixCandidate(prefixClaimSpec, *prefix.Prefix) {
+		if prefix.Prefix != nil {
+			errCandidate := c.isParentPrefixCandidate(ctx, prefixClaimSpec, *prefix.Prefix)
+			if err != nil {
+				err = errors.Join(err, fmt.Errorf("prefix %s is not a valid parent prefix candidate, %w", *prefix.Prefix, errCandidate))
+			}
 			prefixes = append(prefixes, &models.Prefix{
 				Prefix: *prefix.Prefix,
 			})
 		}
 	}
 
+	if len(prefixes) == 0 && err != nil {
+		return prefixes, err
+	}
+
 	return prefixes, nil
 }
 
-func (r *NetboxClient) customFieldsExistsOrErr(customfieldFilterEntries []CustomFieldEntry) error {
+func (c *NetboxCompositeClient) customFieldsExistsOrErr(customfieldFilterEntries []CustomFieldEntry) error {
 	if len(customfieldFilterEntries) == 0 {
 		// as the parent prefix selector does not filter for custom fields
 		// the check can be skipped
 		return nil
 	}
 
-	responseGetCustomFieldsList, err := r.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), nil)
-	if err != nil {
-		return err
-	}
-
-	existingCustomFields := responseGetCustomFieldsList.Payload.Results
-	if len(existingCustomFields) == 0 {
-		return fmt.Errorf("netbox custom fields list is nil or empty")
-	}
-
-	customFieldNames := make([]string, len(existingCustomFields))
-	for i, field := range existingCustomFields {
-		if field.Name == nil {
-			return fmt.Errorf("netbox custom field name is nil")
-		}
-		customFieldNames[i] = *field.Name
-	}
-
-	missingCustomFields := make([]string, 0)
 	for _, entry := range customfieldFilterEntries {
-		if !slices.Contains(customFieldNames, entry.key) {
-			missingCustomFields = append(missingCustomFields, entry.key)
+		existingCustomField, err := c.clientV3.Extras.ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams().WithName(&entry.key), nil)
+		if err != nil {
+			return fmt.Errorf("failed to validate customfield existence, err: %w", err)
 		}
-	}
-
-	if len(missingCustomFields) > 0 {
-		return fmt.Errorf(
-			"invalid parentPrefixSelector, netbox custom fields %s do not exist",
-			strings.Join(missingCustomFields, ", "),
-		)
+		if len(existingCustomField.Payload.Results) != 1 {
+			return fmt.Errorf("custom field %s not found", entry.key)
+		}
 	}
 
 	return nil
 }
 
-func (r *NetboxClient) isParentPrefixCandidate(prefixClaimSpec *netboxv1.PrefixClaimSpec, prefix string) bool {
+func (c *NetboxCompositeClient) isParentPrefixCandidate(ctx context.Context, prefixClaimSpec *netboxv1.PrefixClaimSpec, prefix string) error {
 	// if we can allocate a prefix from it, we can take it as a parent prefix
-	if _, err := r.GetAvailablePrefixByClaim(&models.PrefixClaim{
-		ParentPrefix: prefix,
-		PrefixLength: prefixClaimSpec.PrefixLength,
-		Metadata: &models.NetboxMetadata{
-			Tenant: prefixClaimSpec.Tenant,
-			Site:   prefixClaimSpec.Site,
-		},
-	}); err == nil {
-		return true
+	if _, err := c.GetAvailablePrefixByClaim(
+		ctx,
+		&models.PrefixClaim{
+			ParentPrefix: prefix,
+			PrefixLength: prefixClaimSpec.PrefixLength,
+			Metadata: &models.NetboxMetadata{
+				Tenant: prefixClaimSpec.Tenant,
+				Site:   prefixClaimSpec.Site,
+			},
+		}); err != nil {
+		return err
 	}
-	return false
+	return nil
 }
 
 // GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
-func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
-	_, err := r.GetTenantDetails(prefixClaim.Metadata.Tenant)
+func (c *NetboxCompositeClient) GetAvailablePrefixByClaim(ctx context.Context, prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
+	_, err := c.getTenantDetails(prefixClaim.Metadata.Tenant)
 	if err != nil {
 		return nil, err
 	}
 
 	// Don't assign an prefix if the requested site doesn't exist in netbox
 	if prefixClaim.Metadata.Site != "" {
-		_, err := r.GetSiteDetails(prefixClaim.Metadata.Site)
+		_, err := c.getSiteDetails(prefixClaim.Metadata.Site)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	responseParentPrefix, err := r.GetPrefix(&models.Prefix{
-		Prefix:   prefixClaim.ParentPrefix,
-		Metadata: prefixClaim.Metadata,
-	})
+	responseParentPrefix, err := c.getPrefix(
+		ctx,
+		&models.Prefix{
+			Prefix:   prefixClaim.ParentPrefix,
+			Metadata: prefixClaim.Metadata,
+		})
 	if err != nil {
 		return nil, err
 	}
-	if len(responseParentPrefix.Payload.Results) == 0 {
+	if len(responseParentPrefix.Results) == 0 {
 		return nil, ErrParentPrefixNotFound
 	}
 
-	if err := validatePrefixLengthOrError(prefixClaim, *responseParentPrefix.Payload.Results[0].Family.Value); err != nil {
+	if err := validatePrefixLengthOrError(prefixClaim, int64(*responseParentPrefix.Results[0].Family.Value)); err != nil {
 		return nil, err
 	}
 
-	parentPrefixId := responseParentPrefix.Payload.Results[0].ID
+	parentPrefixId := responseParentPrefix.Results[0].Id
 
 	/* Notes regarding the available prefix returned by netbox
 
@@ -280,7 +271,7 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 	*/
 
 	// step 1: we get available prefixes of the parent prefix from NetBox
-	responseAvailablePrefixes, err := r.GetAvailablePrefixesByParentPrefix(parentPrefixId)
+	responseAvailablePrefixes, err := c.GetAvailablePrefixesByParentPrefix(parentPrefixId)
 	if err != nil {
 		return nil, err
 	}
@@ -312,9 +303,9 @@ func (r *NetboxClient) GetAvailablePrefixByClaim(prefixClaim *models.PrefixClaim
 	}, nil
 }
 
-func (r *NetboxClient) GetAvailablePrefixesByParentPrefix(parentPrefixId int64) (*ipam.IpamPrefixesAvailablePrefixesListOK, error) {
-	requestAvailablePrefixes := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(parentPrefixId)
-	responseAvailablePrefixes, err := r.Ipam.IpamPrefixesAvailablePrefixesList(requestAvailablePrefixes, nil)
+func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefix(parentPrefixId int32) (*ipam.IpamPrefixesAvailablePrefixesListOK, error) {
+	requestAvailablePrefixes := ipam.NewIpamPrefixesAvailablePrefixesListParams().WithID(int64(parentPrefixId))
+	responseAvailablePrefixes, err := c.clientV3.Ipam.IpamPrefixesAvailablePrefixesList(requestAvailablePrefixes, nil)
 	if err != nil {
 		return nil, err
 	}

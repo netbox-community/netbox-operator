@@ -17,11 +17,14 @@ limitations under the License.
 package api
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
-	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
-	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -31,118 +34,156 @@ import (
 /*
 ReserveOrUpdatePrefix creates or updates the prefix passed as parameter
 */
-func (r *NetboxClient) ReserveOrUpdatePrefix(prefix *models.Prefix) (*netboxModels.Prefix, error) {
-	responsePrefix, err := r.GetPrefix(prefix)
+func (c *NetboxCompositeClient) ReserveOrUpdatePrefix(ctx context.Context, prefix *models.Prefix, prefixV1 *netboxv1.Prefix) (resp *v4client.Prefix, isUpToDate bool, err error) {
+	responsePrefix, err := c.getPrefix(ctx, prefix)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// create prefix since it doesn't exist
+	if len(responsePrefix.Results) == 0 {
+		resp, err := c.createPrefix(ctx, prefix)
+		return resp, false, err
+	}
+
+	prefixToUpdate := &responsePrefix.Results[0]
+
+	if !prefixToUpdate.LastUpdated.IsSet() {
+		return nil, false, fmt.Errorf("last updated field is not set in Netbox for prefix %s", prefix.Prefix)
+	}
+
+	// if the desired prefix has a restoration hash
+	// check that the prefix to update has the same restoration hash
+	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
+	if prefix.Metadata != nil {
+		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
+			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields[restorationHashKey] == restorationHash {
+				if IsUpToDate(ctx, *prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
+					return nil, true, nil
+				}
+
+				//update prefix since it does exist and the restoration hash matches
+				resp, err := c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+				if err != nil {
+					return nil, false, err
+				}
+				return resp, false, nil
+			}
+
+			return nil, false, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
+		}
+	}
+
+	if IsUpToDate(ctx, *prefixToUpdate.LastUpdated.Get(), prefixV1.Status.LastUpdated, prefixV1.Status.Conditions, prefixV1.Generation) {
+		return nil, true, nil
+	}
+
+	//update prefix since it does exist
+	resp, err = c.updatePrefix(ctx, prefixToUpdate.Id, prefix)
+	if err != nil {
+		return nil, false, err
+	}
+	return resp, false, nil
+}
+
+func (c *NetboxCompositeClient) getPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.PaginatedPrefixList, error) {
+	req := c.clientV4.IpamAPI.IpamPrefixesList(ctx).
+		Prefix([]string{prefix.Prefix})
+	resp, httpResp, err := req.Execute()
+
+	var body []byte
+	var readErr error
+	if httpResp != nil && httpResp.Body != nil {
+		defer func() {
+			errClose := httpResp.Body.Close()
+			err = errors.Join(err, errClose)
+		}()
+		body, readErr = io.ReadAll(httpResp.Body)
+	}
+
+	if httpResp == nil {
+		return nil, fmt.Errorf("failed to fetch prefix details: %w", err)
+	}
+
+	if httpResp.StatusCode != http.StatusOK {
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to fetch prefix details: status %d; read body: %w", httpResp.StatusCode, readErr)
+		}
+		return nil, fmt.Errorf("failed to fetch prefix details: status %d, body: %s", httpResp.StatusCode, string(body))
+	}
+
+	if err != nil {
+		return nil, utils.NetboxError("failed to fetch prefix details", err)
+	}
+
+	return resp, nil
+}
+
+func (c *NetboxCompositeClient) createPrefix(ctx context.Context, prefix *models.Prefix) (*v4client.Prefix, error) {
+	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	desiredPrefix := &netboxModels.WritablePrefix{
-		Prefix:       &prefix.Prefix,
-		Comments:     prefix.Metadata.Comments + warningComment,
-		CustomFields: prefix.Metadata.Custom,
-		Description:  prefix.Metadata.Description + warningComment,
-		Status:       "active",
-	}
-
-	if prefix.Metadata != nil {
-		desiredPrefix.CustomFields = prefix.Metadata.Custom
-		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
-		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
-	}
-
-	if prefix.Metadata != nil && prefix.Metadata.Tenant != "" {
-		tenantDetails, err := r.GetTenantDetails(prefix.Metadata.Tenant)
+	if isLegacy {
+		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
 		if err != nil {
 			return nil, err
 		}
-		desiredPrefix.Tenant = &tenantDetails.Id
+
+		return c.clientV3.createPrefixV3(desiredPrefix)
 	}
 
-	if prefix.Metadata != nil && prefix.Metadata.Site != "" {
-		siteDetails, err := r.GetSiteDetails(prefix.Metadata.Site)
+	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
+	if err != nil {
+		return nil, err
+	}
+	status, err := v4client.NewPatchedWritablePrefixRequestStatusFromValue("active")
+	if err != nil {
+		return nil, err
+	}
+	desiredPrefix.SetStatus(*status)
+	return c.clientV4.createPrefixV4(ctx, desiredPrefix)
+}
+
+func (c *NetboxCompositeClient) updatePrefix(ctx context.Context, prefixId int32, prefix *models.Prefix) (resp *v4client.Prefix, err error) {
+	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if isLegacy {
+		desiredPrefix, err := c.buildWritablePrefixRequestV3(prefix)
 		if err != nil {
 			return nil, err
 		}
-		desiredPrefix.Site = &siteDetails.Id
+
+		return c.clientV3.updatePrefixV3(int64(prefixId), desiredPrefix)
 	}
 
-	// create prefix since it doesn't exist
-	if len(responsePrefix.Payload.Results) == 0 {
-		return r.CreatePrefix(desiredPrefix)
+	desiredPrefix, err := c.writablePrefixRequestV4(prefix)
+	if err != nil {
+		return nil, err
 	}
 
-	prefixToUpdate := responsePrefix.Payload.Results[0]
-
-	// if the desired ip address has a restoration hash
-	// check that the ip address to update has the same restoration hash
-	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
-	if prefix.Metadata != nil {
-		if restorationHash, ok := prefix.Metadata.Custom[restorationHashKey]; ok {
-			if prefixToUpdate.CustomFields != nil && prefixToUpdate.CustomFields.(map[string]interface{})[restorationHashKey] == restorationHash {
-				//update ip address since it does exist and the restoration hash matches
-				return r.UpdatePrefix(prefixToUpdate.ID, desiredPrefix)
-			}
-			return nil, fmt.Errorf("%w, assigned prefix %s", ErrRestorationHashMismatch, prefix.Prefix)
-		}
-	}
-
-	//update ip address since it does exist
-	prefixId := responsePrefix.Payload.Results[0].ID
-	return r.UpdatePrefix(prefixId, desiredPrefix)
+	return c.clientV4.updatePrefixV4(ctx, prefixId, desiredPrefix)
 }
 
-func (r *NetboxClient) GetPrefix(prefix *models.Prefix) (*ipam.IpamPrefixesListOK, error) {
+func (c *NetboxCompositeClient) DeletePrefix(ctx context.Context, prefixId int32) (err error) {
+	req := c.clientV4.IpamAPI.IpamPrefixesDestroy(ctx, prefixId)
+	httpResp, execErr := req.Execute()
 
-	requestPrefix := ipam.
-		NewIpamPrefixesListParams().
-		WithPrefix(&prefix.Prefix)
-	responsePrefix, err := r.Ipam.IpamPrefixesList(requestPrefix, nil)
-	if err != nil {
-		return nil, utils.NetboxError("failed to fetch Prefix details", err)
+	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
+		return nil
 	}
 
-	return responsePrefix, err
-}
-
-func (r *NetboxClient) CreatePrefix(prefix *netboxModels.WritablePrefix) (*netboxModels.Prefix, error) {
-	requestCreatePrefix := ipam.
-		NewIpamPrefixesCreateParams().
-		WithDefaults().
-		WithData(prefix)
-	responseCreatePrefix, err := r.Ipam.
-		IpamPrefixesCreate(requestCreatePrefix, nil)
-	if err != nil {
-		return nil, utils.NetboxError("failed to create Prefix", err)
+	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusNoContent, "delete prefix")
+	if closeFunc != nil {
+		defer func() { err = errors.Join(err, closeFunc()) }()
 	}
-	return responseCreatePrefix.Payload, nil
-}
-
-func (r *NetboxClient) UpdatePrefix(prefixId int64, prefix *netboxModels.WritablePrefix) (*netboxModels.Prefix, error) {
-	requestUpdatePrefix := ipam.NewIpamPrefixesUpdateParams().
-		WithDefaults().
-		WithData(prefix).
-		WithID(prefixId)
-	responseUpdatePrefix, err := r.Ipam.IpamPrefixesUpdate(requestUpdatePrefix, nil)
-	if err != nil {
-		return nil, utils.NetboxError("failed to update Prefix", err)
+	if handleErr != nil {
+		return handleErr
 	}
-	return responseUpdatePrefix.Payload, nil
-}
 
-func (r *NetboxClient) DeletePrefix(prefixId int64) error {
-	requestDeletePrefix := ipam.NewIpamPrefixesDeleteParams().WithID(prefixId)
-	_, err := r.Ipam.IpamPrefixesDelete(requestDeletePrefix, nil)
-	if err != nil {
-		switch typedErr := err.(type) {
-		case *ipam.IpamPrefixesDeleteDefault:
-			if typedErr.IsCode(http.StatusNotFound) {
-				return nil
-			}
-			return utils.NetboxError("Failed to delete prefix from Netbox", err)
-		default:
-			return utils.NetboxError("Failed to delete prefix from Netbox", err)
-		}
-	}
 	return nil
 }

@@ -147,7 +147,7 @@ type IpRangeClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IpRangeClaim{}, &IpRangeClaimList{})
+	register(&IpRangeClaim{}, &IpRangeClaimList{})
 }
 
 var ConditionIpRangeClaimReadyTrue = metav1.Condition{

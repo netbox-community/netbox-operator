@@ -2,7 +2,7 @@
 IMG ?= your-image-registry:latest
 LOCAL_IMG = netbox-operator:build-local #Should not be changed without changing kind/kustomization.yaml too
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.0
+ENVTEST_K8S_VERSION = 1.33.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -25,7 +25,7 @@ SHELL = /usr/bin/env bash -o pipefail
 GEN_DIR := gen/mock_interfaces
 NETBOX_MOCKS_OUTPUT_FILE := netbox_mocks.go
 INTERFACE_DEFITIONS_DIR := pkg/netbox/interfaces/netbox.go
-GINKGO=ginkgo
+GINKGO=$(GOBIN)/ginkgo
 
 GOFILES = $(shell find . -name \*.go ! -name 'zz_generated.*')
 
@@ -55,7 +55,7 @@ GO_PACKAGE_NAME_CHAINSAW := chainsaw
 install-$(GO_PACKAGE_NAME_CHAINSAW):
 	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_CHAINSAW)" ]; then \
 		echo "Installing $(GO_PACKAGE_NAME_CHAINSAW)..." ; \
-		go install github.com/kyverno/chainsaw@v0.2.12 ; \
+		GOTOOLCHAIN=go1.25.9 go install github.com/kyverno/chainsaw@v0.2.14 ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_CHAINSAW) is installed" ; \
 	fi
@@ -192,6 +192,7 @@ deploy-kind: docker-build-local manifests kustomize
 	kind load docker-image ${LOCAL_IMG}
 	kind load docker-image ${LOCAL_IMG}  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 	$(KUSTOMIZE) build kind | $(KUBECTL) apply -f -
+	$(KUBECTL) rollout restart deployment/netbox-operator-controller-manager -n netbox-operator-system
 
 .PHONY: undeploy-kind
 undeploy-kind: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -232,7 +233,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@87bcfec
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.23
 
 generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mkdir -p ${GEN_DIR}
@@ -254,9 +255,16 @@ create-kind-4.0.11:
 test-e2e-4.0.11: create-kind-4.0.11 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)
 
-.PHONY: create-kind-4.1.11
-create-kind-4.1.11:
-	./kind/local-env.sh --version 4.1.11
-.PHONY: test-e2e-4.1.11
-test-e2e-4.1.11: create-kind-4.1.11 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
+.PHONY: create-kind-4.1.10
+create-kind-4.1.10:
+	./kind/local-env.sh --version 4.1.10
+.PHONY: test-e2e-4.1.10
+test-e2e-4.1.10: create-kind-4.1.10 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
+	chainsaw test $(E2E_PARAM)
+
+.PHONY: create-kind-4.4.9
+create-kind-4.4.9:
+	./kind/local-env.sh --version 4.4.9
+.PHONY: test-e2e-4.4.9
+test-e2e-4.4.9: create-kind-4.4.9 deploy-kind install-$(GO_PACKAGE_NAME_CHAINSAW)
 	chainsaw test $(E2E_PARAM)

@@ -78,6 +78,10 @@ type PrefixStatus struct {
 	// The ID of the resource in NetBox
 	PrefixId int64 `json:"id,omitempty"`
 
+	// Last updated, corresponds to the 'last_updated' returned by NetBox when NetBox Operator updates a resource in NetBox.
+	// Format: date-time
+	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
+
 	// The URL to the resource in the NetBox UI. Note that the base of this
 	// URL depends on the runtime config of NetBox Operator
 	PrefixUrl string `json:"url,omitempty"`
@@ -118,7 +122,7 @@ type PrefixList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Prefix{}, &PrefixList{})
+	register(&Prefix{}, &PrefixList{})
 }
 
 var ConditionPrefixReadyTrue = metav1.Condition{
@@ -133,6 +137,13 @@ var ConditionPrefixReadyFalse = metav1.Condition{
 	Status:  "False",
 	Reason:  "FailedToReservePrefixInNetbox",
 	Message: "Failed to reserve prefix in NetBox",
+}
+
+var ConditionPrefixReadyFalseDeletionInProgress = metav1.Condition{
+	Type:    "Ready",
+	Status:  "False",
+	Reason:  "DeletionInProgress",
+	Message: "Prefix deletion in progress",
 }
 
 var ConditionPrefixReadyFalseDeletionFailed = metav1.Condition{

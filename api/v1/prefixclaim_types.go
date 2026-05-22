@@ -45,7 +45,7 @@ type PrefixClaimSpec struct {
 	// Field is immutable, required
 	// Example: "/24"
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Pattern=`^\/[0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]$`
+	//+kubebuilder:validation:Pattern=`^\/([0-9]|[1-9][0-9]|1[01][0-9]|12[0-8])$`
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'prefixLength' is immutable"
 	PrefixLength string `json:"prefixLength"`
 
@@ -146,7 +146,7 @@ type PrefixClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&PrefixClaim{}, &PrefixClaimList{})
+	register(&PrefixClaim{}, &PrefixClaimList{})
 }
 
 var ConditionPrefixClaimReadyTrue = metav1.Condition{

@@ -17,11 +17,14 @@ limitations under the License.
 package api
 
 import (
+	"context"
+	"net/http"
 	"testing"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -33,11 +36,13 @@ func TestIPRangeClaim(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockIPRange := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 	mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 
 	// test data for IPv4 ip range claim
-	parentPrefixId := int64(3)
-	parentPrefixV4 := "10.114.0.0"
+	parentPrefixId := int32(3)
+	parentPrefixV4 := "10.114.0.0/24"
 	requestedRangeSize := 3
 	ipRangeV4_1 := "10.112.140.1/24"
 	ipRangeV4_3 := "10.112.140.3/24"
@@ -104,42 +109,52 @@ func TestIPRangeClaim(t *testing.T) {
 
 		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-		// ip range mock input
-		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefixV4)
-		// ip range mock output
-		output := &ipam.IpamPrefixesListOK{
-			Payload: &ipam.IpamPrefixesListOKBody{
-				Results: []*netboxModels.Prefix{
-					{
-						ID:     parentPrefixId,
-						Prefix: &parentPrefixV4,
-					},
-				},
-			},
-		}
-
-		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(parentPrefixId))
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: availableIpAdressesIPv4(),
 		}
 
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{parentPrefixV4}).
+			Return(mockListRequest)
+
+		expectedPrefix := v4client.Prefix{
+			Id:     parentPrefixId,
+			Prefix: parentPrefixV4,
+		}
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
-		mockIPRange.EXPECT().IpamPrefixesList(input, nil).Return(output, nil)
 		mockIPRange.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
-		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPRange,
 		}
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		actual, err := client.GetAvailableIpRangeByClaim(&models.IpRangeClaim{
-			ParentPrefix: parentPrefixV4,
-			Size:         requestedRangeSize,
-			Metadata: &models.NetboxMetadata{
-				Tenant: tenantName,
-			},
-		})
+		actual, err := compositeClient.GetAvailableIpRangeByClaim(
+			context.TODO(),
+			&models.IpRangeClaim{
+				ParentPrefix: parentPrefixV4,
+				Size:         requestedRangeSize,
+				Metadata: &models.NetboxMetadata{
+					Tenant: tenantName,
+				},
+			})
 
 		// assert error
 		AssertNil(t, err)
@@ -152,21 +167,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		inputTenant := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
 
-		// ip range mock input
-		input := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefixV6)
-		// ip range mock output
-		output := &ipam.IpamPrefixesListOK{
-			Payload: &ipam.IpamPrefixesListOKBody{
-				Results: []*netboxModels.Prefix{
-					{
-						ID:     parentPrefixId,
-						Prefix: &parentPrefixV6,
-					},
-				},
-			},
-		}
-
-		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(parentPrefixId)
+		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(parentPrefixId))
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: []*netboxModels.AvailableIP{
 				{
@@ -179,23 +180,48 @@ func TestIPRangeClaim(t *testing.T) {
 				},
 			}}
 
+		mockIpamAPI.EXPECT().
+			IpamPrefixesList(gomock.Any()).
+			Return(mockListRequest)
+
+		mockListRequest.EXPECT().
+			Prefix([]string{parentPrefixV6}).
+			Return(mockListRequest)
+
+		expectedPrefix := v4client.Prefix{
+			Id:     parentPrefixId,
+			Prefix: parentPrefixV6,
+		}
+
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
 		mockTenancy.EXPECT().TenancyTenantsList(inputTenant, nil).Return(expectedTenant, nil).AnyTimes()
-		mockIPRange.EXPECT().IpamPrefixesList(input, nil).Return(output, nil)
 		mockIPRange.EXPECT().IpamPrefixesAvailableIpsList(inputIps, nil).Return(outputIps, nil)
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Tenancy: mockTenancy,
 			Ipam:    mockIPRange,
 		}
+		clientV4 := &NetboxClientV4{
+			IpamAPI: mockIpamAPI,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
+			clientV4: clientV4,
+		}
 
-		_, err := client.GetAvailableIpRangeByClaim(&models.IpRangeClaim{
-			ParentPrefix: parentPrefixV6,
-			Size:         requestedRangeSize,
-			Metadata: &models.NetboxMetadata{
-				Tenant: tenantName,
-			},
-		})
+		_, err := compositeClient.GetAvailableIpRangeByClaim(
+			context.TODO(),
+			&models.IpRangeClaim{
+				ParentPrefix: parentPrefixV6,
+				Size:         requestedRangeSize,
+				Metadata: &models.NetboxMetadata{
+					Tenant: tenantName,
+				},
+			})
 
 		// assert error
 		AssertError(t, err, "not enough consecutive IPs available")
@@ -233,8 +259,11 @@ func TestIPRangeClaim(t *testing.T) {
 		}
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPRange,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -243,7 +272,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		actual, err := client.RestoreExistingIpRangeByHash(input)
+		actual, err := compositeClient.RestoreExistingIpRangeByHash(input)
 
 		assert.Nil(t, err)
 		assert.Equal(t, expectedIpDot5, actual.StartAddress)
@@ -272,8 +301,11 @@ func TestIPRangeClaim(t *testing.T) {
 		}
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPRange,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -282,7 +314,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		_, err := client.RestoreExistingIpRangeByHash(input)
+		_, err := compositeClient.RestoreExistingIpRangeByHash(input)
 
 		AssertError(t, err, "incorrect number of restoration results, number of results: 2")
 	})
@@ -300,8 +332,11 @@ func TestIPRangeClaim(t *testing.T) {
 		}
 
 		// init client
-		client := &NetboxClient{
+		clientV3 := &NetboxClientV3{
 			Ipam: mockIPRange,
+		}
+		compositeClient := &NetboxCompositeClient{
+			clientV3: clientV3,
 		}
 
 		// 3rd parameter should be the variable `customIpSearch` below but go cannot compare functions so this errors.
@@ -310,7 +345,7 @@ func TestIPRangeClaim(t *testing.T) {
 
 		mockIPRange.EXPECT().IpamIPRangesList(ipam.NewIpamIPRangesListParams(), nil, gomock.Any()).Return(output, nil)
 
-		_, err := client.RestoreExistingIpRangeByHash(input)
+		_, err := compositeClient.RestoreExistingIpRangeByHash(input)
 
 		AssertError(t, err, "invalid IP range")
 	})

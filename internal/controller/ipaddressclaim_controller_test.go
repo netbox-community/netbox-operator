@@ -57,6 +57,8 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 		cr *netboxv1.IpAddressClaim, // our CR as typed object
 		ipcr *netboxv1.IpAddress, // ip address CR expected to be created by ip address claim controller
 		ipcrMockStatus netboxv1.IpAddressStatus, // the that will be added to mock the ip address controller
+		MockIpamAPI []func(*mock_interfaces.MockIpamAPI, chan error),
+		MockIpamPrefixesListRequest []func(*mock_interfaces.MockIpamPrefixesListRequest, chan error),
 		IpamMocksIpAddressClaim []func(*mock_interfaces.MockIpamInterface, chan error),
 		IpamMocksIpAddress []func(*mock_interfaces.MockIpamInterface, chan error),
 		TenancyMocks []func(*mock_interfaces.MockTenancyInterface, chan error),
@@ -66,6 +68,12 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 		prefixLockedByOtherOwner bool, // If prefix is locked by other owner when ipaddress claim CR is created
 	) {
 		By("Setting up mocks")
+		for _, mock := range MockIpamAPI {
+			mock(mockIpamAPI, unexpectedCallCh)
+		}
+		for _, mock := range MockIpamPrefixesListRequest {
+			mock(mockIpamPrefixesListRequest, unexpectedCallCh)
+		}
 		for _, mock := range IpamMocksIpAddressClaim {
 			mock(ipamMockIpAddressClaim, unexpectedCallCh)
 		}
@@ -169,9 +177,15 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 	},
 		Entry("Create IpAddressClaim CR, reserve new ip address in NetBox",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
+			[]func(*mock_interfaces.MockIpamAPI, chan error){
+				mockPrefixesList,
+			},
+			[]func(*mock_interfaces.MockIpamPrefixesListRequest, chan error){
+				mockPrefixesListRequestSetPrefix,
+				mockPrefixesListRequestExecute,
+			},
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithHashFilterEmptyResult,
-				mockPrefixesListWithPrefixFilter,
 				mockPrefixesAvailableIpsList,
 			},
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
@@ -185,6 +199,8 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 			true, true, ExpectedIpAddressClaimStatus, false),
 		Entry("Create IpAddressClaim CR, reassign ip from NetBox",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), ExpectedIpAddressStatus,
+			[]func(*mock_interfaces.MockIpamAPI, chan error){},
+			[]func(*mock_interfaces.MockIpamPrefixesListRequest, chan error){},
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithHashFilter,
 			},
@@ -199,6 +215,8 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 			true, true, ExpectedIpAddressClaimStatus, false),
 		Entry("Create IpAddressClaim CR, prefix locked by other resource",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
+			[]func(*mock_interfaces.MockIpamAPI, chan error){},
+			[]func(*mock_interfaces.MockIpamPrefixesListRequest, chan error){},
 			nil,
 			nil,
 			nil,

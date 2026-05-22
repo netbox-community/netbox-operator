@@ -23,6 +23,7 @@ import (
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +38,7 @@ var namespace = "default"
 var description = "integration test"
 
 var comments = "integration test comment"
+var netboxIPLastUpdated = strfmt.DateTime(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 
 var siteSlug = "mars-ip-claim"
 
@@ -45,11 +47,13 @@ var ipAddressFamily = int64(api.IPv4Family)
 var parentPrefix = "1.0.0.0/28"
 
 var siteId = int64(2)
-var site = "Mars"
+var scopeType = "dcim.site"
 
-var tenantId = int64(1)
+var tenantId = int32(1)
 var tenant = "test-tenant"
 var tenantSlug = "test-tenant-slug"
+
+var expectedTenant = v4client.NewBriefTenant(tenantId, "", "", tenant, tenantSlug)
 
 var restorationHash = "6f6c67651f0b43b2969ba2ae35c74fc91815513b"
 
@@ -121,18 +125,19 @@ func defaultIpAddressClaimCR() *netboxv1.IpAddressClaim {
 // netbox mock responses
 // -----------------------------
 
-func mockedResponseNestedSite() *netboxModels.NestedSite {
-	return &netboxModels.NestedSite{
-		ID:   siteId,
-		Name: &site,
-		Slug: &siteSlug,
-	}
+var int32SiteId = int32(siteId)
+
+func mockedResponseScopeId() v4client.NullableInt32 {
+	return *v4client.NewNullableInt32(&int32SiteId)
+}
+func mockedResponseScopeType() v4client.NullableString {
+	return *v4client.NewNullableString(&scopeType)
 }
 
 func mockedResponseNestedTenant() *netboxModels.NestedTenant {
 	return &netboxModels.NestedTenant{
 		Name: &tenant,
-		ID:   tenantId,
+		ID:   int64(tenantId),
 		Slug: &siteSlug,
 	}
 }
@@ -147,13 +152,12 @@ func mockedResponseExpectedAvailableIpAddress() []*netboxModels.AvailableIP {
 }
 
 func mockedResponseIPAddress() *netboxModels.IPAddress {
-	currentTime := strfmt.DateTime(time.Now())
 	return &netboxModels.IPAddress{
 		ID:          int64(1),
 		Address:     &ipAddress,
 		Display:     ipAddress,
-		Created:     &currentTime,
-		LastUpdated: &currentTime,
+		Created:     &netboxIPLastUpdated,
+		LastUpdated: &netboxIPLastUpdated,
 		Comments:    comments,
 		Description: description,
 		Tenant:      mockedResponseNestedTenant(),
@@ -163,17 +167,18 @@ func mockedResponseIPAddress() *netboxModels.IPAddress {
 		}}
 }
 
-func mockedResponsePrefixList() *ipam.IpamPrefixesListOKBody {
-	return &ipam.IpamPrefixesListOKBody{
-		Results: []*netboxModels.Prefix{
+func mockedResponsePrefixList() *v4client.PaginatedPrefixList {
+	return &v4client.PaginatedPrefixList{
+		Results: []v4client.Prefix{
 			{
-				ID:          prefixID,
-				Comments:    comments,
-				Description: description,
+				Id:          prefixID,
+				Comments:    &comments,
+				Description: &description,
 				Display:     parentPrefix,
-				Prefix:      &parentPrefix,
-				Site:        mockedResponseNestedSite(),
-				Tenant:      mockedResponseNestedTenant(),
+				Prefix:      parentPrefix,
+				ScopeId:     mockedResponseScopeId(),
+				ScopeType:   mockedResponseScopeType(),
+				Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
 			},
 		},
 	}
@@ -189,6 +194,7 @@ func mockedResponseIPAddressListWithHash(customFields map[string]interface{}) *i
 				CustomFields: customFields,
 				Description:  mockedResponseIPAddress().Description,
 				Display:      mockedResponseIPAddress().Display,
+				LastUpdated:  mockedResponseIPAddress().LastUpdated,
 				Tenant:       mockedResponseIPAddress().Tenant,
 			},
 		},
@@ -204,6 +210,7 @@ func mockedResponseIPAddressList() *ipam.IpamIPAddressesListOKBody {
 				Comments:    mockedResponseIPAddress().Comments,
 				Description: mockedResponseIPAddress().Description,
 				Display:     mockedResponseIPAddress().Display,
+				LastUpdated: mockedResponseIPAddress().LastUpdated,
 				Tenant:      mockedResponseIPAddress().Tenant,
 			},
 		},
@@ -239,7 +246,7 @@ var nsn = namespace + "/" + name + " // "
 var warningComment = " // managed by netbox-operator, please don't edit it in Netbox unless you know what you're doing"
 var expectedIpAddressID = int64(1)
 var expectedIpAddressFailID = int64(0)
-
+var int64TenantId = int64(tenantId)
 var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
 	Comments: comments + warningComment,
@@ -248,7 +255,8 @@ var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
-	Tenant:      &tenantId}
+	Tenant:      &int64TenantId,
+}
 
 var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
@@ -259,7 +267,7 @@ var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
 	},
 	Description: nsn + description + warningComment,
 	Status:      "active",
-	Tenant:      &tenantId}
+	Tenant:      &int64TenantId}
 
 var ExpectedIpAddressUpdateParams = ipam.NewIpamIPAddressesUpdateParams().WithDefaults().
 	WithData(expectedIpToUpdate).WithID(expectedIpAddressID)
@@ -270,12 +278,12 @@ var ExpectedIpAddressUpdateWithHashParams = ipam.NewIpamIPAddressesUpdateParams(
 var ExpectedTenantsListParams = tenancy.NewTenancyTenantsListParams().WithName(&tenant)
 
 // expected inputs for ipam.IpamPrefixesList method
-var ExpectedPrefixListParams = ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
+var ExpectedPrefixListParams = []string{parentPrefix}
 
 // expected inputs for ipam.IpamPrefixesAvailableIpsList method
-var prefixID = int64(4)
+var prefixID = int32(4)
 
-var ExpectedPrefixesAvailableIpsListParams = ipam.NewIpamPrefixesAvailableIpsListParams().WithID(prefixID)
+var ExpectedPrefixesAvailableIpsListParams = ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(prefixID))
 
 // expected inputs for ipam.IpamIPAddressesList method
 var ExpectedIpAddressListParamsWithIpAddressData = ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
