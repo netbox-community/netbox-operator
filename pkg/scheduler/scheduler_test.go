@@ -18,7 +18,6 @@ package scheduler
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -27,12 +26,11 @@ import (
 )
 
 func TestCalculateNextReconcile_PositiveSchedule(t *testing.T) {
+	t.Setenv("NETBOX_HOST", "netbox_host")
+	t.Setenv("AUTH_TOKEN", "auth-token")
+	t.Setenv("RECONCILE_JITTER", "10s")
+	t.Setenv("RECONCILE_SCHEDULE", "*/2 * * * *")
 	config.ResetForTesting()
-
-	os.Setenv("NETBOX_HOST", "netbox_host")
-	os.Setenv("AUTH_TOKEN", "auth-token")
-	os.Setenv("RECONCILE_JITTER", "10s")
-	os.Setenv("RECONCILE_SCHEDULE", "*/2 * * * *")
 
 	maxJitter := config.GetOperatorConfig().ReconcileJitterDuration
 
@@ -47,12 +45,11 @@ func TestCalculateNextReconcile_PositiveSchedule(t *testing.T) {
 }
 
 func TestCalculateNextReconcile_ZeroSchedule(t *testing.T) {
+	t.Setenv("NETBOX_HOST", "netbox_host")
+	t.Setenv("AUTH_TOKEN", "auth-token")
+	t.Setenv("RECONCILE_JITTER", "1s")
+	t.Setenv("RECONCILE_SCHEDULE", "")
 	config.ResetForTesting()
-
-	os.Setenv("NETBOX_HOST", "netbox_host")
-	os.Setenv("AUTH_TOKEN", "auth-token")
-	os.Setenv("RECONCILE_JITTER", "1s")
-	os.Setenv("RECONCILE_SCHEDULE", "")
 
 	schedule := config.GetOperatorConfig().ReconcileSchedule
 	if schedule != nil {
@@ -68,13 +65,12 @@ func TestCalculateNextReconcile_ZeroSchedule(t *testing.T) {
 }
 
 func TestCalculateNextReconcile_ZeroJitter(t *testing.T) {
-	config.ResetForTesting()
-
-	os.Setenv("NETBOX_HOST", "netbox_host")
-	os.Setenv("AUTH_TOKEN", "auth-token")
+	t.Setenv("NETBOX_HOST", "netbox_host")
+	t.Setenv("AUTH_TOKEN", "auth-token")
 	// if empty jitter will be set to the default of 1 hour
-	os.Setenv("RECONCILE_JITTER", "")
-	os.Setenv("RECONCILE_SCHEDULE", "0 */2 * * *")
+	t.Setenv("RECONCILE_JITTER", "")
+	t.Setenv("RECONCILE_SCHEDULE", "0 */2 * * *")
+	config.ResetForTesting()
 
 	next := config.GetOperatorConfig().ReconcileSchedule.Next(time.Now())
 
@@ -89,11 +85,10 @@ func TestCalculateNextReconcile_ZeroJitter(t *testing.T) {
 }
 
 func TestGetJitterDuration_Range(t *testing.T) {
+	t.Setenv("NETBOX_HOST", "netbox_host")
+	t.Setenv("AUTH_TOKEN", "auth-token")
+	t.Setenv("RECONCILE_JITTER", "5s")
 	config.ResetForTesting()
-
-	os.Setenv("NETBOX_HOST", "netbox_host")
-	os.Setenv("AUTH_TOKEN", "auth-token")
-	os.Setenv("RECONCILE_JITTER", "5s")
 
 	maxJitter := config.GetOperatorConfig().ReconcileJitterDuration
 

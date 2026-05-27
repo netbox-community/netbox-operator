@@ -29,6 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var seed = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 func CalculateNextReconcile(ctx context.Context) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -55,7 +57,7 @@ func getJitterDuration() time.Duration {
 		return 0
 	}
 
-	return time.Duration(rand.Int63n(
+	return time.Duration(seed.Int63n(
 		int64(config.GetOperatorConfig().ReconcileJitterDuration),
 	))
 }

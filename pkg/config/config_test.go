@@ -1,9 +1,22 @@
-//go:build unit
+/*
+Copyright 2024 Swisscom (Schweiz) AG.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package config
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -11,18 +24,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	filePath   = "."
-	fileName   = "test"
-	fileFormat = "env"
-)
-
 func TestLoadConfigFromEnv(t *testing.T) {
-	os.Setenv("NETBOX_HOST", "netbox_host")
-	os.Setenv("AUTH_TOKEN", "auth-token")
-
-	os.Setenv("RECONCILE_JITTER", "30m")
-	os.Setenv("RECONCILE_SCHEDULE", "0 2 * * *")
+	t.Setenv("NETBOX_HOST", "netbox_host")
+	t.Setenv("AUTH_TOKEN", "auth-token")
+	t.Setenv("RECONCILE_JITTER", "30m")
+	t.Setenv("RECONCILE_SCHEDULE", "0 2 * * *")
+	ResetForTesting()
 
 	configuration := GetOperatorConfig()
 

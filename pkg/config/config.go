@@ -142,6 +142,10 @@ func (c *OperatorConfig) parseScheduleAndJitter() (err error) {
 		if err != nil {
 			return fmt.Errorf("invalid reconcile jitter %q: %w", c.ReconcileJitterRaw, err)
 		}
+
+		if c.ReconcileJitterDuration < 0 {
+			return fmt.Errorf("invalid reconcile jitter %q: must be greater than or equal to 0", c.ReconcileJitterRaw)
+		}
 	}
 
 	// Parse cron schedule
