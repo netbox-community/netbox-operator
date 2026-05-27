@@ -32,7 +32,7 @@ patches:
               - name: netbox-auth
                 secret:
                   secretName: netbox-auth
-# Uncomment the patch to enable scheduled reconciliation
+  # Uncomment the patch to enable scheduled reconciliation
   - path: scheduled-reconcile-patch.yaml
     target:
       kind: Deployment

@@ -84,8 +84,19 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
 		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
+		logger.Info("evaluating scheduled reconciliation",
+			"hasError", reconcileErr != nil,
+			"isZeroResult", reconcileResult.IsZero(),
+			"requeueAfter", reconcileResult.RequeueAfter.String())
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
+			logger.Info("scheduled reconciliation evaluation finished",
+				"isZeroResult", reconcileResult.IsZero(),
+				"requeueAfter", reconcileResult.RequeueAfter.String(),
+				"hasError", reconcileErr != nil)
+		} else {
+			logger.Info("scheduled reconciliation skipped",
+				"reason", "reconcile had error or already requested requeue")
 		}
 		logger.Info("reconcile loop finished")
 	}()

@@ -11,6 +11,6 @@ spec:
         - name: manager
           env:
             - name: "RECONCILE_SCHEDULE"
-              value: "30 13 * * *" # if no schedule is defined scheduled reconciliation is disabled
+              value: "50 5 * * *" # if no schedule is defined scheduled reconciliation is disabled
             - name: "RECONCILE_JITTER"
-              value: "60m" # defaults to 1h if empty
+              value: "10m" # defaults to 1h if empty

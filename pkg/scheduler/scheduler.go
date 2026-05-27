@@ -34,15 +34,23 @@ func CalculateNextReconcile(ctx context.Context) (ctrl.Result, error) {
 
 	// do not reschedule if no schedule is defined
 	if config.GetOperatorConfig().ReconcileSchedule == nil {
+		logger.Info("Scheduled reconciliation disabled: no reconcile schedule configured")
 		return ctrl.Result{}, nil
 	}
 
 	// Calculate duration till next reconciliation and add jitter
 	jitter := getJitterDuration()
-	nextRunWithJitter := time.Until(config.GetOperatorConfig().ReconcileSchedule.Next(time.Now())) + jitter
+	now := time.Now()
+	nextRunWithJitter := config.GetOperatorConfig().ReconcileSchedule.Next(now).Sub(now) + jitter
+	if nextRunWithJitter < 0 {
+		nextRunWithJitter = 0
+	}
+
+	logger.Info("Calculated next reconciliation delay",
+		"nextRunWithJitter", nextRunWithJitter.String())
 
 	if nextRunWithJitter > 0 {
-		logger.V(4).Info("Scheduled next reconciliation",
+		logger.Info("Scheduled next reconciliation",
 			"after", nextRunWithJitter.String(),
 			"jitter", jitter.String())
 	}
