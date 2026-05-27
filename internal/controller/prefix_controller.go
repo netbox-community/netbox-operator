@@ -29,6 +29,8 @@ import (
 
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/scheduler"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
@@ -83,6 +85,10 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
 		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, reconcileResult, reconcileErr)
+		if reconcileErr == nil && reconcileResult.IsZero() {
+			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
+		}
+		logger.Info("reconcile loop finished")
 	}()
 
 	// if being deleted
