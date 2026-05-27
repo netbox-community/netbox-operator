@@ -21,10 +21,13 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"sync"
+	"time"
 
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 )
 
@@ -38,6 +41,23 @@ type OperatorConfig struct {
 	HttpsEnable                    bool   `mapstructure:"HTTPS_ENABLE"`
 	DebugEnable                    bool   `mapstructure:"DEBUG_ENABLE"`
 	NetboxRestorationHashFieldName string `mapstructure:"NETBOX_RESTORATION_HASH_FIELD_NAME"`
+
+	// cron schedule for scheduled reconciliation of all custom resources
+	// if set, all custom resources will be reconciled at the defined schedule, in addition to the regular event-based reconciliation
+	// if empty, scheduled reconciliation is disabled
+	// format: cron, see https://pkg.go.dev/github.com/robfig/cron/v3 for examples
+	// defaults to empty (disabled)
+	ReconcileScheduleRaw string `mapstructure:"RECONCILE_SCHEDULE"`
+	// jitter which is added to the defined reconcile schedule, only used if RECONCILE_SCHEDULE is defined
+	// it adds a random amount of time within a given window to the next scheduled reconcile and can help reducing load on backend systems
+	// all reconciles are randomly distributed across the window [scheduled trigger time, scheduled trigger time + RECONCILE_JITTER]
+	// format: duration, needs to be parseable by time.ParseDuration, e.g. "30s", "30m"
+	// defaults to 1 hour
+	ReconcileJitterRaw string `mapstructure:"RECONCILE_JITTER"`
+
+	// Parsed fields (not from config file/env)
+	ReconcileSchedule       cron.Schedule
+	ReconcileJitterDuration time.Duration
 }
 
 func (c *OperatorConfig) setDefaults() {
@@ -47,6 +67,10 @@ func (c *OperatorConfig) setDefaults() {
 	c.viper.SetDefault("HTTPS_ENABLE", true)
 	c.viper.SetDefault("DEBUG_ENABLE", false)
 	c.viper.SetDefault("NETBOX_RESTORATION_HASH_FIELD_NAME", "netboxOperatorRestorationHash")
+
+	c.viper.SetDefault("RECONCILE_JITTER", "")
+	c.viper.SetDefault("RECONCILE_SCHEDULE", "")
+
 }
 
 func (c *OperatorConfig) LoadCaCert() (cert []byte, err error) {
@@ -87,6 +111,12 @@ func GetOperatorConfig() *OperatorConfig {
 			return
 		}
 
+		err = c.parseScheduleAndJitter()
+		if err != nil {
+			log.Fatalf("error parsing schedule and jitter: %s", err)
+			return
+		}
+
 		configuration = c
 	})
 
@@ -102,4 +132,40 @@ func GetProtocol() string {
 
 func GetBaseUrl() string {
 	return GetProtocol() + "://" + GetOperatorConfig().NetboxHost
+}
+
+func (c *OperatorConfig) parseScheduleAndJitter() (err error) {
+	// Parse jitter duration
+	c.ReconcileJitterDuration = time.Hour // default
+	if c.ReconcileJitterRaw != "" {
+		c.ReconcileJitterDuration, err = time.ParseDuration(c.ReconcileJitterRaw)
+		if err != nil {
+			return fmt.Errorf("invalid reconcile jitter %q: %w", c.ReconcileJitterRaw, err)
+		}
+	}
+
+	// Parse cron schedule
+	c.ReconcileSchedule = nil // default
+	if c.ReconcileScheduleRaw != "" {
+		c.ReconcileSchedule, err = parseCronSchedule(c.ReconcileScheduleRaw)
+		if err != nil {
+			return fmt.Errorf("invalid cron schedule %q: %w", c.ReconcileScheduleRaw, err)
+		}
+	}
+
+	return nil
+}
+
+func parseCronSchedule(cronExpr string) (cron.Schedule, error) {
+	schedule, err := cron.ParseStandard(cronExpr)
+	if err != nil {
+		return nil, err
+	}
+
+	return schedule, nil
+}
+
+func ResetForTesting() {
+	once = sync.Once{}
+	configuration = nil
 }
