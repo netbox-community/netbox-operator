@@ -8,7 +8,7 @@ This example shows how to claim multiple prefixes from different clusters and ma
 
 ### 0.1 Create a local cluster with nebox-installed
 
-1. set up your local environment to run the following examples with the set up script 'docs/examples/example5-multicluster/prepare-demo-env.sh'
+1. set up your local environment to run the following examples with the set up script 'docs/examples/5-multicluster/prepare-demo-env.sh'
 
 ### 0.2 Manually Create a Prefix in NetBox
 
@@ -23,17 +23,17 @@ kubectl port-forward deploy/netbox 8080:8080
 
 ### 0.3 Navigate to the example folder
 
-Navigate to 'docs/examples/example5-multicluster/' to run the examples below
+Navigate to 'docs/examples/5-multicluster/' to run the examples below
 
 ## Example Steps
 
 1. Create ip address pools on the london cluster
 ```bash
-kubectl apply --context kind-london -f docs/examples/example5-multicluster/london-pools.yaml
+kubectl apply --context kind-london -f docs/examples/5-multicluster/london-pools.yaml
 ```
 2. Create ip address pool on the zurich cluster
 ```bash
-kubectl create --context kind-zurich -f docs/examples/example5-multicluster/zurich-pools.yaml
+kubectl create --context kind-zurich -f docs/examples/5-multicluster/zurich-pools.yaml
 ```
 3. Look up the created prefix claims
 ```bash
