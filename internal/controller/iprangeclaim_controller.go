@@ -26,6 +26,8 @@ import (
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/api"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/scheduler"
+
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -101,6 +103,10 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
 		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, ipRangeLookupKey, reconcileResult, reconcileErr)
+		if reconcileErr == nil && reconcileResult.IsZero() {
+			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
+		}
+		logger.Info("reconcile loop finished")
 	}()
 
 	err = r.Get(ctx, ipRangeLookupKey, ipRange)

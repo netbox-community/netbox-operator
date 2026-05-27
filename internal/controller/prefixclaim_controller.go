@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/netbox-community/netbox-operator/pkg/scheduler"
+
 	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -84,6 +86,10 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// Defer status update to ensure it happens regardless of how we exit
 	defer func() {
 		reconcileResult, reconcileErr = r.updateStatus(ctx, o, statusBase, req.NamespacedName, reconcileResult, reconcileErr)
+		if reconcileErr == nil && reconcileResult.IsZero() {
+			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
+		}
+		logger.Info("reconcile loop finished")
 	}()
 
 	/* 1. compute and assign the parent prefix if required */
