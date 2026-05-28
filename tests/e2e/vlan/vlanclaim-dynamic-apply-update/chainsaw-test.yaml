@@ -1,0 +1,31 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlanclaim-dynamic-apply-update
+spec:
+  steps:
+    - name: Apply dynamic VLANClaim
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim.yaml
+    - name: Assert VLANClaim and Vlan Ready with assigned VID
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VLANClaim
+              metadata:
+                name: vlanclaim-dyn-unique
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlanclaim-dyn-unique
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+

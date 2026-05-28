@@ -16,6 +16,8 @@ endif
 # scaffolded by default. However, you might want to replace it to use other
 # tools. (i.e. podman)
 CONTAINER_TOOL ?= docker
+# TARGET_PLATFORM defines the target platform for the manager image building.
+TARGET_PLATFORM ?= linux/amd64
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -45,7 +47,7 @@ GO_PACKAGE_NAME_GOLANGCI_LINT := golangci-lint
 install-$(GO_PACKAGE_NAME_GOLANGCI_LINT):
 	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_GOLANGCI_LINT)" ]; then \
 		echo "Installing $(GO_PACKAGE_NAME_GOLANGCI_LINT)..." ; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.60.3 ; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_GOLANGCI_LINT) is installed" ; \
 	fi
@@ -101,7 +103,7 @@ vet: ## Run go vet against code.
 
 .PHONY: lint
 lint: install-$(GO_PACKAGE_NAME_GOLANGCI_LINT) ## Run golangci-lint against code.
-	golangci-lint run --config tools/.golangci.yaml ./...
+	$(GOBIN)/golangci-lint run --config tools/.golangci.yaml ./...
 
 .PHONY: vulncheck
 vulncheck: install-$(GO_PACKAGE_NAME_GOVULNCHECK) ## Run govulncheck against code.
@@ -129,7 +131,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
-	$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build --platform $(TARGET_PLATFORM) -t ${IMG} .
 
 .PHONY: docker-build-local
 docker-build-local: ## Build docker image with the manager.

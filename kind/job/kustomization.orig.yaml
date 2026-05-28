@@ -1,4 +1,3 @@
----
 resources:
 - load-data-job.yaml
 
