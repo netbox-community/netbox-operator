@@ -173,12 +173,13 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 	for _, prefix := range list.Payload.Results {
 		if prefix.Prefix != nil {
 			errCandidate := c.isParentPrefixCandidate(ctx, prefixClaimSpec, *prefix.Prefix)
-			if err != nil {
+			if errCandidate != nil {
 				err = errors.Join(err, fmt.Errorf("prefix %s is not a valid parent prefix candidate, %w", *prefix.Prefix, errCandidate))
+			} else {
+				prefixes = append(prefixes, &models.Prefix{
+					Prefix: *prefix.Prefix,
+				})
 			}
-			prefixes = append(prefixes, &models.Prefix{
-				Prefix: *prefix.Prefix,
-			})
 		}
 	}
 
