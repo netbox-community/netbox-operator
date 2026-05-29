@@ -1,0 +1,18 @@
+---
+apiVersion: netbox.dev/v1
+kind: PrefixClaim
+metadata:
+  name: prefixclaim-ipv4-parentprefixselector-sorting-pxc2
+spec:
+  tenant: "MY_TENANT"
+  site: "MY_SITE"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  prefixLength: "/25"
+  parentPrefixSelector:
+    tenant: "MY_TENANT"
+    site: "MY_SITE"
+    family: "IPv4"
+    environment: "Production"
+    poolName: "test-parentprefixselector-sorting"

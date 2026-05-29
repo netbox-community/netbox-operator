@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: Prefix
+metadata:
+  name: prefixclaim-ipv4-parentprefixselector-sorting-parentprefix-2
+spec:
+  prefix: "4.0.3.0/24"
+  site: "MY_SITE"
+  tenant: "MY_TENANT"
+  preserveInNetbox: false
+  customFields:
+    environment: "Production"
+    poolName: "test-parentprefixselector-sorting"
