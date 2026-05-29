@@ -1,0 +1,118 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-parentprefixselector-sorting
+  annotations:
+    description: Tests that when a parent prefix is exhausted and a new matching parent prefix is created, the pending PrefixClaim is eventually assigned from the new parent prefix
+spec:
+  steps:
+    - name: Create parent prefix 4.0.2.0/24
+      try:
+        - apply:
+            file: netbox_v1_prefix_1.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sorting-parentprefix-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply PrefixClaim 1
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_1.yaml
+    - name: Check PrefixClaim 1 is ready
+      timeouts:
+        assert: 10s
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sorting-pxc1
+              status:
+                parentPrefix: 4.0.2.0/24
+                prefix: 4.0.2.0/25
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply PrefixClaim 2
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_2.yaml
+    - name: Check PrefixClaim 2 is ready
+      timeouts:
+        assert: 10s
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sorting-pxc2
+              status:
+                parentPrefix: 4.0.2.0/24
+                prefix: 4.0.2.128/25
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply PrefixClaim 3
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim_3.yaml
+    - name: Check PrefixClaim 3 is not ready (parent prefix exhausted)
+      timeouts:
+        assert: 10s
+      try:
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: PrefixCRNotCreated
+              source:
+                component: prefix-claim-controller
+              message: "Failed to assign prefix, prefix CR creation skipped: parent prefix exhausted, will restart the parent prefix selection process"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: PrefixClaim
+                name: prefixclaim-ipv4-parentprefixselector-sorting-pxc3
+    - name: Create parent prefix 4.0.3.0/24
+      try:
+        - apply:
+            file: netbox_v1_prefix_2.yaml
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sorting-parentprefix-2
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Check PrefixClaim 3 is now ready
+      timeouts:
+        assert: 30s
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-sorting-pxc3
+              status:
+                parentPrefix: 4.0.3.0/24
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-sorting-pxc1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-sorting-pxc2 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-sorting-pxc3 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=parentprefix-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=parentprefix-2 -n $NAMESPACE
