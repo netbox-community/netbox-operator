@@ -225,6 +225,7 @@ class Prefix:
 
 scopeId = nb.dcim.sites.get(name="MY_SITE").id
 
+# Note: 4.0.0.0/8 (4.x.y.z) prefixes are used by e2e tests that dynamically create the test data using Prefix custom resources.
 prefixes = [
     Prefix(
         prefix="2.0.0.0/16",
