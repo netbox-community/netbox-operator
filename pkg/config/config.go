@@ -149,7 +149,6 @@ func (c *OperatorConfig) parseScheduleAndJitter() (err error) {
 	}
 
 	// Parse cron schedule
-	c.ReconcileSchedule = nil // default
 	if c.ReconcileScheduleRaw != "" {
 		c.ReconcileSchedule, err = parseCronSchedule(c.ReconcileScheduleRaw)
 		if err != nil {

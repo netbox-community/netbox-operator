@@ -46,7 +46,7 @@ func CalculateNextReconcile(ctx context.Context) (ctrl.Result, error) {
 	}
 
 	if nextRunWithJitter > 0 {
-		logger.V(1).Info("Scheduled next reconciliation",
+		logger.V(4).Info("Scheduled next reconciliation",
 			"after", nextRunWithJitter.String(),
 			"jitter", jitter.String())
 	}
