@@ -189,7 +189,6 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	logger.Info("reconcile loop finished")
 	return ctrl.Result{}, nil
 }
 

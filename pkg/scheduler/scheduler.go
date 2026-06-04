@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Swisscom (Schweiz) AG.
+Copyright 2026 Swisscom (Schweiz) AG.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ func CalculateNextReconcile(ctx context.Context) (ctrl.Result, error) {
 
 	// do not reschedule if no schedule is defined
 	if config.GetOperatorConfig().ReconcileSchedule == nil {
-		logger.Info("Scheduled reconciliation disabled: no reconcile schedule configured")
 		return ctrl.Result{}, nil
 	}
 
@@ -46,11 +45,8 @@ func CalculateNextReconcile(ctx context.Context) (ctrl.Result, error) {
 		nextRunWithJitter = 0
 	}
 
-	logger.Info("Calculated next reconciliation delay",
-		"nextRunWithJitter", nextRunWithJitter.String())
-
 	if nextRunWithJitter > 0 {
-		logger.Info("Scheduled next reconciliation",
+		logger.V(1).Info("Scheduled next reconciliation",
 			"after", nextRunWithJitter.String(),
 			"jitter", jitter.String())
 	}

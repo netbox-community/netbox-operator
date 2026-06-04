@@ -297,8 +297,6 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	logger.Info("reconcile loop finished")
-
 	return ctrl.Result{}, nil
 }
 

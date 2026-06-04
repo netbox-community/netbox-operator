@@ -263,8 +263,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	logger.V(4).Info(fmt.Sprintf("reserved prefix in netbox, prefix: %s", o.Spec.Prefix))
 
-	logger.Info("reconcile loop finished")
-
 	return ctrl.Result{}, nil
 }
 

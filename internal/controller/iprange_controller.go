@@ -225,8 +225,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
 	}
 
-	logger.Info("reconcile loop finished")
-
 	return ctrl.Result{}, nil
 }
 

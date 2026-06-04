@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Swisscom (Schweiz) AG.
+Copyright 2026 Swisscom (Schweiz) AG.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -155,6 +155,12 @@ func (c *OperatorConfig) parseScheduleAndJitter() (err error) {
 		if err != nil {
 			return fmt.Errorf("invalid cron schedule %q: %w", c.ReconcileScheduleRaw, err)
 		}
+
+		log.Printf("Scheduled reconciliation enabled: schedule=%s, jitter=%s",
+			c.ReconcileScheduleRaw,
+			c.ReconcileJitterDuration.String())
+	} else {
+		log.Printf("Scheduled reconciliation disabled: no reconcile schedule configured")
 	}
 
 	return nil
