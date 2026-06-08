@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.56] - 2026-06-08
+
+<!-- Release notes generated using configuration in .github/release.yml at 1b0f3910babf288f3e1f4504db9c3e6c4cb78750 -->
+
+## What's Changed
+### Contributions
+* Add scheduled reconciliation to all controllers by @MaIT-HA in https://github.com/netbox-community/netbox-operator/pull/571
+* Build(deps): bump golang from 1.26.3 to 1.26.4 in the docker group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/576
+* Build(deps): bump actions/checkout from 6.0.2 to 6.0.3 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/577
+* Build(deps): bump the go-dependencies group across 1 directory with 34 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/578
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.55...v0.2.56
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.56)
+
+---
+
 ## [v0.2.55] - 2026-06-01
 
 <!-- Release notes generated using configuration in .github/release.yml at c777ffb7c464e3f49eaf9514b275112e9ca3c3c8 -->
