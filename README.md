@@ -2,7 +2,7 @@
 
 **Disclaimer:** This project is currently under development and may change rapidly, including breaking changes. Use with caution in production environments.
 
-NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
+NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses, prefixes, and VLANs – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
 ## The Claim Model
 The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
@@ -10,7 +10,7 @@ In this case, instead of disk storage, NetBox Operator dynamically allocates net
 
 ### Purpose
 This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
-The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
+The users will create claims (PrefixClaims, IPAddressClaims & VLANClaims), and the NetBox Operator will resolve them into actual Prefixes, IPAddresses and VLANs within a designated parent prefix or site.
 
 ![Figure 1: NetBox Operator High-Level Architecture](docs/netbox-operator-high-level-architecture.drawio.svg)
 
@@ -53,7 +53,7 @@ To optionally access the NetBox UI:
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, and VLANClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
