@@ -54,10 +54,10 @@ github.com/go-openapi/jsonreference v0.21.6 h1:NZ5nGfnaM1n4I43Xjm1e5/M2GjOwQwndQ
 github.com/go-openapi/jsonreference v0.21.6/go.mod h1:xzbgtQ3ZbWxvET3AxdzCJlJt6vkovbf+IfSPJjD0tUY=
 github.com/go-openapi/loads v0.24.0 h1:4LLorXRPTzIN9V6ngMUZbAscsBOUBk3Oa8cClu/bFrQ=
 github.com/go-openapi/loads v0.24.0/go.mod h1:xQMgX+hw5xRAhGrcDXxeMw78IFqUpIzhleu3HqPhyF4=
-github.com/go-openapi/runtime v0.32.3 h1:J7Ycy5DJmhhP1By3NifhRUjnkXTrk21qbeqSULjwX8U=
-github.com/go-openapi/runtime v0.32.3/go.mod h1:/WTQi0fa5DiGnnCXQKsTkSm15OzJp8Uz3H2t+67TBr4=
-github.com/go-openapi/runtime/server-middleware v0.32.3 h1:Y/6h9ix9NCoMG04XazRwX6eA3alh4+JZ6qXdar5yd24=
-github.com/go-openapi/runtime/server-middleware v0.32.3/go.mod h1:fYPep4GdTwg/XqZUjR40uIM/8C12Ba5M+MrGCiwpTHo=
+github.com/go-openapi/runtime v0.32.4 h1:8ElGj/3goG0itt0nBPP6Cm57ehcYyuHoI3O20nxgvkw=
+github.com/go-openapi/runtime v0.32.4/go.mod h1:Bz6keOZw1NX4T6f+m42OoT1MBPDt6Re13dbccHyGH/4=
+github.com/go-openapi/runtime/server-middleware v0.32.4 h1:AU6eLMq9CXwh8f6kC1pivtkz+7lfo3TmakMBbUisKME=
+github.com/go-openapi/runtime/server-middleware v0.32.4/go.mod h1:fYPep4GdTwg/XqZUjR40uIM/8C12Ba5M+MrGCiwpTHo=
 github.com/go-openapi/spec v0.22.6 h1:Tyy1pLaNCM8GBCFLoGYLonjJi6zykqyLCjXLc19ZPic=
 github.com/go-openapi/spec v0.22.6/go.mod h1:HZvTHat+iH0PALQRWhrqIHtU/PEqxqd89fu0MxGlMeM=
 github.com/go-openapi/strfmt v0.26.3 h1:rzmslHarJgBbf2qfGge+X3htclQfmXqBZMm0Too0HhU=
@@ -156,8 +156,8 @@ github.com/onsi/ginkgo/v2 v2.31.0/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU
 github.com/onsi/gomega v1.42.0 h1:CJby8u36xb7v34W78F8WKvqTQP7PCMIPB78IVDB73l4=
 github.com/onsi/gomega v1.42.0/go.mod h1:M/Uqpu/8qTjtzCLUA2zJHX9Iilrau25x1PdoSRbWh5A=
 github.com/pborman/getopt v0.0.0-20170112200414-7148bc3a4c30/go.mod h1:85jBQOZwpVEaDAr341tbn15RS4fCAsIst0qp7i8ex1o=
-github.com/pelletier/go-toml/v2 v2.3.1 h1:MYEvvGnQjeNkRF1qUuGolNtNExTDwct51yp7olPtrEc=
-github.com/pelletier/go-toml/v2 v2.3.1/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
+github.com/pelletier/go-toml/v2 v2.4.0 h1:Mwu0mAkUKbittDs3/ADDWXqMmq3EOK2VHiuCkV00Row=
+github.com/pelletier/go-toml/v2 v2.4.0/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
@@ -167,8 +167,8 @@ github.com/prometheus/client_golang v1.23.2 h1:Je96obch5RDVy3FDMndoUsjAhG5Edi49h
 github.com/prometheus/client_golang v1.23.2/go.mod h1:Tb1a6LWHB3/SPIzCoaDXI4I8UHKeFTEQ1YCr+0Gyqmg=
 github.com/prometheus/client_model v0.6.2 h1:oBsgwpGs7iVziMvrGhE53c/GrLUsZdHnqNwqPLxwZyk=
 github.com/prometheus/client_model v0.6.2/go.mod h1:y3m2F6Gdpfy6Ut/GBsUqTWZqCUvMVzSfMLjcu6wAwpE=
-github.com/prometheus/common v0.68.1 h1:omjRRl4QP4komogpXuhfeOiisQg7xdy8VM1UY+pStaY=
-github.com/prometheus/common v0.68.1/go.mod h1:ZzL3f6u94qUxh9p+tJTrF+FvBS1XXbbRAZCQkytAL0Y=
+github.com/prometheus/common v0.69.0 h1:OA85nJQS/T/MaYh/Q2CcgDKSGWqNIgrBDvDH85CuiNk=
+github.com/prometheus/common v0.69.0/go.mod h1:ZzL3f6u94qUxh9p+tJTrF+FvBS1XXbbRAZCQkytAL0Y=
 github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEycfc=
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
@@ -199,8 +199,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
-github.com/swisscom/leaselocker v0.4.19 h1:UWM2xd2nCFr9Hws5KUNIHb1j9U/bG0s4J9Y5I+x7SDQ=
-github.com/swisscom/leaselocker v0.4.19/go.mod h1:Wjgkd9/HA0mDkDWvigoHtOL02QaUCUOSHmDlHr5dWBw=
+github.com/swisscom/leaselocker v0.4.20 h1:pbBm+lwscFF6NKGiNGpKcc/Tlav44mYfT2xtJulqqJo=
+github.com/swisscom/leaselocker v0.4.20/go.mod h1:31cv/8hPm1wI3olsZcdE/APclVjv4SY1JhTNMojqx8U=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
