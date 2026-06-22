@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.58] - 2026-06-22
+
+<!-- Release notes generated using configuration in .github/release.yml at d7bc87893bc8ac95b86c026cbf903533b73355bd -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 5 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/583
+* Build(deps): bump actions/checkout from 6.0.3 to 7.0.0 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/582
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.57...v0.2.58
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.58)
+
+---
+
 ## [v0.2.57] - 2026-06-15
 
 <!-- Release notes generated using configuration in .github/release.yml at 3ff349c1bdcd5f0c0861b19179334e0f2f2f0bd7 -->
