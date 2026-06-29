@@ -199,8 +199,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
-github.com/swisscom/leaselocker v0.4.20 h1:pbBm+lwscFF6NKGiNGpKcc/Tlav44mYfT2xtJulqqJo=
-github.com/swisscom/leaselocker v0.4.20/go.mod h1:31cv/8hPm1wI3olsZcdE/APclVjv4SY1JhTNMojqx8U=
+github.com/swisscom/leaselocker v0.4.21 h1:yIXiny08QuiZHTzkelMkWPqUDA0kMNEezH+Uy3FIwx4=
+github.com/swisscom/leaselocker v0.4.21/go.mod h1:COCnyESbKCGCooeATe2P4RItOUMH6Xy1jujjjlum3HY=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
