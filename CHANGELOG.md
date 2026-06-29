@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.59] - 2026-06-29
+
+<!-- Release notes generated using configuration in .github/release.yml at e8f9da9c5aafb677eb1425ed2f0bff2c6ce59d6b -->
+
+## What's Changed
+### Contributions
+* Add check for Go version mismatch by @jstudler in https://github.com/netbox-community/netbox-operator/pull/585
+* Build(deps): bump actions/setup-go from 6.4.0 to 6.5.0 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/586
+* Build(deps): bump the go-dependencies group with 7 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/587
+* Build(deps): bump github.com/swisscom/leaselocker from 0.4.20 to 0.4.21 in the go-dependencies group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/588
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.58...v0.2.59
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.59)
+
+---
+
 ## [v0.2.58] - 2026-06-22
 
 <!-- Release notes generated using configuration in .github/release.yml at d7bc87893bc8ac95b86c026cbf903533b73355bd -->
