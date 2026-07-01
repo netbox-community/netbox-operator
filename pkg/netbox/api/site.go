@@ -23,6 +23,10 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
+func (c *NetboxCompositeClient) GetSiteDetails(name string) (*models.Site, error) {
+	return c.getSiteDetails(name)
+}
+
 func (c *NetboxCompositeClient) getSiteDetails(name string) (*models.Site, error) {
 	request := dcim.NewDcimSitesListParams().WithName(&name)
 	response, err := c.clientV3.Dcim.DcimSitesList(request, nil)

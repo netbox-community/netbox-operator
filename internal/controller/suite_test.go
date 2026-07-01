@@ -58,6 +58,9 @@ var mockIpamAPI *mock_interfaces.MockIpamAPI
 var mockIpamPrefixesListRequest *mock_interfaces.MockIpamPrefixesListRequest
 var ipamMockIpAddress *mock_interfaces.MockIpamInterface
 var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
+var ipamMockVlan *mock_interfaces.MockIpamInterface
+var ipamMockVlanClaim *mock_interfaces.MockIpamInterface
+
 var tenancyMock *mock_interfaces.MockTenancyInterface
 var dcimMock *mock_interfaces.MockDcimInterface
 var ctx context.Context
@@ -112,6 +115,8 @@ var _ = BeforeSuite(func() {
 
 	ipamMockIpAddress = mock_interfaces.NewMockIpamInterface(mockCtrl)
 	ipamMockIpAddressClaim = mock_interfaces.NewMockIpamInterface(mockCtrl)
+	ipamMockVlan = mock_interfaces.NewMockIpamInterface(mockCtrl)
+	ipamMockVlanClaim = mock_interfaces.NewMockIpamInterface(mockCtrl)
 	tenancyMock = mock_interfaces.NewMockTenancyInterface(mockCtrl)
 	dcimMock = mock_interfaces.NewMockDcimInterface(mockCtrl)
 	mockIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
@@ -145,6 +150,38 @@ var _ = BeforeSuite(func() {
 		NetboxClient: api.NewNetboxCompositeClient(
 			&api.NetboxClientV3{
 				Ipam:    ipamMockIpAddressClaim,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&VlanReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("vlan-controller")),
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockVlan,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&VLANClaimReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("vlan-claim-controller")),
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockVlanClaim,
 				Tenancy: tenancyMock,
 				Dcim:    dcimMock,
 			},
