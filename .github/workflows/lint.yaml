@@ -70,7 +70,7 @@ jobs:
       - name: Run codespell
         uses: codespell-project/actions-codespell@v2
         with:
-          skip: "*.svg"
+          skip: "*.svg,go.sum"
   yamllint:
     runs-on: ubuntu-latest
     steps:
