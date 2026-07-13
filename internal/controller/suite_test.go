@@ -155,18 +155,20 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	ctx, cancel = context.WithCancel(context.TODO())
 	go func() {
 		defer GinkgoRecover()
-		ctx, cancel = context.WithCancel(context.TODO())
-		defer func() { cancel() }()
-
 		Expect(k8sManager.Start(ctx)).To(Succeed())
 	}()
 })
 
 var _ = AfterSuite(func() {
-	cancel()
-	mockCtrl.Finish()
+	if cancel != nil {
+		cancel()
+	}
+	if mockCtrl != nil {
+		mockCtrl.Finish()
+	}
 
 	By("tearing down the test environment")
 	err := testEnv.Stop()
