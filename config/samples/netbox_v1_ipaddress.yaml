@@ -8,7 +8,8 @@ metadata:
   name: ipaddress-sample
 spec:
   tenant: "Dunder-Mifflin, Inc."
-  description: "some description"
+  description: "This is a sample IP Address that should be created in NetBox"
   comments: "your comments"
   preserveInNetbox: true
   ipAddress: "2.0.0.100/32"
+  priority: "low"

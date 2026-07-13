@@ -65,6 +65,10 @@ type IpAddressClaimSpec struct {
 	// recreated in Kubernetes)
 	// Field is mutable, not required
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
+
+	// +kubebuilder:validation:Enum=low;medium;high;critical
+	// +optional
+	Priority Priority `json:"priority,omitempty"`
 }
 
 // IpAddressClaimStatus defines the observed state of IpAddressClaim
@@ -106,6 +110,10 @@ type IpAddressClaim struct {
 
 func (i *IpAddressClaim) Conditions() *[]metav1.Condition {
 	return &i.Status.Conditions
+}
+
+func (i *IpAddressClaim) Priority() Priority {
+	return i.Spec.Priority
 }
 
 //+kubebuilder:object:root=true

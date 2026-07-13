@@ -43,6 +43,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -68,6 +69,8 @@ type IpAddressReconciler struct {
 func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
+	// logger.Info("Sleep for 5s")
+	// time.Sleep(5 * time.Second)
 	logger.Info("reconcile loop started")
 
 	o := &netboxv1.IpAddress{}
@@ -251,7 +254,15 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 // SetupWithManager sets up the controller with the Manager.
 func (r *IpAddressReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&netboxv1.IpAddress{}).
+		Named("ipaddress").
+		Watches(
+			&netboxv1.IpAddress{},
+			WithPriority(
+				handler.WithLowPriorityWhenUnchanged(
+					&handler.EnqueueRequestForObject{},
+				),
+			),
+		).
 		Complete(r)
 }
 

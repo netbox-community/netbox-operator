@@ -65,6 +65,10 @@ type IpAddressSpec struct {
 	// recreated in Kubernetes)
 	// Field is mutable, not required
 	PreserveInNetbox bool `json:"preserveInNetbox,omitempty"`
+
+	// +kubebuilder:validation:Enum=low;medium;high;critical
+	// +optional
+	Priority Priority `json:"priority,omitempty"`
 }
 
 // IpAddressStatus defines the observed state of IpAddress
@@ -105,6 +109,10 @@ type IpAddress struct {
 
 func (i *IpAddress) Conditions() *[]metav1.Condition {
 	return &i.Status.Conditions
+}
+
+func (i *IpAddress) Priority() Priority {
+	return i.Spec.Priority
 }
 
 //+kubebuilder:object:root=true

@@ -1,15 +1,15 @@
 ---
 apiVersion: netbox.dev/v1
-kind: Prefix
+kind: IpAddress
 metadata:
   labels:
     app.kubernetes.io/name: netbox-operator
     app.kubernetes.io/managed-by: kustomize
-  name: prefix-sample
+  name: ipaddress-sample-should-fail
 spec:
   tenant: "Dunder-Mifflin, Inc."
-  site: "DM-Akron"
-  description: "some description"
+  description: "This should fail because the priority is set to low and the prefix is already full"
   comments: "your comments"
   preserveInNetbox: true
-  prefix: "2.0.0.0/24"
+  ipAddress: "2.0.0.100/32"
+  priority: "high"

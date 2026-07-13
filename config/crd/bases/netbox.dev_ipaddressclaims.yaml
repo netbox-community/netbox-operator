@@ -105,6 +105,13 @@ spec:
                   recreated in Kubernetes)
                   Field is mutable, not required
                 type: boolean
+              priority:
+                enum:
+                - low
+                - medium
+                - high
+                - critical
+                type: string
               tenant:
                 description: |-
                   The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value

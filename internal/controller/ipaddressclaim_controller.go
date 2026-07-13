@@ -38,6 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -195,8 +196,15 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 // SetupWithManager sets up the controller with the Manager.
 func (r *IpAddressClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&netboxv1.IpAddressClaim{}).
-		Owns(&netboxv1.IpAddress{}).
+		Named("ipaddressclaim").
+		Watches(
+			&netboxv1.IpAddressClaim{},
+			WithPriority(
+				handler.WithLowPriorityWhenUnchanged(
+					&handler.EnqueueRequestForObject{},
+				),
+			),
+		).
 		Complete(r)
 }
 
