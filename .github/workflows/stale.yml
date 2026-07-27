@@ -33,5 +33,3 @@ jobs:
           stale-pr-label: 'stale'
           exempt-pr-labels: 'pinned,security,do-not-close'
           only-pr: true
-          days-before-issue-stale: -1
-          days-before-issue-close: -1
