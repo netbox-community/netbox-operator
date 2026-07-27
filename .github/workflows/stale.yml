@@ -32,4 +32,6 @@ jobs:
             the PR or create a new one — we're happy to review it. 🙂
           stale-pr-label: 'stale'
           exempt-pr-labels: 'pinned,security,do-not-close'
-          only-pr: true
+          # --- Disable issues completely ---
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
