@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.63] - 2026-07-27
+
+<!-- Release notes generated using configuration in .github/release.yml at e0cbcd2fa3f7cf9cbd4d4748fe290d0d3977eb46 -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump github.com/go-openapi/swag/jsonname from 0.27.1 to 0.27.3 by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/602
+* Build(deps): bump actions/checkout from 7.0.0 to 7.0.1 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/600
+* Build(deps): bump the go-dependencies group across 1 directory with 35 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/601
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.62...v0.2.63
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.63)
+
+---
+
 ## [v0.2.62] - 2026-07-20
 
 <!-- Release notes generated using configuration in .github/release.yml at 5c4d247998ad016162fc67a5483f1a7256e574d9 -->
