@@ -1,0 +1,14 @@
+---
+apiVersion: netbox.dev/v1
+kind: L2VPN
+metadata:
+  name: l2vpnclaim-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: af1597bb78b62cddb76419182d41e2e32f973111
+  description: some description
+  name: l2vpnclaim-update-ownerreference-1
+  type: vxlan-evpn
+  identifier: 5500001
+  tenant: MY_TENANT
