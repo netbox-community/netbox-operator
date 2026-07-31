@@ -112,6 +112,37 @@ type IpamAPI interface {
 	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
 }
 
+type VpnL2vpnsListRequest interface {
+	Name(name []string) VpnL2vpnsListRequest
+	Type_(type_ []string) VpnL2vpnsListRequest
+	IdentifierGte(identifierGte []int32) VpnL2vpnsListRequest
+	IdentifierLte(identifierLte []int32) VpnL2vpnsListRequest
+	Limit(limit int32) VpnL2vpnsListRequest
+	Offset(offset int32) VpnL2vpnsListRequest
+	Execute() (*v4client.PaginatedL2VPNList, *http.Response, error)
+}
+
+type VpnL2vpnsCreateRequest interface {
+	WritableL2VPNRequest(writableL2VPNRequest v4client.WritableL2VPNRequest) VpnL2vpnsCreateRequest
+	Execute() (*v4client.L2VPN, *http.Response, error)
+}
+
+type VpnL2vpnsUpdateRequest interface {
+	WritableL2VPNRequest(writableL2VPNRequest v4client.WritableL2VPNRequest) VpnL2vpnsUpdateRequest
+	Execute() (*v4client.L2VPN, *http.Response, error)
+}
+
+type VpnL2vpnsDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
+type VpnAPI interface {
+	VpnL2vpnsList(ctx context.Context) VpnL2vpnsListRequest
+	VpnL2vpnsCreate(ctx context.Context) VpnL2vpnsCreateRequest
+	VpnL2vpnsUpdate(ctx context.Context, id int32) VpnL2vpnsUpdateRequest
+	VpnL2vpnsDestroy(ctx context.Context, id int32) VpnL2vpnsDestroyRequest
+}
+
 type APIStatusRetrieveRequest interface {
 	Execute() (map[string]interface{}, *http.Response, error)
 }
