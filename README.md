@@ -2,15 +2,15 @@
 
 **Disclaimer:** This project is currently under development and may change rapidly, including breaking changes. Use with caution in production environments.
 
-NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
+NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses, prefixes, and ASNs – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
 ## The Claim Model
 The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
-In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes and IP Addresses) based on claims submitted via custom resources.
+In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes, IP Addresses, and ASNs) based on claims submitted via custom resources.
 
 ### Purpose
-This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
-The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
+This model ensures a declarative management of IP addressing, subnet allocation, and ASN assignment, with full NetBox integration.
+The users will create claims (PrefixClaims, IPAddressClaims & AsnClaims), and the NetBox Operator will resolve them into actual Prefixes, IPAddresses and Asns within a designated parent resource.
 
 ![Figure 1: NetBox Operator High-Level Architecture](docs/netbox-operator-high-level-architecture.drawio.svg)
 
@@ -53,7 +53,7 @@ To optionally access the NetBox UI:
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, IpRange, IpRangeClaim, Asn, and AsnClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
@@ -73,6 +73,23 @@ for i in {001..100}; do
   name="ipc-${i}" yq e '.metadata.name=strenv(name)' config/samples/netbox_v1_ipaddressclaim.yaml | kubectl apply -f -
 done
 ```
+
+# ASN Management
+
+NetBox Operator supports managing [ASNs (Autonomous System Numbers)](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/asn.md) through two custom resources:
+
+- **Asn**: Represents a single ASN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific ASN value.
+- **AsnClaim**: Claims an available ASN from a NetBox ASN Range. Similar to IpAddressClaim, it creates a child Asn CR with the assigned value.
+
+## Example: Claiming an ASN
+
+1. Apply an AsnClaim: `kubectl apply -f config/samples/netbox_v1_asnclaim.yaml`
+2. Wait for ready condition: `kubectl wait asnclaim asnclaim-sample --for=condition=Ready`
+3. List AsnClaim and Asn resources: `kubectl get asnc,asn`
+
+The `parentAsnRange` field in the AsnClaim spec must match the **name** of an existing ASN Range in NetBox. The operator will claim an available ASN from that range.
+
+Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the ASN is preserved in NetBox upon CR deletion and can be reclaimed when the AsnClaim is re-created.
 
 # Mixed usage of Prefixes
 
@@ -97,13 +114,13 @@ The same applies if you use parentPrefixSelector with PrefixClaims. The above ex
 
 In the case that the cluster containing the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
 
-- `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
-- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix based on data from the IpAddressClaim/PrefixClaim resource
+- `IpAddressClaim`, `PrefixClaim`, `IpRangeClaim`, and `AsnClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned resource in NetBox when the Kubernetes Custom Resource is deleted
+- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify a resource based on data from the Claim resource
 
 Use Cases for this Restoration:
 
-- Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
-- Sticky IPs: Some services do not handle changes to IPs well. This ensures the IP/Prefix assigned to a Custom Resource is always the same.
+- Disaster Recovery: In case the cluster is lost, resources can be restored with the Claim CRs only
+- Sticky IPs/ASNs: Some services do not handle changes to IPs or ASNs well. This ensures the resource assigned to a Custom Resource is always the same.
 
 # `ParentPrefixSelector` in `PrefixClaim`
 
