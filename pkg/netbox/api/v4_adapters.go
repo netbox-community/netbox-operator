@@ -186,3 +186,134 @@ type statusV4APIAdapter struct {
 func (a *statusV4APIAdapter) StatusRetrieve(ctx context.Context) interfaces.APIStatusRetrieveRequest {
 	return &statusRetrieveRequestAdapter{req: a.api.StatusRetrieve(ctx)}
 }
+
+// ASN v4 adapters
+
+type ipamAsnsListRequestAdapter struct {
+	req v4client.ApiIpamAsnsListRequest
+}
+
+func (a *ipamAsnsListRequestAdapter) Asn(asn []int32) interfaces.IpamAsnsListRequest {
+	a.req = a.req.Asn(asn)
+	return a
+}
+
+func (a *ipamAsnsListRequestAdapter) Limit(limit int32) interfaces.IpamAsnsListRequest {
+	a.req = a.req.Limit(limit)
+	return a
+}
+
+func (a *ipamAsnsListRequestAdapter) Offset(offset int32) interfaces.IpamAsnsListRequest {
+	a.req = a.req.Offset(offset)
+	return a
+}
+
+func (a *ipamAsnsListRequestAdapter) Execute() (*v4client.PaginatedASNList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamAsnsRetrieveRequestAdapter struct {
+	req v4client.ApiIpamAsnsRetrieveRequest
+}
+
+func (a *ipamAsnsRetrieveRequestAdapter) Execute() (*v4client.ASN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamAsnsCreateRequestAdapter struct {
+	req v4client.ApiIpamAsnsCreateRequest
+}
+
+func (a *ipamAsnsCreateRequestAdapter) ASNRequest(aSNRequest v4client.ASNRequest) interfaces.IpamAsnsCreateRequest {
+	a.req = a.req.ASNRequest(aSNRequest)
+	return a
+}
+
+func (a *ipamAsnsCreateRequestAdapter) Execute() (*v4client.ASN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamAsnsUpdateRequestAdapter struct {
+	req v4client.ApiIpamAsnsUpdateRequest
+}
+
+func (a *ipamAsnsUpdateRequestAdapter) ASNRequest(aSNRequest v4client.ASNRequest) interfaces.IpamAsnsUpdateRequest {
+	a.req = a.req.ASNRequest(aSNRequest)
+	return a
+}
+
+func (a *ipamAsnsUpdateRequestAdapter) Execute() (*v4client.ASN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamAsnsDestroyRequestAdapter struct {
+	req v4client.ApiIpamAsnsDestroyRequest
+}
+
+func (a *ipamAsnsDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamAsnRangesListRequestAdapter struct {
+	req v4client.ApiIpamAsnRangesListRequest
+}
+
+func (a *ipamAsnRangesListRequestAdapter) Name(name []string) interfaces.IpamAsnRangesListRequest {
+	a.req = a.req.Name(name)
+	return a
+}
+
+func (a *ipamAsnRangesListRequestAdapter) Limit(limit int32) interfaces.IpamAsnRangesListRequest {
+	a.req = a.req.Limit(limit)
+	return a
+}
+
+func (a *ipamAsnRangesListRequestAdapter) Offset(offset int32) interfaces.IpamAsnRangesListRequest {
+	a.req = a.req.Offset(offset)
+	return a
+}
+
+func (a *ipamAsnRangesListRequestAdapter) Execute() (*v4client.PaginatedASNRangeList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamAsnRangesAvailableAsnsCreateRequestAdapter struct {
+	req v4client.ApiIpamAsnRangesAvailableAsnsCreateRequest
+}
+
+func (a *ipamAsnRangesAvailableAsnsCreateRequestAdapter) ASNRequest(aSNRequest []v4client.ASNRequest) interfaces.IpamAsnRangesAvailableAsnsCreateRequest {
+	a.req = a.req.ASNRequest(aSNRequest)
+	return a
+}
+
+func (a *ipamAsnRangesAvailableAsnsCreateRequestAdapter) Execute() ([]v4client.ASN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+func (a *ipamV4APIAdapter) IpamAsnsList(ctx context.Context) interfaces.IpamAsnsListRequest {
+	return &ipamAsnsListRequestAdapter{req: a.api.IpamAsnsList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamAsnsRetrieve(ctx context.Context, id int32) interfaces.IpamAsnsRetrieveRequest {
+	return &ipamAsnsRetrieveRequestAdapter{req: a.api.IpamAsnsRetrieve(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamAsnsCreate(ctx context.Context) interfaces.IpamAsnsCreateRequest {
+	return &ipamAsnsCreateRequestAdapter{req: a.api.IpamAsnsCreate(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamAsnsUpdate(ctx context.Context, id int32) interfaces.IpamAsnsUpdateRequest {
+	return &ipamAsnsUpdateRequestAdapter{req: a.api.IpamAsnsUpdate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamAsnsDestroy(ctx context.Context, id int32) interfaces.IpamAsnsDestroyRequest {
+	return &ipamAsnsDestroyRequestAdapter{req: a.api.IpamAsnsDestroy(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamAsnRangesList(ctx context.Context) interfaces.IpamAsnRangesListRequest {
+	return &ipamAsnRangesListRequestAdapter{req: a.api.IpamAsnRangesList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamAsnRangesAvailableAsnsCreate(ctx context.Context, id int32) interfaces.IpamAsnRangesAvailableAsnsCreateRequest {
+	return &ipamAsnRangesAvailableAsnsCreateRequestAdapter{req: a.api.IpamAsnRangesAvailableAsnsCreate(ctx, id)}
+}

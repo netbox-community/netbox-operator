@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Swisscom (Schweiz) AG.
+Copyright 2026 Swisscom (Schweiz) AG.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,4 +70,15 @@ type IpRangeClaim struct {
 	ParentPrefix string          `json:"prefix,omitempty"`
 	Size         int             `json:"size,omitempty"`
 	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type ASN struct {
+	Asn      int64           `json:"asn,omitempty"`
+	Id       int64           `json:"id,omitempty"`
+	Metadata *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type ASNClaim struct {
+	ParentAsnRange string          `json:"parentAsnRange,omitempty"`
+	Metadata       *NetboxMetadata `json:"metadata,omitempty"`
 }

@@ -920,6 +920,104 @@ func (m *MockIpamAPI) EXPECT() *MockIpamAPIMockRecorder {
 	return m.recorder
 }
 
+// IpamAsnRangesAvailableAsnsCreate mocks base method.
+func (m *MockIpamAPI) IpamAsnRangesAvailableAsnsCreate(ctx context.Context, id int32) interfaces.IpamAsnRangesAvailableAsnsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnRangesAvailableAsnsCreate", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamAsnRangesAvailableAsnsCreateRequest)
+	return ret0
+}
+
+// IpamAsnRangesAvailableAsnsCreate indicates an expected call of IpamAsnRangesAvailableAsnsCreate.
+func (mr *MockIpamAPIMockRecorder) IpamAsnRangesAvailableAsnsCreate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnRangesAvailableAsnsCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnRangesAvailableAsnsCreate), ctx, id)
+}
+
+// IpamAsnRangesList mocks base method.
+func (m *MockIpamAPI) IpamAsnRangesList(ctx context.Context) interfaces.IpamAsnRangesListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnRangesList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamAsnRangesListRequest)
+	return ret0
+}
+
+// IpamAsnRangesList indicates an expected call of IpamAsnRangesList.
+func (mr *MockIpamAPIMockRecorder) IpamAsnRangesList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnRangesList", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnRangesList), ctx)
+}
+
+// IpamAsnsCreate mocks base method.
+func (m *MockIpamAPI) IpamAsnsCreate(ctx context.Context) interfaces.IpamAsnsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnsCreate", ctx)
+	ret0, _ := ret[0].(interfaces.IpamAsnsCreateRequest)
+	return ret0
+}
+
+// IpamAsnsCreate indicates an expected call of IpamAsnsCreate.
+func (mr *MockIpamAPIMockRecorder) IpamAsnsCreate(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnsCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnsCreate), ctx)
+}
+
+// IpamAsnsDestroy mocks base method.
+func (m *MockIpamAPI) IpamAsnsDestroy(ctx context.Context, id int32) interfaces.IpamAsnsDestroyRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnsDestroy", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamAsnsDestroyRequest)
+	return ret0
+}
+
+// IpamAsnsDestroy indicates an expected call of IpamAsnsDestroy.
+func (mr *MockIpamAPIMockRecorder) IpamAsnsDestroy(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnsDestroy", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnsDestroy), ctx, id)
+}
+
+// IpamAsnsList mocks base method.
+func (m *MockIpamAPI) IpamAsnsList(ctx context.Context) interfaces.IpamAsnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnsList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamAsnsListRequest)
+	return ret0
+}
+
+// IpamAsnsList indicates an expected call of IpamAsnsList.
+func (mr *MockIpamAPIMockRecorder) IpamAsnsList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnsList", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnsList), ctx)
+}
+
+// IpamAsnsRetrieve mocks base method.
+func (m *MockIpamAPI) IpamAsnsRetrieve(ctx context.Context, id int32) interfaces.IpamAsnsRetrieveRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnsRetrieve", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamAsnsRetrieveRequest)
+	return ret0
+}
+
+// IpamAsnsRetrieve indicates an expected call of IpamAsnsRetrieve.
+func (mr *MockIpamAPIMockRecorder) IpamAsnsRetrieve(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnsRetrieve", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnsRetrieve), ctx, id)
+}
+
+// IpamAsnsUpdate mocks base method.
+func (m *MockIpamAPI) IpamAsnsUpdate(ctx context.Context, id int32) interfaces.IpamAsnsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamAsnsUpdate", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamAsnsUpdateRequest)
+	return ret0
+}
+
+// IpamAsnsUpdate indicates an expected call of IpamAsnsUpdate.
+func (mr *MockIpamAPIMockRecorder) IpamAsnsUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamAsnsUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamAsnsUpdate), ctx, id)
+}
+
 // IpamIpRangesCreate mocks base method.
 func (m *MockIpamAPI) IpamIpRangesCreate(ctx context.Context) interfaces.IpamIpRangesCreateRequest {
 	m.ctrl.T.Helper()
@@ -1108,4 +1206,409 @@ func (m *MockStatusAPI) StatusRetrieve(ctx context.Context) interfaces.APIStatus
 func (mr *MockStatusAPIMockRecorder) StatusRetrieve(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusRetrieve", reflect.TypeOf((*MockStatusAPI)(nil).StatusRetrieve), ctx)
+}
+
+// MockIpamAsnsListRequest is a mock of IpamAsnsListRequest interface.
+type MockIpamAsnsListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnsListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnsListRequestMockRecorder is the mock recorder for MockIpamAsnsListRequest.
+type MockIpamAsnsListRequestMockRecorder struct {
+	mock *MockIpamAsnsListRequest
+}
+
+// NewMockIpamAsnsListRequest creates a new mock instance.
+func NewMockIpamAsnsListRequest(ctrl *gomock.Controller) *MockIpamAsnsListRequest {
+	mock := &MockIpamAsnsListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnsListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnsListRequest) EXPECT() *MockIpamAsnsListRequestMockRecorder {
+	return m.recorder
+}
+
+// Asn mocks base method.
+func (m *MockIpamAsnsListRequest) Asn(asn []int32) interfaces.IpamAsnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Asn", asn)
+	ret0, _ := ret[0].(interfaces.IpamAsnsListRequest)
+	return ret0
+}
+
+// Asn indicates an expected call of Asn.
+func (mr *MockIpamAsnsListRequestMockRecorder) Asn(asn any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Asn", reflect.TypeOf((*MockIpamAsnsListRequest)(nil).Asn), asn)
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnsListRequest) Execute() (*netbox.PaginatedASNList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedASNList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnsListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnsListRequest)(nil).Execute))
+}
+
+// Limit mocks base method.
+func (m *MockIpamAsnsListRequest) Limit(limit int32) interfaces.IpamAsnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limit", limit)
+	ret0, _ := ret[0].(interfaces.IpamAsnsListRequest)
+	return ret0
+}
+
+// Limit indicates an expected call of Limit.
+func (mr *MockIpamAsnsListRequestMockRecorder) Limit(limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limit", reflect.TypeOf((*MockIpamAsnsListRequest)(nil).Limit), limit)
+}
+
+// Offset mocks base method.
+func (m *MockIpamAsnsListRequest) Offset(offset int32) interfaces.IpamAsnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Offset", offset)
+	ret0, _ := ret[0].(interfaces.IpamAsnsListRequest)
+	return ret0
+}
+
+// Offset indicates an expected call of Offset.
+func (mr *MockIpamAsnsListRequestMockRecorder) Offset(offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockIpamAsnsListRequest)(nil).Offset), offset)
+}
+
+// MockIpamAsnsRetrieveRequest is a mock of IpamAsnsRetrieveRequest interface.
+type MockIpamAsnsRetrieveRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnsRetrieveRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnsRetrieveRequestMockRecorder is the mock recorder for MockIpamAsnsRetrieveRequest.
+type MockIpamAsnsRetrieveRequestMockRecorder struct {
+	mock *MockIpamAsnsRetrieveRequest
+}
+
+// NewMockIpamAsnsRetrieveRequest creates a new mock instance.
+func NewMockIpamAsnsRetrieveRequest(ctrl *gomock.Controller) *MockIpamAsnsRetrieveRequest {
+	mock := &MockIpamAsnsRetrieveRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnsRetrieveRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnsRetrieveRequest) EXPECT() *MockIpamAsnsRetrieveRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnsRetrieveRequest) Execute() (*netbox.ASN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.ASN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnsRetrieveRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnsRetrieveRequest)(nil).Execute))
+}
+
+// MockIpamAsnsCreateRequest is a mock of IpamAsnsCreateRequest interface.
+type MockIpamAsnsCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnsCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnsCreateRequestMockRecorder is the mock recorder for MockIpamAsnsCreateRequest.
+type MockIpamAsnsCreateRequestMockRecorder struct {
+	mock *MockIpamAsnsCreateRequest
+}
+
+// NewMockIpamAsnsCreateRequest creates a new mock instance.
+func NewMockIpamAsnsCreateRequest(ctrl *gomock.Controller) *MockIpamAsnsCreateRequest {
+	mock := &MockIpamAsnsCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnsCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnsCreateRequest) EXPECT() *MockIpamAsnsCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// ASNRequest mocks base method.
+func (m *MockIpamAsnsCreateRequest) ASNRequest(aSNRequest netbox.ASNRequest) interfaces.IpamAsnsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ASNRequest", aSNRequest)
+	ret0, _ := ret[0].(interfaces.IpamAsnsCreateRequest)
+	return ret0
+}
+
+// ASNRequest indicates an expected call of ASNRequest.
+func (mr *MockIpamAsnsCreateRequestMockRecorder) ASNRequest(aSNRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ASNRequest", reflect.TypeOf((*MockIpamAsnsCreateRequest)(nil).ASNRequest), aSNRequest)
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnsCreateRequest) Execute() (*netbox.ASN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.ASN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnsCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnsCreateRequest)(nil).Execute))
+}
+
+// MockIpamAsnsUpdateRequest is a mock of IpamAsnsUpdateRequest interface.
+type MockIpamAsnsUpdateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnsUpdateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnsUpdateRequestMockRecorder is the mock recorder for MockIpamAsnsUpdateRequest.
+type MockIpamAsnsUpdateRequestMockRecorder struct {
+	mock *MockIpamAsnsUpdateRequest
+}
+
+// NewMockIpamAsnsUpdateRequest creates a new mock instance.
+func NewMockIpamAsnsUpdateRequest(ctrl *gomock.Controller) *MockIpamAsnsUpdateRequest {
+	mock := &MockIpamAsnsUpdateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnsUpdateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnsUpdateRequest) EXPECT() *MockIpamAsnsUpdateRequestMockRecorder {
+	return m.recorder
+}
+
+// ASNRequest mocks base method.
+func (m *MockIpamAsnsUpdateRequest) ASNRequest(aSNRequest netbox.ASNRequest) interfaces.IpamAsnsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ASNRequest", aSNRequest)
+	ret0, _ := ret[0].(interfaces.IpamAsnsUpdateRequest)
+	return ret0
+}
+
+// ASNRequest indicates an expected call of ASNRequest.
+func (mr *MockIpamAsnsUpdateRequestMockRecorder) ASNRequest(aSNRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ASNRequest", reflect.TypeOf((*MockIpamAsnsUpdateRequest)(nil).ASNRequest), aSNRequest)
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnsUpdateRequest) Execute() (*netbox.ASN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.ASN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnsUpdateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnsUpdateRequest)(nil).Execute))
+}
+
+// MockIpamAsnsDestroyRequest is a mock of IpamAsnsDestroyRequest interface.
+type MockIpamAsnsDestroyRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnsDestroyRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnsDestroyRequestMockRecorder is the mock recorder for MockIpamAsnsDestroyRequest.
+type MockIpamAsnsDestroyRequestMockRecorder struct {
+	mock *MockIpamAsnsDestroyRequest
+}
+
+// NewMockIpamAsnsDestroyRequest creates a new mock instance.
+func NewMockIpamAsnsDestroyRequest(ctrl *gomock.Controller) *MockIpamAsnsDestroyRequest {
+	mock := &MockIpamAsnsDestroyRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnsDestroyRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnsDestroyRequest) EXPECT() *MockIpamAsnsDestroyRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnsDestroyRequest) Execute() (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnsDestroyRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnsDestroyRequest)(nil).Execute))
+}
+
+// MockIpamAsnRangesListRequest is a mock of IpamAsnRangesListRequest interface.
+type MockIpamAsnRangesListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnRangesListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnRangesListRequestMockRecorder is the mock recorder for MockIpamAsnRangesListRequest.
+type MockIpamAsnRangesListRequestMockRecorder struct {
+	mock *MockIpamAsnRangesListRequest
+}
+
+// NewMockIpamAsnRangesListRequest creates a new mock instance.
+func NewMockIpamAsnRangesListRequest(ctrl *gomock.Controller) *MockIpamAsnRangesListRequest {
+	mock := &MockIpamAsnRangesListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnRangesListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnRangesListRequest) EXPECT() *MockIpamAsnRangesListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnRangesListRequest) Execute() (*netbox.PaginatedASNRangeList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedASNRangeList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnRangesListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnRangesListRequest)(nil).Execute))
+}
+
+// Limit mocks base method.
+func (m *MockIpamAsnRangesListRequest) Limit(limit int32) interfaces.IpamAsnRangesListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limit", limit)
+	ret0, _ := ret[0].(interfaces.IpamAsnRangesListRequest)
+	return ret0
+}
+
+// Limit indicates an expected call of Limit.
+func (mr *MockIpamAsnRangesListRequestMockRecorder) Limit(limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limit", reflect.TypeOf((*MockIpamAsnRangesListRequest)(nil).Limit), limit)
+}
+
+// Name mocks base method.
+func (m *MockIpamAsnRangesListRequest) Name(name []string) interfaces.IpamAsnRangesListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name", name)
+	ret0, _ := ret[0].(interfaces.IpamAsnRangesListRequest)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockIpamAsnRangesListRequestMockRecorder) Name(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIpamAsnRangesListRequest)(nil).Name), name)
+}
+
+// Offset mocks base method.
+func (m *MockIpamAsnRangesListRequest) Offset(offset int32) interfaces.IpamAsnRangesListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Offset", offset)
+	ret0, _ := ret[0].(interfaces.IpamAsnRangesListRequest)
+	return ret0
+}
+
+// Offset indicates an expected call of Offset.
+func (mr *MockIpamAsnRangesListRequestMockRecorder) Offset(offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockIpamAsnRangesListRequest)(nil).Offset), offset)
+}
+
+// MockIpamAsnRangesAvailableAsnsCreateRequest is a mock of IpamAsnRangesAvailableAsnsCreateRequest interface.
+type MockIpamAsnRangesAvailableAsnsCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder is the mock recorder for MockIpamAsnRangesAvailableAsnsCreateRequest.
+type MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder struct {
+	mock *MockIpamAsnRangesAvailableAsnsCreateRequest
+}
+
+// NewMockIpamAsnRangesAvailableAsnsCreateRequest creates a new mock instance.
+func NewMockIpamAsnRangesAvailableAsnsCreateRequest(ctrl *gomock.Controller) *MockIpamAsnRangesAvailableAsnsCreateRequest {
+	mock := &MockIpamAsnRangesAvailableAsnsCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamAsnRangesAvailableAsnsCreateRequest) EXPECT() *MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// ASNRequest mocks base method.
+func (m *MockIpamAsnRangesAvailableAsnsCreateRequest) ASNRequest(aSNRequest []netbox.ASNRequest) interfaces.IpamAsnRangesAvailableAsnsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ASNRequest", aSNRequest)
+	ret0, _ := ret[0].(interfaces.IpamAsnRangesAvailableAsnsCreateRequest)
+	return ret0
+}
+
+// ASNRequest indicates an expected call of ASNRequest.
+func (mr *MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder) ASNRequest(aSNRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ASNRequest", reflect.TypeOf((*MockIpamAsnRangesAvailableAsnsCreateRequest)(nil).ASNRequest), aSNRequest)
+}
+
+// Execute mocks base method.
+func (m *MockIpamAsnRangesAvailableAsnsCreateRequest) Execute() ([]netbox.ASN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].([]netbox.ASN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnRangesAvailableAsnsCreateRequest)(nil).Execute))
 }

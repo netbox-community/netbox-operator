@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asnclaim-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: 587ba69355e24c3ce5c70c6cd4c3faaa4b02cf35
+  description: some description
+  asn: 65100
+  tenant: MY_TENANT

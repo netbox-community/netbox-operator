@@ -113,8 +113,8 @@ class CustomField:
 
 custom_fields = [
     CustomField(
-        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
-        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn"],
+        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn"],
         type="text",
         name="netboxOperatorRestorationHash",
         label="Netbox Restoration Hash",
@@ -123,8 +123,8 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
-        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
-        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix"],
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn"],
+        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn"],
         type="text",
         name="example_field",
         label="Example Field",
@@ -1055,3 +1055,145 @@ for prefix in prefixes:
         pprint(e.error)
 
 print("Prefixes loaded")
+
+# insert RIR (required for ASN Ranges)
+try:
+    nb.ipam.rirs.create(
+        name="E2E Test RIR",
+        slug="e2e-test-rir",
+        is_private=True,
+    )
+except pynetbox.RequestError as e:
+    pprint(e.error)
+
+print("RIRs loaded")
+
+# insert ASN Ranges
+rir = nb.ipam.rirs.get(name="E2E Test RIR")
+
+@dataclass
+class AsnRange:
+    name: str
+    slug: str
+    start: int
+    end: int
+    rir: int
+    tenant: Optional[dict]
+    description: str
+
+asn_ranges = [
+    ###                     START                   ###
+    ###                Used by e2e tests            ###
+    ### Modifying entries might cause tests to fail ###
+    AsnRange(
+        name="E2E Test ASN Range",
+        slug="e2e-test-asn-range",
+        start=64512,
+        end=64612,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-apply-update",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range Restore",
+        slug="e2e-test-asn-range-restore",
+        start=64700,
+        end=64800,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-restore",
+    ),
+    AsnRange(
+        # Keep clear of 65001-65005, which the NetBox demo data already occupies.
+        name="E2E Test ASN Range Exhausted",
+        slug="e2e-test-asn-range-exhausted",
+        start=65300,
+        end=65301,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-asnrangeexhausted",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range OwnerRef",
+        slug="e2e-test-asn-range-ownerref",
+        start=65100,
+        end=65200,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-update-ownerreference",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range 32bit",
+        slug="e2e-test-asn-range-32bit",
+        start=4200000000,
+        end=4200000100,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-32bit",
+    ),
+    ###                      END                    ###
+    ###                Used by e2e tests            ###
+    ### Modifying entries might cause tests to fail ###
+]
+
+for asn_range in asn_ranges:
+    try:
+        nb.ipam.asn_ranges.create(
+            name=asn_range.name,
+            slug=asn_range.slug,
+            start=asn_range.start,
+            end=asn_range.end,
+            rir=asn_range.rir,
+            tenant=asn_range.tenant,
+            description=asn_range.description,
+        )
+    except pynetbox.RequestError as e:
+        pprint(e.error)
+
+print("ASN Ranges loaded")
+
+###                     START                   ###
+###                Used by e2e tests            ###
+### Modifying entries might cause tests to fail ###
+# The operator lists ASNs with a page size of 250 (asnListPageSize in
+# pkg/netbox/api/asn.go) when it looks up an ASN by restoration hash. These filler
+# ASNs push the total number of ASNs beyond a single page so that the e2e tests
+# exercise the pagination logic. They use low ASN values on purpose: NetBox orders
+# ASNs by their value, so the ASNs used by the tests (64512 and above) end up on a
+# later page.
+ASN_FILLER_START = 1000
+ASN_FILLER_COUNT = 400
+
+try:
+    nb.ipam.asns.create(
+        [
+            {
+                "asn": asn,
+                "rir": rir.id,
+                "description": "filler ASN to force pagination in e2e tests",
+            }
+            for asn in range(ASN_FILLER_START, ASN_FILLER_START + ASN_FILLER_COUNT)
+        ]
+    )
+except pynetbox.RequestError as e:
+    pprint(e.error)
+###                      END                    ###
+###                Used by e2e tests            ###
+### Modifying entries might cause tests to fail ###
+
+print("ASNs loaded")

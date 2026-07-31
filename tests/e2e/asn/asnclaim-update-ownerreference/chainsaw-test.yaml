@@ -1,0 +1,78 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-update-ownerreference
+  annotations:
+    description: Tests if controller updates ownerReference if non-Claim resource existed before (e.g. from a velero backup)
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_asn_1.yaml
+    - name: Check non-claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_asnclaim_1.yaml
+    - name: Check claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-update-ownerreference-1
+              spec:
+                comments: your comments
+                description: some description
+                parentAsnRange: "E2E Test ASN Range OwnerRef"
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                asn: 65100
+                asnName: asnclaim-update-ownerreference-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-update-ownerreference-1
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: AsnClaim
+                    name: asnclaim-update-ownerreference-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 587ba69355e24c3ce5c70c6cd4c3faaa4b02cf35
+                description: some description
+                asn: 65100
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-update-ownerreference-1 -n $NAMESPACE
