@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.64] - 2026-08-03
+
+<!-- Release notes generated using configuration in .github/release.yml at 86126f7e722c4a32a54defcc46fa52612456f973 -->
+
+## What's Changed
+### Contributions
+* Add stale bot to auto-close inactive PRs after 180 days by @jstudler in https://github.com/netbox-community/netbox-operator/pull/604
+* Fix stale bot config by @jstudler in https://github.com/netbox-community/netbox-operator/pull/605
+* Build(deps): bump the go-dependencies group with 16 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/608
+* Build(deps): bump actions/stale from 9 to 11 in the github-actions group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/609
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.63...v0.2.64
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.64)
+
+---
+
 ## [v0.2.63] - 2026-07-27
 
 <!-- Release notes generated using configuration in .github/release.yml at e0cbcd2fa3f7cf9cbd4d4748fe290d0d3977eb46 -->
