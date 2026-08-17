@@ -110,6 +110,13 @@ type IpamAPI interface {
 	IpamPrefixesCreate(ctx context.Context) IpamPrefixesCreateRequest
 	IpamPrefixesUpdate(ctx context.Context, id int32) IpamPrefixesUpdateRequest
 	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
+	IpamAsnsList(ctx context.Context) IpamAsnsListRequest
+	IpamAsnsRetrieve(ctx context.Context, id int32) IpamAsnsRetrieveRequest
+	IpamAsnsCreate(ctx context.Context) IpamAsnsCreateRequest
+	IpamAsnsUpdate(ctx context.Context, id int32) IpamAsnsUpdateRequest
+	IpamAsnsDestroy(ctx context.Context, id int32) IpamAsnsDestroyRequest
+	IpamAsnRangesList(ctx context.Context) IpamAsnRangesListRequest
+	IpamAsnRangesAvailableAsnsCreate(ctx context.Context, id int32) IpamAsnRangesAvailableAsnsCreateRequest
 }
 
 type APIStatusRetrieveRequest interface {
@@ -118,4 +125,43 @@ type APIStatusRetrieveRequest interface {
 
 type StatusAPI interface {
 	StatusRetrieve(ctx context.Context) APIStatusRetrieveRequest
+}
+
+// V4 ASN API Interfaces
+
+type IpamAsnsListRequest interface {
+	Asn(asn []int32) IpamAsnsListRequest
+	Limit(limit int32) IpamAsnsListRequest
+	Offset(offset int32) IpamAsnsListRequest
+	Execute() (*v4client.PaginatedASNList, *http.Response, error)
+}
+
+type IpamAsnsRetrieveRequest interface {
+	Execute() (*v4client.ASN, *http.Response, error)
+}
+
+type IpamAsnsCreateRequest interface {
+	ASNRequest(aSNRequest v4client.ASNRequest) IpamAsnsCreateRequest
+	Execute() (*v4client.ASN, *http.Response, error)
+}
+
+type IpamAsnsUpdateRequest interface {
+	ASNRequest(aSNRequest v4client.ASNRequest) IpamAsnsUpdateRequest
+	Execute() (*v4client.ASN, *http.Response, error)
+}
+
+type IpamAsnsDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
+type IpamAsnRangesListRequest interface {
+	Name(name []string) IpamAsnRangesListRequest
+	Limit(limit int32) IpamAsnRangesListRequest
+	Offset(offset int32) IpamAsnRangesListRequest
+	Execute() (*v4client.PaginatedASNRangeList, *http.Response, error)
+}
+
+type IpamAsnRangesAvailableAsnsCreateRequest interface {
+	ASNRequest(aSNRequest []v4client.ASNRequest) IpamAsnRangesAvailableAsnsCreateRequest
+	Execute() ([]v4client.ASN, *http.Response, error)
 }

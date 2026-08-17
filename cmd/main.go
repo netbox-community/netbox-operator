@@ -243,6 +243,28 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "IpRange")
 		os.Exit(1)
 	}
+	if err = (&controller.AsnReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("asn-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Asn")
+		os.Exit(1)
+	}
+	if err = (&controller.AsnClaimReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("asn-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AsnClaim")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
