@@ -60,6 +60,18 @@ var ipamMockIpAddress *mock_interfaces.MockIpamInterface
 var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
 var tenancyMock *mock_interfaces.MockTenancyInterface
 var dcimMock *mock_interfaces.MockDcimInterface
+
+// Separate MockIpamAPI instances per reconciler, mirroring the ipamMockIpAddress/
+// ipamMockIpAddressClaim split above: both VlanReconciler and VlanClaimReconciler
+// call IpamAPI.IpamVlansList independently, so sharing one mock would make it
+// ambiguous which reconciler's call a given expectation belongs to.
+var mockVlanIpamAPI *mock_interfaces.MockIpamAPI
+var mockVlanListRequest *mock_interfaces.MockIpamVlansListRequest
+var mockVlanCreateRequest *mock_interfaces.MockIpamVlansCreateRequest
+var mockVlanUpdateRequest *mock_interfaces.MockIpamVlansUpdateRequest
+var mockVlanDestroyRequest *mock_interfaces.MockIpamVlansDestroyRequest
+var mockVlanClaimIpamAPI *mock_interfaces.MockIpamAPI
+var mockVlanClaimListRequest *mock_interfaces.MockIpamVlansListRequest
 var ctx context.Context
 var cancel context.CancelFunc
 
@@ -117,6 +129,14 @@ var _ = BeforeSuite(func() {
 	mockIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
 	mockIpamPrefixesListRequest = mock_interfaces.NewMockIpamPrefixesListRequest(mockCtrl)
 
+	mockVlanIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
+	mockVlanListRequest = mock_interfaces.NewMockIpamVlansListRequest(mockCtrl)
+	mockVlanCreateRequest = mock_interfaces.NewMockIpamVlansCreateRequest(mockCtrl)
+	mockVlanUpdateRequest = mock_interfaces.NewMockIpamVlansUpdateRequest(mockCtrl)
+	mockVlanDestroyRequest = mock_interfaces.NewMockIpamVlansDestroyRequest(mockCtrl)
+	mockVlanClaimIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
+	mockVlanClaimListRequest = mock_interfaces.NewMockIpamVlansListRequest(mockCtrl)
+
 	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
 	Expect(k8sManager.GetConfig()).NotTo(BeNil())
 	Expect(err).ToNot(HaveOccurred())
@@ -149,6 +169,38 @@ var _ = BeforeSuite(func() {
 				Dcim:    dcimMock,
 			},
 			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&VlanReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("vlan-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockVlanIpamAPI},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&VlanClaimReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("vlan-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockVlanClaimIpamAPI},
 		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),

@@ -20,6 +20,8 @@ rules:
   - ipranges
   - prefixclaims
   - prefixes
+  - vlanclaims
+  - vlans
   verbs:
   - create
   - delete
@@ -37,6 +39,8 @@ rules:
   - ipranges/finalizers
   - prefixclaims/finalizers
   - prefixes/finalizers
+  - vlanclaims/finalizers
+  - vlans/finalizers
   verbs:
   - update
 - apiGroups:
@@ -48,6 +52,8 @@ rules:
   - ipranges/status
   - prefixclaims/status
   - prefixes/status
+  - vlanclaims/status
+  - vlans/status
   verbs:
   - get
   - patch
