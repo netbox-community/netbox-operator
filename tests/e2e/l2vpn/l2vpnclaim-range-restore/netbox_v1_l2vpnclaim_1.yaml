@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: L2VPNClaim
+metadata:
+  name: l2vpnclaim-range-restore-1
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  type: "vxlan-evpn"
+  identifierRangeStart: 5300001
+  identifierRangeEnd: 5300010
