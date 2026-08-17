@@ -60,11 +60,6 @@ var ipamMockIpAddress *mock_interfaces.MockIpamInterface
 var ipamMockIpAddressClaim *mock_interfaces.MockIpamInterface
 var tenancyMock *mock_interfaces.MockTenancyInterface
 var dcimMock *mock_interfaces.MockDcimInterface
-
-// Separate MockIpamAPI instances per reconciler, mirroring the ipamMockIpAddress/
-// ipamMockIpAddressClaim split above: both VlanReconciler and VlanClaimReconciler
-// call IpamAPI.IpamVlansList independently, so sharing one mock would make it
-// ambiguous which reconciler's call a given expectation belongs to.
 var mockVlanIpamAPI *mock_interfaces.MockIpamAPI
 var mockVlanListRequest *mock_interfaces.MockIpamVlansListRequest
 var mockVlanCreateRequest *mock_interfaces.MockIpamVlansCreateRequest
