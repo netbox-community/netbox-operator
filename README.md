@@ -53,7 +53,7 @@ To optionally access the NetBox UI:
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, Vlan, and VlanClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, Vlan, VlanClaim, and VlanGroup resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
@@ -109,6 +109,8 @@ NetBox Operator supports managing [VLANs](https://github.com/netbox-community/ne
 `vid` and `vidRangeStart`/`vidRangeEnd` are mutually exclusive on `VlanClaim` — set exactly one form. When a range is used, the operator picks the next free VID in NetBox from that range.
 
 Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the VLAN is preserved in NetBox upon CR deletion and can be reclaimed when the VlanClaim is re-created.
+
+A **VlanGroup** resource manages a NetBox VLAN Group (a named container for organizing VLANs, optionally scoped to a Site and constrained to a `vidRangeStart`/`vidRangeEnd`). Unlike `Vlan`, it has no claim counterpart — a VLAN Group is user-named rather than auto-allocated, so there's nothing to claim from a pool.
 
 # Restoration from NetBox
 
