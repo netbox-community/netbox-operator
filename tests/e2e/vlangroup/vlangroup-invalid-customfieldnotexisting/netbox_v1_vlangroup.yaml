@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanGroup
+metadata:
+  name: vlangroup-invalid-customfieldnotexisting
+spec:
+  name: "vlangroup-invalid-customfieldnotexisting"
+  tenant: "MY_TENANT"
+  description: "some description"
+  preserveInNetbox: false
+  customFields:
+    justmade: "thisup"

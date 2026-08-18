@@ -101,6 +101,47 @@ type IpamPrefixesDestroyRequest interface {
 	Execute() (*http.Response, error)
 }
 
+type IpamVlansListRequest interface {
+	Name(name []string) IpamVlansListRequest
+	Site(site []string) IpamVlansListRequest
+	Limit(limit int32) IpamVlansListRequest
+	Offset(offset int32) IpamVlansListRequest
+	Execute() (*v4client.PaginatedVLANList, *http.Response, error)
+}
+
+type IpamVlansCreateRequest interface {
+	WritableVLANRequest(writableVLANRequest v4client.WritableVLANRequest) IpamVlansCreateRequest
+	Execute() (*v4client.VLAN, *http.Response, error)
+}
+
+type IpamVlansUpdateRequest interface {
+	WritableVLANRequest(writableVLANRequest v4client.WritableVLANRequest) IpamVlansUpdateRequest
+	Execute() (*v4client.VLAN, *http.Response, error)
+}
+
+type IpamVlansDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
+type IpamVlanGroupsListRequest interface {
+	Name(name []string) IpamVlanGroupsListRequest
+	Execute() (*v4client.PaginatedVLANGroupList, *http.Response, error)
+}
+
+type IpamVlanGroupsCreateRequest interface {
+	VLANGroupRequest(vLANGroupRequest v4client.VLANGroupRequest) IpamVlanGroupsCreateRequest
+	Execute() (*v4client.VLANGroup, *http.Response, error)
+}
+
+type IpamVlanGroupsUpdateRequest interface {
+	VLANGroupRequest(vLANGroupRequest v4client.VLANGroupRequest) IpamVlanGroupsUpdateRequest
+	Execute() (*v4client.VLANGroup, *http.Response, error)
+}
+
+type IpamVlanGroupsDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
 type IpamAPI interface {
 	IpamIpRangesList(ctx context.Context) IpamIpRangesListRequest
 	IpamIpRangesCreate(ctx context.Context) IpamIpRangesCreateRequest
@@ -110,6 +151,14 @@ type IpamAPI interface {
 	IpamPrefixesCreate(ctx context.Context) IpamPrefixesCreateRequest
 	IpamPrefixesUpdate(ctx context.Context, id int32) IpamPrefixesUpdateRequest
 	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
+	IpamVlansList(ctx context.Context) IpamVlansListRequest
+	IpamVlansCreate(ctx context.Context) IpamVlansCreateRequest
+	IpamVlansUpdate(ctx context.Context, id int32) IpamVlansUpdateRequest
+	IpamVlansDestroy(ctx context.Context, id int32) IpamVlansDestroyRequest
+	IpamVlanGroupsList(ctx context.Context) IpamVlanGroupsListRequest
+	IpamVlanGroupsCreate(ctx context.Context) IpamVlanGroupsCreateRequest
+	IpamVlanGroupsUpdate(ctx context.Context, id int32) IpamVlanGroupsUpdateRequest
+	IpamVlanGroupsDestroy(ctx context.Context, id int32) IpamVlanGroupsDestroyRequest
 }
 
 type APIStatusRetrieveRequest interface {

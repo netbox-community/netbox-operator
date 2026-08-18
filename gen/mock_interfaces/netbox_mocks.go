@@ -896,6 +896,450 @@ func (mr *MockIpamPrefixesDestroyRequestMockRecorder) Execute() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamPrefixesDestroyRequest)(nil).Execute))
 }
 
+// MockIpamVlansListRequest is a mock of IpamVlansListRequest interface.
+type MockIpamVlansListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlansListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlansListRequestMockRecorder is the mock recorder for MockIpamVlansListRequest.
+type MockIpamVlansListRequestMockRecorder struct {
+	mock *MockIpamVlansListRequest
+}
+
+// NewMockIpamVlansListRequest creates a new mock instance.
+func NewMockIpamVlansListRequest(ctrl *gomock.Controller) *MockIpamVlansListRequest {
+	mock := &MockIpamVlansListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlansListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlansListRequest) EXPECT() *MockIpamVlansListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlansListRequest) Execute() (*netbox.PaginatedVLANList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedVLANList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlansListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Execute))
+}
+
+// Limit mocks base method.
+func (m *MockIpamVlansListRequest) Limit(limit int32) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limit", limit)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// Limit indicates an expected call of Limit.
+func (mr *MockIpamVlansListRequestMockRecorder) Limit(limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limit", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Limit), limit)
+}
+
+// Name mocks base method.
+func (m *MockIpamVlansListRequest) Name(name []string) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name", name)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockIpamVlansListRequestMockRecorder) Name(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Name), name)
+}
+
+// Offset mocks base method.
+func (m *MockIpamVlansListRequest) Offset(offset int32) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Offset", offset)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// Offset indicates an expected call of Offset.
+func (mr *MockIpamVlansListRequestMockRecorder) Offset(offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Offset), offset)
+}
+
+// Site mocks base method.
+func (m *MockIpamVlansListRequest) Site(site []string) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Site", site)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// Site indicates an expected call of Site.
+func (mr *MockIpamVlansListRequestMockRecorder) Site(site any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Site", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Site), site)
+}
+
+// MockIpamVlansCreateRequest is a mock of IpamVlansCreateRequest interface.
+type MockIpamVlansCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlansCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlansCreateRequestMockRecorder is the mock recorder for MockIpamVlansCreateRequest.
+type MockIpamVlansCreateRequestMockRecorder struct {
+	mock *MockIpamVlansCreateRequest
+}
+
+// NewMockIpamVlansCreateRequest creates a new mock instance.
+func NewMockIpamVlansCreateRequest(ctrl *gomock.Controller) *MockIpamVlansCreateRequest {
+	mock := &MockIpamVlansCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlansCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlansCreateRequest) EXPECT() *MockIpamVlansCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlansCreateRequest) Execute() (*netbox.VLAN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.VLAN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlansCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlansCreateRequest)(nil).Execute))
+}
+
+// WritableVLANRequest mocks base method.
+func (m *MockIpamVlansCreateRequest) WritableVLANRequest(writableVLANRequest netbox.WritableVLANRequest) interfaces.IpamVlansCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WritableVLANRequest", writableVLANRequest)
+	ret0, _ := ret[0].(interfaces.IpamVlansCreateRequest)
+	return ret0
+}
+
+// WritableVLANRequest indicates an expected call of WritableVLANRequest.
+func (mr *MockIpamVlansCreateRequestMockRecorder) WritableVLANRequest(writableVLANRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WritableVLANRequest", reflect.TypeOf((*MockIpamVlansCreateRequest)(nil).WritableVLANRequest), writableVLANRequest)
+}
+
+// MockIpamVlansUpdateRequest is a mock of IpamVlansUpdateRequest interface.
+type MockIpamVlansUpdateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlansUpdateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlansUpdateRequestMockRecorder is the mock recorder for MockIpamVlansUpdateRequest.
+type MockIpamVlansUpdateRequestMockRecorder struct {
+	mock *MockIpamVlansUpdateRequest
+}
+
+// NewMockIpamVlansUpdateRequest creates a new mock instance.
+func NewMockIpamVlansUpdateRequest(ctrl *gomock.Controller) *MockIpamVlansUpdateRequest {
+	mock := &MockIpamVlansUpdateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlansUpdateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlansUpdateRequest) EXPECT() *MockIpamVlansUpdateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlansUpdateRequest) Execute() (*netbox.VLAN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.VLAN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlansUpdateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlansUpdateRequest)(nil).Execute))
+}
+
+// WritableVLANRequest mocks base method.
+func (m *MockIpamVlansUpdateRequest) WritableVLANRequest(writableVLANRequest netbox.WritableVLANRequest) interfaces.IpamVlansUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WritableVLANRequest", writableVLANRequest)
+	ret0, _ := ret[0].(interfaces.IpamVlansUpdateRequest)
+	return ret0
+}
+
+// WritableVLANRequest indicates an expected call of WritableVLANRequest.
+func (mr *MockIpamVlansUpdateRequestMockRecorder) WritableVLANRequest(writableVLANRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WritableVLANRequest", reflect.TypeOf((*MockIpamVlansUpdateRequest)(nil).WritableVLANRequest), writableVLANRequest)
+}
+
+// MockIpamVlansDestroyRequest is a mock of IpamVlansDestroyRequest interface.
+type MockIpamVlansDestroyRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlansDestroyRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlansDestroyRequestMockRecorder is the mock recorder for MockIpamVlansDestroyRequest.
+type MockIpamVlansDestroyRequestMockRecorder struct {
+	mock *MockIpamVlansDestroyRequest
+}
+
+// NewMockIpamVlansDestroyRequest creates a new mock instance.
+func NewMockIpamVlansDestroyRequest(ctrl *gomock.Controller) *MockIpamVlansDestroyRequest {
+	mock := &MockIpamVlansDestroyRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlansDestroyRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlansDestroyRequest) EXPECT() *MockIpamVlansDestroyRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlansDestroyRequest) Execute() (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlansDestroyRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlansDestroyRequest)(nil).Execute))
+}
+
+// MockIpamVlanGroupsListRequest is a mock of IpamVlanGroupsListRequest interface.
+type MockIpamVlanGroupsListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlanGroupsListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlanGroupsListRequestMockRecorder is the mock recorder for MockIpamVlanGroupsListRequest.
+type MockIpamVlanGroupsListRequestMockRecorder struct {
+	mock *MockIpamVlanGroupsListRequest
+}
+
+// NewMockIpamVlanGroupsListRequest creates a new mock instance.
+func NewMockIpamVlanGroupsListRequest(ctrl *gomock.Controller) *MockIpamVlanGroupsListRequest {
+	mock := &MockIpamVlanGroupsListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlanGroupsListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlanGroupsListRequest) EXPECT() *MockIpamVlanGroupsListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlanGroupsListRequest) Execute() (*netbox.PaginatedVLANGroupList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedVLANGroupList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlanGroupsListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlanGroupsListRequest)(nil).Execute))
+}
+
+// Name mocks base method.
+func (m *MockIpamVlanGroupsListRequest) Name(name []string) interfaces.IpamVlanGroupsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name", name)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsListRequest)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockIpamVlanGroupsListRequestMockRecorder) Name(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIpamVlanGroupsListRequest)(nil).Name), name)
+}
+
+// MockIpamVlanGroupsCreateRequest is a mock of IpamVlanGroupsCreateRequest interface.
+type MockIpamVlanGroupsCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlanGroupsCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlanGroupsCreateRequestMockRecorder is the mock recorder for MockIpamVlanGroupsCreateRequest.
+type MockIpamVlanGroupsCreateRequestMockRecorder struct {
+	mock *MockIpamVlanGroupsCreateRequest
+}
+
+// NewMockIpamVlanGroupsCreateRequest creates a new mock instance.
+func NewMockIpamVlanGroupsCreateRequest(ctrl *gomock.Controller) *MockIpamVlanGroupsCreateRequest {
+	mock := &MockIpamVlanGroupsCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlanGroupsCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlanGroupsCreateRequest) EXPECT() *MockIpamVlanGroupsCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlanGroupsCreateRequest) Execute() (*netbox.VLANGroup, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.VLANGroup)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlanGroupsCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlanGroupsCreateRequest)(nil).Execute))
+}
+
+// VLANGroupRequest mocks base method.
+func (m *MockIpamVlanGroupsCreateRequest) VLANGroupRequest(vLANGroupRequest netbox.VLANGroupRequest) interfaces.IpamVlanGroupsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VLANGroupRequest", vLANGroupRequest)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsCreateRequest)
+	return ret0
+}
+
+// VLANGroupRequest indicates an expected call of VLANGroupRequest.
+func (mr *MockIpamVlanGroupsCreateRequestMockRecorder) VLANGroupRequest(vLANGroupRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VLANGroupRequest", reflect.TypeOf((*MockIpamVlanGroupsCreateRequest)(nil).VLANGroupRequest), vLANGroupRequest)
+}
+
+// MockIpamVlanGroupsUpdateRequest is a mock of IpamVlanGroupsUpdateRequest interface.
+type MockIpamVlanGroupsUpdateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlanGroupsUpdateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlanGroupsUpdateRequestMockRecorder is the mock recorder for MockIpamVlanGroupsUpdateRequest.
+type MockIpamVlanGroupsUpdateRequestMockRecorder struct {
+	mock *MockIpamVlanGroupsUpdateRequest
+}
+
+// NewMockIpamVlanGroupsUpdateRequest creates a new mock instance.
+func NewMockIpamVlanGroupsUpdateRequest(ctrl *gomock.Controller) *MockIpamVlanGroupsUpdateRequest {
+	mock := &MockIpamVlanGroupsUpdateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlanGroupsUpdateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlanGroupsUpdateRequest) EXPECT() *MockIpamVlanGroupsUpdateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlanGroupsUpdateRequest) Execute() (*netbox.VLANGroup, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.VLANGroup)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlanGroupsUpdateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlanGroupsUpdateRequest)(nil).Execute))
+}
+
+// VLANGroupRequest mocks base method.
+func (m *MockIpamVlanGroupsUpdateRequest) VLANGroupRequest(vLANGroupRequest netbox.VLANGroupRequest) interfaces.IpamVlanGroupsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VLANGroupRequest", vLANGroupRequest)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsUpdateRequest)
+	return ret0
+}
+
+// VLANGroupRequest indicates an expected call of VLANGroupRequest.
+func (mr *MockIpamVlanGroupsUpdateRequestMockRecorder) VLANGroupRequest(vLANGroupRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VLANGroupRequest", reflect.TypeOf((*MockIpamVlanGroupsUpdateRequest)(nil).VLANGroupRequest), vLANGroupRequest)
+}
+
+// MockIpamVlanGroupsDestroyRequest is a mock of IpamVlanGroupsDestroyRequest interface.
+type MockIpamVlanGroupsDestroyRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamVlanGroupsDestroyRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamVlanGroupsDestroyRequestMockRecorder is the mock recorder for MockIpamVlanGroupsDestroyRequest.
+type MockIpamVlanGroupsDestroyRequestMockRecorder struct {
+	mock *MockIpamVlanGroupsDestroyRequest
+}
+
+// NewMockIpamVlanGroupsDestroyRequest creates a new mock instance.
+func NewMockIpamVlanGroupsDestroyRequest(ctrl *gomock.Controller) *MockIpamVlanGroupsDestroyRequest {
+	mock := &MockIpamVlanGroupsDestroyRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamVlanGroupsDestroyRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamVlanGroupsDestroyRequest) EXPECT() *MockIpamVlanGroupsDestroyRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamVlanGroupsDestroyRequest) Execute() (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamVlanGroupsDestroyRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamVlanGroupsDestroyRequest)(nil).Execute))
+}
+
 // MockIpamAPI is a mock of IpamAPI interface.
 type MockIpamAPI struct {
 	ctrl     *gomock.Controller
@@ -1030,6 +1474,118 @@ func (m *MockIpamAPI) IpamPrefixesUpdate(ctx context.Context, id int32) interfac
 func (mr *MockIpamAPIMockRecorder) IpamPrefixesUpdate(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesUpdate), ctx, id)
+}
+
+// IpamVlanGroupsCreate mocks base method.
+func (m *MockIpamAPI) IpamVlanGroupsCreate(ctx context.Context) interfaces.IpamVlanGroupsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlanGroupsCreate", ctx)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsCreateRequest)
+	return ret0
+}
+
+// IpamVlanGroupsCreate indicates an expected call of IpamVlanGroupsCreate.
+func (mr *MockIpamAPIMockRecorder) IpamVlanGroupsCreate(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlanGroupsCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlanGroupsCreate), ctx)
+}
+
+// IpamVlanGroupsDestroy mocks base method.
+func (m *MockIpamAPI) IpamVlanGroupsDestroy(ctx context.Context, id int32) interfaces.IpamVlanGroupsDestroyRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlanGroupsDestroy", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsDestroyRequest)
+	return ret0
+}
+
+// IpamVlanGroupsDestroy indicates an expected call of IpamVlanGroupsDestroy.
+func (mr *MockIpamAPIMockRecorder) IpamVlanGroupsDestroy(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlanGroupsDestroy", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlanGroupsDestroy), ctx, id)
+}
+
+// IpamVlanGroupsList mocks base method.
+func (m *MockIpamAPI) IpamVlanGroupsList(ctx context.Context) interfaces.IpamVlanGroupsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlanGroupsList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsListRequest)
+	return ret0
+}
+
+// IpamVlanGroupsList indicates an expected call of IpamVlanGroupsList.
+func (mr *MockIpamAPIMockRecorder) IpamVlanGroupsList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlanGroupsList", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlanGroupsList), ctx)
+}
+
+// IpamVlanGroupsUpdate mocks base method.
+func (m *MockIpamAPI) IpamVlanGroupsUpdate(ctx context.Context, id int32) interfaces.IpamVlanGroupsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlanGroupsUpdate", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsUpdateRequest)
+	return ret0
+}
+
+// IpamVlanGroupsUpdate indicates an expected call of IpamVlanGroupsUpdate.
+func (mr *MockIpamAPIMockRecorder) IpamVlanGroupsUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlanGroupsUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlanGroupsUpdate), ctx, id)
+}
+
+// IpamVlansCreate mocks base method.
+func (m *MockIpamAPI) IpamVlansCreate(ctx context.Context) interfaces.IpamVlansCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlansCreate", ctx)
+	ret0, _ := ret[0].(interfaces.IpamVlansCreateRequest)
+	return ret0
+}
+
+// IpamVlansCreate indicates an expected call of IpamVlansCreate.
+func (mr *MockIpamAPIMockRecorder) IpamVlansCreate(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlansCreate), ctx)
+}
+
+// IpamVlansDestroy mocks base method.
+func (m *MockIpamAPI) IpamVlansDestroy(ctx context.Context, id int32) interfaces.IpamVlansDestroyRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlansDestroy", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamVlansDestroyRequest)
+	return ret0
+}
+
+// IpamVlansDestroy indicates an expected call of IpamVlansDestroy.
+func (mr *MockIpamAPIMockRecorder) IpamVlansDestroy(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansDestroy", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlansDestroy), ctx, id)
+}
+
+// IpamVlansList mocks base method.
+func (m *MockIpamAPI) IpamVlansList(ctx context.Context) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlansList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// IpamVlansList indicates an expected call of IpamVlansList.
+func (mr *MockIpamAPIMockRecorder) IpamVlansList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansList", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlansList), ctx)
+}
+
+// IpamVlansUpdate mocks base method.
+func (m *MockIpamAPI) IpamVlansUpdate(ctx context.Context, id int32) interfaces.IpamVlansUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamVlansUpdate", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamVlansUpdateRequest)
+	return ret0
+}
+
+// IpamVlansUpdate indicates an expected call of IpamVlansUpdate.
+func (mr *MockIpamAPIMockRecorder) IpamVlansUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamVlansUpdate), ctx, id)
 }
 
 // MockAPIStatusRetrieveRequest is a mock of APIStatusRetrieveRequest interface.
