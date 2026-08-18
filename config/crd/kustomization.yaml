@@ -10,6 +10,7 @@ resources:
 - bases/netbox.dev_ipranges.yaml
 - bases/netbox.dev_vlanclaims.yaml
 - bases/netbox.dev_vlans.yaml
+- bases/netbox.dev_vlangroups.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

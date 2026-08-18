@@ -12,4 +12,5 @@ resources:
   - netbox_v1_vlanclaim.yaml
   - netbox_v1_vlanclaim_range.yaml
   - netbox_v1_vlan.yaml
+  - netbox_v1_vlangroup.yaml
   # +kubebuilder:scaffold:manifestskustomizesamples

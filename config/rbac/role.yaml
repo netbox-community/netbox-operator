@@ -21,6 +21,7 @@ rules:
   - prefixclaims
   - prefixes
   - vlanclaims
+  - vlangroups
   - vlans
   verbs:
   - create
@@ -40,6 +41,7 @@ rules:
   - prefixclaims/finalizers
   - prefixes/finalizers
   - vlanclaims/finalizers
+  - vlangroups/finalizers
   - vlans/finalizers
   verbs:
   - update
@@ -53,6 +55,7 @@ rules:
   - prefixclaims/status
   - prefixes/status
   - vlanclaims/status
+  - vlangroups/status
   - vlans/status
   verbs:
   - get

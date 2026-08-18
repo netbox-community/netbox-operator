@@ -252,6 +252,73 @@ func (a *ipamV4APIAdapter) IpamVlansDestroy(ctx context.Context, id int32) inter
 	return &ipamVlansDestroyRequestAdapter{req: a.api.IpamVlansDestroy(ctx, id)}
 }
 
+// ipamVlanGroupsListRequestAdapter adapts the v4 list request to the interface
+type ipamVlanGroupsListRequestAdapter struct {
+	req v4client.ApiIpamVlanGroupsListRequest
+}
+
+func (a *ipamVlanGroupsListRequestAdapter) Name(name []string) interfaces.IpamVlanGroupsListRequest {
+	a.req = a.req.Name(name)
+	return a
+}
+
+func (a *ipamVlanGroupsListRequestAdapter) Execute() (*v4client.PaginatedVLANGroupList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamVlanGroupsCreateRequestAdapter adapts the v4 create request to the interface
+type ipamVlanGroupsCreateRequestAdapter struct {
+	req v4client.ApiIpamVlanGroupsCreateRequest
+}
+
+func (a *ipamVlanGroupsCreateRequestAdapter) VLANGroupRequest(vLANGroupRequest v4client.VLANGroupRequest) interfaces.IpamVlanGroupsCreateRequest {
+	a.req = a.req.VLANGroupRequest(vLANGroupRequest)
+	return a
+}
+
+func (a *ipamVlanGroupsCreateRequestAdapter) Execute() (*v4client.VLANGroup, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamVlanGroupsUpdateRequestAdapter adapts the v4 update request to the interface
+type ipamVlanGroupsUpdateRequestAdapter struct {
+	req v4client.ApiIpamVlanGroupsUpdateRequest
+}
+
+func (a *ipamVlanGroupsUpdateRequestAdapter) VLANGroupRequest(vLANGroupRequest v4client.VLANGroupRequest) interfaces.IpamVlanGroupsUpdateRequest {
+	a.req = a.req.VLANGroupRequest(vLANGroupRequest)
+	return a
+}
+
+func (a *ipamVlanGroupsUpdateRequestAdapter) Execute() (*v4client.VLANGroup, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamVlanGroupsDestroyRequestAdapter adapts the v4 destroy request to the interface
+type ipamVlanGroupsDestroyRequestAdapter struct {
+	req v4client.ApiIpamVlanGroupsDestroyRequest
+}
+
+func (a *ipamVlanGroupsDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+func (a *ipamV4APIAdapter) IpamVlanGroupsList(ctx context.Context) interfaces.IpamVlanGroupsListRequest {
+	return &ipamVlanGroupsListRequestAdapter{req: a.api.IpamVlanGroupsList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamVlanGroupsCreate(ctx context.Context) interfaces.IpamVlanGroupsCreateRequest {
+	return &ipamVlanGroupsCreateRequestAdapter{req: a.api.IpamVlanGroupsCreate(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamVlanGroupsUpdate(ctx context.Context, id int32) interfaces.IpamVlanGroupsUpdateRequest {
+	return &ipamVlanGroupsUpdateRequestAdapter{req: a.api.IpamVlanGroupsUpdate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamVlanGroupsDestroy(ctx context.Context, id int32) interfaces.IpamVlanGroupsDestroyRequest {
+	return &ipamVlanGroupsDestroyRequestAdapter{req: a.api.IpamVlanGroupsDestroy(ctx, id)}
+}
+
 type statusRetrieveRequestAdapter struct {
 	req v4client.ApiStatusRetrieveRequest
 }

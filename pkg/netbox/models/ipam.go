@@ -85,3 +85,12 @@ type VlanClaim struct {
 	VidRangeEnd   int32           `json:"vidRangeEnd,omitempty"`
 	Metadata      *NetboxMetadata `json:"metadata,omitempty"`
 }
+
+type VlanGroup struct {
+	Name          string          `json:"name,omitempty"`
+	Slug          string          `json:"slug,omitempty"`
+	VidRangeStart int32           `json:"vidRangeStart,omitempty"`
+	VidRangeEnd   int32           `json:"vidRangeEnd,omitempty"`
+	Id            int64           `json:"id,omitempty"`
+	Metadata      *NetboxMetadata `json:"metadata,omitempty"`
+}

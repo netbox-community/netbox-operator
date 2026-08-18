@@ -67,6 +67,11 @@ var mockVlanUpdateRequest *mock_interfaces.MockIpamVlansUpdateRequest
 var mockVlanDestroyRequest *mock_interfaces.MockIpamVlansDestroyRequest
 var mockVlanClaimIpamAPI *mock_interfaces.MockIpamAPI
 var mockVlanClaimListRequest *mock_interfaces.MockIpamVlansListRequest
+var mockVlanGroupIpamAPI *mock_interfaces.MockIpamAPI
+var mockVlanGroupListRequest *mock_interfaces.MockIpamVlanGroupsListRequest
+var mockVlanGroupCreateRequest *mock_interfaces.MockIpamVlanGroupsCreateRequest
+var mockVlanGroupUpdateRequest *mock_interfaces.MockIpamVlanGroupsUpdateRequest
+var mockVlanGroupDestroyRequest *mock_interfaces.MockIpamVlanGroupsDestroyRequest
 var ctx context.Context
 var cancel context.CancelFunc
 
@@ -132,6 +137,12 @@ var _ = BeforeSuite(func() {
 	mockVlanClaimIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
 	mockVlanClaimListRequest = mock_interfaces.NewMockIpamVlansListRequest(mockCtrl)
 
+	mockVlanGroupIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
+	mockVlanGroupListRequest = mock_interfaces.NewMockIpamVlanGroupsListRequest(mockCtrl)
+	mockVlanGroupCreateRequest = mock_interfaces.NewMockIpamVlanGroupsCreateRequest(mockCtrl)
+	mockVlanGroupUpdateRequest = mock_interfaces.NewMockIpamVlanGroupsUpdateRequest(mockCtrl)
+	mockVlanGroupDestroyRequest = mock_interfaces.NewMockIpamVlanGroupsDestroyRequest(mockCtrl)
+
 	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
 	Expect(k8sManager.GetConfig()).NotTo(BeNil())
 	Expect(err).ToNot(HaveOccurred())
@@ -196,6 +207,22 @@ var _ = BeforeSuite(func() {
 				Dcim:    dcimMock,
 			},
 			&api.NetboxClientV4{IpamAPI: mockVlanClaimIpamAPI},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&VlanGroupReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("vlan-group-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockVlanGroupIpamAPI},
 		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
