@@ -56,13 +56,19 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 		tlsConfig.RootCAs = caRootPool
 	}
 
-	httpClient := &http.Client{
-		Transport: &InstrumentedRoundTripper{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-			},
+	var baseTransport http.RoundTripper = &InstrumentedRoundTripper{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
 		},
-		Timeout: time.Second * time.Duration(RequestTimeout),
+		Limiter: newNetboxLimiter(
+			config.GetOperatorConfig().NetboxRateLimitQPS,
+			config.GetOperatorConfig().NetboxRateLimitBurst,
+		),
+	}
+
+	httpClient := &http.Client{
+		Transport: baseTransport,
+		Timeout:   time.Second * time.Duration(RequestTimeout),
 	}
 
 	desiredRuntimeClientScheme := "http"
