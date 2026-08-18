@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanGroup
+metadata:
+  name: vlangroup-apply-update
+spec:
+  name: "vlangroup-apply-update"
+  tenant: "MY_TENANT_2"
+  site: "MY_SITE_2"
+  description: "new description"
+  preserveInNetbox: false
+  vidRangeStart: 350
+  vidRangeEnd: 359

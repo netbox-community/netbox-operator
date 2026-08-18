@@ -1,0 +1,61 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlangroup-apply-update
+  annotations:
+    description: Tests if creation and update is successful for a VlanGroup, including mutable scope/tenant/vid-range fields
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_vlangroup.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VlanGroup
+              metadata:
+                name: vlangroup-apply-update
+                finalizers:
+                  - vlangroup.netbox.dev/finalizer
+              spec:
+                name: "vlangroup-apply-update"
+                tenant: "MY_TENANT"
+                site: "MY_SITE"
+                description: "some description"
+                vidRangeStart: 300
+                vidRangeEnd: 399
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_vlangroup-update.yaml
+    - name: Check CR spec and status after update
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VlanGroup
+              metadata:
+                name: vlangroup-apply-update
+              spec:
+                name: "vlangroup-apply-update"
+                tenant: "MY_TENANT_2"
+                site: "MY_SITE_2"
+                description: "new description"
+                vidRangeStart: 350
+                vidRangeEnd: 359
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=vlangroup-apply-update -n $NAMESPACE
