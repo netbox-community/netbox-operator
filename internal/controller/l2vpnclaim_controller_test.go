@@ -191,7 +191,7 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 				mockVpnAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error){
-				mockVpnListRequestByClaimName,
+				mockVpnListRequestByClaimIdentifier(l2vpnRangeStart),
 				mockVpnListRequestExecuteEmpty,
 			},
 			[]func(*mock_interfaces.MockVpnL2vpnsCreateRequest, chan error){
@@ -220,7 +220,7 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 				mockVpnAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error){
-				mockVpnListRequestByClaimName,
+				mockVpnListRequestByClaimIdentifier(l2vpnRestoredIdentifier),
 				mockVpnListRequestExecuteClaimExistingWithHash(generateL2VPNRestorationHash(defaultL2VPNClaimCRWithRange()), l2vpnRestoredIdentifier),
 			},
 			[]func(*mock_interfaces.MockVpnL2vpnsCreateRequest, chan error){},
@@ -249,7 +249,7 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 				mockVpnAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error){
-				mockVpnListRequestByClaimName,
+				mockVpnListRequestByClaimIdentifier(l2vpnIdentifier),
 				mockVpnListRequestExecuteEmpty,
 			},
 			[]func(*mock_interfaces.MockVpnL2vpnsCreateRequest, chan error){

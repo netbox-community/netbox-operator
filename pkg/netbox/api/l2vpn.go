@@ -126,7 +126,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateL2VPN(ctx context.Context, l2vpn 
 
 func (c *NetboxCompositeClient) getL2VPN(ctx context.Context, l2vpn *models.L2VPN) (*v4client.PaginatedL2VPNList, error) {
 	req := c.clientV4.VpnAPI.VpnL2vpnsList(ctx).
-		Name([]string{l2vpn.Name})
+		Identifier([]int32{int32(l2vpn.Identifier)})
 	resp, httpResp, err := req.Execute()
 
 	var body []byte

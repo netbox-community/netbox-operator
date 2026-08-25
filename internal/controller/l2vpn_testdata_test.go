@@ -175,9 +175,9 @@ func mockedL2VPNListEmpty() *v4client.PaginatedL2VPNList {
 }
 
 // mockedL2VPNListExisting returns a single-page listing containing one L2VPN
-// matching l2vpnName, as found by L2VPNReconciler.getL2VPN (Name filter).
-// customFields is nil for a plain pre-existing NetBox object, or set with the
-// restoration hash key for objects claimed by a L2VPNClaim.
+// matching l2vpnIdentifier, as found by L2VPNReconciler.getL2VPN (Identifier
+// filter). customFields is nil for a plain pre-existing NetBox object, or set
+// with the restoration hash key for objects claimed by a L2VPNClaim.
 func mockedL2VPNListExisting(customFields map[string]interface{}) *v4client.PaginatedL2VPNList {
 	lastUpdated := l2vpnLastUpdated
 	existing := v4client.L2VPN{

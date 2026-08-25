@@ -80,7 +80,7 @@ func TestL2VPN(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)
 
 		mockVpnAPI.EXPECT().VpnL2vpnsList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{Results: []v4client.L2VPN{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockVpnAPI.EXPECT().VpnL2vpnsCreate(gomock.Any()).Return(mockCreateRequest)
@@ -126,7 +126,7 @@ func TestL2VPN(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)
 
 		mockVpnAPI.EXPECT().VpnL2vpnsList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{Results: []v4client.L2VPN{
 			{
 				CustomFields: map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
@@ -164,7 +164,7 @@ func TestL2VPN(t *testing.T) {
 		existing.CustomFields = map[string]interface{}{"netboxOperatorRestorationHash": "abc"}
 
 		mockVpnAPI.EXPECT().VpnL2vpnsList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{Results: []v4client.L2VPN{existing}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockVpnAPI.EXPECT().VpnL2vpnsUpdate(gomock.Any(), L2VPNId).Return(mockUpdateRequest)
@@ -191,7 +191,7 @@ func TestL2VPN(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)
 
 		mockVpnAPI.EXPECT().VpnL2vpnsList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{Results: []v4client.L2VPN{expectedL2VPN()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{VpnAPI: mockVpnAPI}}

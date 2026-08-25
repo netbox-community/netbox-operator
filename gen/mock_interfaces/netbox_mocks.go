@@ -1072,6 +1072,20 @@ func (mr *MockVpnL2vpnsListRequestMockRecorder) Execute() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Execute))
 }
 
+// Identifier mocks base method.
+func (m *MockVpnL2vpnsListRequest) Identifier(identifier []int32) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Identifier", identifier)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// Identifier indicates an expected call of Identifier.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Identifier(identifier any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Identifier", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Identifier), identifier)
+}
+
 // IdentifierGte mocks base method.
 func (m *MockVpnL2vpnsListRequest) IdentifierGte(identifierGte []int32) interfaces.VpnL2vpnsListRequest {
 	m.ctrl.T.Helper()

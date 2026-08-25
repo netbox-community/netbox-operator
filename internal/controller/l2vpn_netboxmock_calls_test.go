@@ -53,8 +53,8 @@ func mockVpnAPIDestroyZeroId(vpnAPIMock *mock_interfaces.MockVpnAPI, catchUnexpe
 	vpnAPIMock.EXPECT().VpnL2vpnsDestroy(gomock.Any(), int32(0)).Return(mockVpnDestroyRequest).MinTimes(1)
 }
 
-func mockVpnListRequestByName(reqMock *mock_interfaces.MockVpnL2vpnsListRequest, catchUnexpectedParams chan error) {
-	reqMock.EXPECT().Name([]string{l2vpnName}).Return(mockVpnListRequest).MinTimes(1)
+func mockVpnListRequestByIdentifier(reqMock *mock_interfaces.MockVpnL2vpnsListRequest, catchUnexpectedParams chan error) {
+	reqMock.EXPECT().Identifier([]int32{int32(l2vpnIdentifier)}).Return(mockVpnListRequest).MinTimes(1)
 }
 
 func mockVpnListRequestExecuteEmpty(reqMock *mock_interfaces.MockVpnL2vpnsListRequest, catchUnexpectedParams chan error) {
@@ -75,10 +75,13 @@ func mockVpnListRequestExecuteExistingWithMismatchedHash(reqMock *mock_interface
 		MinTimes(1)
 }
 
-// mockVpnListRequestByClaimName matches the name-based lookup L2VPNReconciler
-// issues for a child L2VPN CR created by a L2VPNClaim (CR name == claim name).
-func mockVpnListRequestByClaimName(reqMock *mock_interfaces.MockVpnL2vpnsListRequest, catchUnexpectedParams chan error) {
-	reqMock.EXPECT().Name([]string{l2vpnClaimName}).Return(mockVpnListRequest).MinTimes(1)
+// mockVpnListRequestByClaimIdentifier matches the identifier-based lookup
+// L2VPNReconciler issues for a child L2VPN CR created by a L2VPNClaim, whose
+// assigned identifier varies by scenario (explicit, range-assigned, restored).
+func mockVpnListRequestByClaimIdentifier(identifier int64) func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error) {
+	return func(reqMock *mock_interfaces.MockVpnL2vpnsListRequest, catchUnexpectedParams chan error) {
+		reqMock.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockVpnListRequest).MinTimes(1)
+	}
 }
 
 // mockVpnListRequestExecuteClaimExistingWithHash returns a mock for
@@ -144,7 +147,7 @@ func mockVpnDestroyRequestExecuteNotFound(reqMock *mock_interfaces.MockVpnL2vpns
 // -----------------------------
 // VpnAPI mock functions (L2VPNClaimReconciler side: mockVpnAPIClaim/
 // mockVpnClaimListRequest). Only ever exercises VpnL2vpnsList via
-// forEachL2VPN (Limit/Offset paging), never Name/Create/Update/Destroy.
+// forEachL2VPN (Limit/Offset paging), never Identifier/Create/Update/Destroy.
 // -----------------------------
 
 func mockVpnAPIClaimList(vpnAPIMock *mock_interfaces.MockVpnAPI, catchUnexpectedParams chan error) {
@@ -178,7 +181,7 @@ func resetVpnMockFunctions() {
 	mockVpnAPI.EXPECT().VpnL2vpnsCreate(gomock.Any()).Times(0)
 	mockVpnAPI.EXPECT().VpnL2vpnsUpdate(gomock.Any(), gomock.Any()).Times(0)
 	mockVpnAPI.EXPECT().VpnL2vpnsDestroy(gomock.Any(), gomock.Any()).Times(0)
-	mockVpnListRequest.EXPECT().Name(gomock.Any()).Times(0)
+	mockVpnListRequest.EXPECT().Identifier(gomock.Any()).Times(0)
 	mockVpnListRequest.EXPECT().Limit(gomock.Any()).Times(0)
 	mockVpnListRequest.EXPECT().Offset(gomock.Any()).Times(0)
 	mockVpnListRequest.EXPECT().Execute().Times(0)

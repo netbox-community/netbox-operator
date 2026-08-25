@@ -185,6 +185,11 @@ func (a *vpnL2vpnsListRequestAdapter) Type_(type_ []string) interfaces.VpnL2vpns
 	return a
 }
 
+func (a *vpnL2vpnsListRequestAdapter) Identifier(identifier []int32) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.Identifier(identifier)
+	return a
+}
+
 func (a *vpnL2vpnsListRequestAdapter) IdentifierGte(identifierGte []int32) interfaces.VpnL2vpnsListRequest {
 	a.req = a.req.IdentifierGte(identifierGte)
 	return a

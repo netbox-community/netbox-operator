@@ -115,6 +115,7 @@ type IpamAPI interface {
 type VpnL2vpnsListRequest interface {
 	Name(name []string) VpnL2vpnsListRequest
 	Type_(type_ []string) VpnL2vpnsListRequest
+	Identifier(identifier []int32) VpnL2vpnsListRequest
 	IdentifierGte(identifierGte []int32) VpnL2vpnsListRequest
 	IdentifierLte(identifierLte []int32) VpnL2vpnsListRequest
 	Limit(limit int32) VpnL2vpnsListRequest
