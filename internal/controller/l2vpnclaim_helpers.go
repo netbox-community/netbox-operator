@@ -91,9 +91,12 @@ type L2VPNClaimRestorationData struct {
 	IdentifierRangeEnd   string
 }
 
-// convertL2VPNRangeToLeaseLockName builds a lease lock name identifying the
-// shared identifier range a range-based L2VPNClaim draws from, so that
-// concurrent claims against the same range serialize their allocation.
-func convertL2VPNRangeToLeaseLockName(type_ string, start int64, end int64) string {
-	return fmt.Sprintf("l2vpn-%s-%d-%d", type_, start, end)
-}
+// l2vpnIdentifierLockName is the shared lease lock name serializing L2VPN
+// identifier (VNI) allocation across all L2VPNClaims. NetBox VNIs are a
+// single flat namespace regardless of L2VPN type (see
+// GetAvailableL2VPNIdentifierByClaim, which scans for used identifiers
+// across all types), and ranges from different claims may overlap, so a
+// single fixed lock name is used rather than one keyed by type/range: any
+// two claims — range-based or explicit-identifier — must serialize against
+// each other to avoid assigning the same VNI twice.
+const l2vpnIdentifierLockName = "l2vpn-identifier-pool"

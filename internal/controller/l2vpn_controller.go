@@ -117,44 +117,42 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		}
 	}
 
-	// 1. try to lock lease of the identifier range if L2VPN status condition is
-	// not true, is owned by a range-based L2VPNClaim, and hasn't been created
-	// in NetBox yet. Claims with an explicit identifier don't draw from a
-	// shared pool, so there's nothing to serialize against.
+	// 1. try to lock the shared l2vpn identifier pool if L2VPN status condition
+	// is not true, is owned by a L2VPNClaim, and hasn't been created in NetBox
+	// yet. This serializes against the same lock the L2VPNClaim controller
+	// held while assigning this L2VPN's identifier.
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	var cancelLock context.CancelFunc
 	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
-		leaseLockerNSN, owner, rangeDesc, ok, err := r.getLeaseLockerNSNandOwner(ctx, o)
+		leaseLockerNSN, owner, identifierDesc, err := r.getLeaseLockerNSNandOwner(ctx, o)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		if ok {
-			ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, owner)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			var lockCtx context.Context
-			lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
-			defer func() {
-				if cancelLock != nil {
-					cancelLock()
-				}
-			}()
-
-			// create lock
-			locked := ll.TryLock(lockCtx)
-			if !locked {
-				errorMsg := fmt.Sprintf("failed to lock identifier range %s", rangeDesc)
-				r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockIdentifierRange", errorMsg)
-				return ctrl.Result{
-					RequeueAfter: 2 * time.Second,
-				}, NewDomainError("%s", errorMsg)
-			}
-			logger.V(4).Info(fmt.Sprintf("successfully locked identifier range %s", rangeDesc))
+		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, owner)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
+
+		var lockCtx context.Context
+		lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
+		defer func() {
+			if cancelLock != nil {
+				cancelLock()
+			}
+		}()
+
+		// create lock
+		locked := ll.TryLock(lockCtx)
+		if !locked {
+			errorMsg := fmt.Sprintf("failed to lock l2vpn identifiers for %s", identifierDesc)
+			r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockIdentifierRange", errorMsg)
+			return ctrl.Result{
+				RequeueAfter: 2 * time.Second,
+			}, NewDomainError("%s", errorMsg)
+		}
+		logger.V(4).Info(fmt.Sprintf("successfully locked l2vpn identifiers for %s", identifierDesc))
 	}
 
 	// 2. reserve or update l2vpn in netbox
@@ -331,10 +329,11 @@ func (r *L2VPNReconciler) generateNetboxL2VPNModelFromL2VPNSpec(o *netboxv1.L2VP
 }
 
 // getLeaseLockerNSNandOwner returns the lease lock identity for the L2VPN's
-// owning claim's identifier range. ok is false when the owning claim uses an
-// explicit identifier instead of a range, in which case there's no shared
-// pool to lock.
-func (r *L2VPNReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netboxv1.L2VPN) (nsn types.NamespacedName, owner string, rangeDesc string, ok bool, err error) {
+// owning claim, against the same shared lock (l2vpnIdentifierLockName) the
+// L2VPNClaim controller used while assigning this L2VPN's identifier, so
+// NetBox reservation stays serialized against concurrent claims for the
+// duration of the create.
+func (r *L2VPNReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netboxv1.L2VPN) (nsn types.NamespacedName, owner string, identifierDesc string, err error) {
 	orLookupKey := types.NamespacedName{
 		Name:      o.ObjectMeta.OwnerReferences[0].Name,
 		Namespace: o.Namespace,
@@ -343,19 +342,13 @@ func (r *L2VPNReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netb
 	l2vpnClaim := &netboxv1.L2VPNClaim{}
 	err = r.Get(ctx, orLookupKey, l2vpnClaim)
 	if err != nil {
-		return types.NamespacedName{}, "", "", false, err
+		return types.NamespacedName{}, "", "", err
 	}
-
-	if l2vpnClaim.Spec.IdentifierRangeStart == 0 && l2vpnClaim.Spec.IdentifierRangeEnd == 0 {
-		return types.NamespacedName{}, "", "", false, nil
-	}
-
-	rangeDesc = fmt.Sprintf("%s:%d-%d", l2vpnClaim.Spec.Type, l2vpnClaim.Spec.IdentifierRangeStart, l2vpnClaim.Spec.IdentifierRangeEnd)
 
 	leaseLockerNSN := types.NamespacedName{
-		Name:      convertL2VPNRangeToLeaseLockName(l2vpnClaim.Spec.Type, l2vpnClaim.Spec.IdentifierRangeStart, l2vpnClaim.Spec.IdentifierRangeEnd),
+		Name:      l2vpnIdentifierLockName,
 		Namespace: r.OperatorNamespace,
 	}
 
-	return leaseLockerNSN, orLookupKey.String(), rangeDesc, true, nil
+	return leaseLockerNSN, orLookupKey.String(), describeL2VPNClaimIdentifier(l2vpnClaim), nil
 }

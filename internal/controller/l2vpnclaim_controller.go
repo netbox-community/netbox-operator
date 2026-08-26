@@ -235,19 +235,16 @@ func (r *L2VPNClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1
 	return result, err
 }
 
-// tryLockOnRange serializes concurrent range-based claims against the same
-// identifier range. Returns a nil locker and nil error when the claim uses an
-// explicit identifier instead of a range, since there's no shared pool to lock.
-func (r *L2VPNClaimReconciler) tryLockOnRange(ctx context.Context, o *netboxv1.L2VPNClaim) (ll *leaselocker.LeaseLocker, cleanup context.CancelFunc, res ctrl.Result, err error) {
+// tryLockL2VPNIdentifier serializes concurrent claims — range-based or
+// explicit-identifier — against NetBox's shared VNI namespace (see
+// l2vpnIdentifierLockName), so that no two claims can be assigned the same
+// identifier.
+func (r *L2VPNClaimReconciler) tryLockL2VPNIdentifier(ctx context.Context, o *netboxv1.L2VPNClaim) (ll *leaselocker.LeaseLocker, cleanup context.CancelFunc, res ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
-	if o.Spec.IdentifierRangeStart == 0 && o.Spec.IdentifierRangeEnd == 0 {
-		return nil, nil, ctrl.Result{}, nil
-	}
-
-	rangeDesc := fmt.Sprintf("%s:%d-%d", o.Spec.Type, o.Spec.IdentifierRangeStart, o.Spec.IdentifierRangeEnd)
+	identifierDesc := describeL2VPNClaimIdentifier(o)
 	leaseLockerNSN := types.NamespacedName{
-		Name:      convertL2VPNRangeToLeaseLockName(o.Spec.Type, o.Spec.IdentifierRangeStart, o.Spec.IdentifierRangeEnd),
+		Name:      l2vpnIdentifierLockName,
 		Namespace: r.OperatorNamespace,
 	}
 
@@ -266,12 +263,12 @@ func (r *L2VPNClaimReconciler) tryLockOnRange(ctx context.Context, o *netboxv1.L
 	locked := ll.TryLock(lockCtx)
 	if !locked {
 		cancel()
-		logger.Info(fmt.Sprintf("failed to lock identifier range %s", rangeDesc))
-		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockIdentifierRange", "failed to lock identifier range %s",
-			rangeDesc)
-		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, NewDomainError("failed to lock identifier range %s", rangeDesc)
+		logger.Info(fmt.Sprintf("failed to lock l2vpn identifiers for %s", identifierDesc))
+		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockIdentifierRange", "failed to lock l2vpn identifiers for %s",
+			identifierDesc)
+		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, NewDomainError("failed to lock l2vpn identifiers for %s", identifierDesc)
 	}
-	logger.V(4).Info(fmt.Sprintf("successfully locked identifier range %s", rangeDesc))
+	logger.V(4).Info(fmt.Sprintf("successfully locked l2vpn identifiers for %s", identifierDesc))
 
 	cleanup = func() {
 		cancel()
@@ -280,10 +277,19 @@ func (r *L2VPNClaimReconciler) tryLockOnRange(ctx context.Context, o *netboxv1.L
 	return ll, cleanup, ctrl.Result{}, nil
 }
 
+// describeL2VPNClaimIdentifier renders the claim's requested identifier(s)
+// for log/event messages.
+func describeL2VPNClaimIdentifier(o *netboxv1.L2VPNClaim) string {
+	if o.Spec.IdentifierRangeStart == 0 && o.Spec.IdentifierRangeEnd == 0 {
+		return fmt.Sprintf("%s:%d", o.Spec.Type, o.Spec.Identifier)
+	}
+	return fmt.Sprintf("%s:%d-%d", o.Spec.Type, o.Spec.IdentifierRangeStart, o.Spec.IdentifierRangeEnd)
+}
+
 func (r *L2VPNClaimReconciler) restoreOrAssignL2VPNAndSetCondition(ctx context.Context, o *netboxv1.L2VPNClaim) (*int64, context.CancelFunc, ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	_, cancelLock, res, err := r.tryLockOnRange(ctx, o)
+	_, cancelLock, res, err := r.tryLockL2VPNIdentifier(ctx, o)
 	if err != nil {
 		return nil, nil, res, err
 	}

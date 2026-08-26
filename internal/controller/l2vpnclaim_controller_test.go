@@ -65,7 +65,7 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
 		expectedConditionAssigned bool, // Expected state of the ConditionL2VPNAssigned condition
 		expectedCRStatus netboxv1.L2VPNClaimStatus, // Expected status of the CR
-		rangeLockedByOtherOwner bool, // If the identifier range is locked by another owner when the claim CR is created
+		identifierLockedByOtherOwner bool, // If the shared l2vpn identifier lock is held by another owner when the claim CR is created
 	) {
 		By("Setting up mocks")
 		for _, mock := range VpnAPIClaimMocks {
@@ -105,9 +105,9 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 			}
 		}()
 
-		if rangeLockedByOtherOwner {
+		if identifierLockedByOtherOwner {
 			leaseLockerNSN := types.NamespacedName{
-				Name:      convertL2VPNRangeToLeaseLockName(cr.Spec.Type, cr.Spec.IdentifierRangeStart, cr.Spec.IdentifierRangeEnd),
+				Name:      l2vpnIdentifierLockName,
 				Namespace: OperatorNamespace,
 			}
 			ll, err := leaselocker.NewLeaseLocker(cfg, leaseLockerNSN, "default/some-other-owner")
@@ -234,7 +234,7 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 			true, true,
 			netboxv1.L2VPNClaimStatus{Identifier: l2vpnRestoredIdentifier, L2VPNName: l2vpnClaimName},
 			false),
-		Entry("Create L2VPNClaim CR, explicit identifier (no range lock)",
+		Entry("Create L2VPNClaim CR, explicit identifier",
 			defaultL2VPNClaimCRWithIdentifier(), expectedL2VPNSpecFromClaim(defaultL2VPNClaimCRWithIdentifier(), l2vpnIdentifier),
 			[]func(*mock_interfaces.MockVpnAPI, chan error){
 				mockVpnAPIClaimList,
@@ -263,8 +263,20 @@ var _ = Describe("L2VPNClaim Controller", Ordered, func() {
 			true, true,
 			netboxv1.L2VPNClaimStatus{Identifier: l2vpnIdentifier, L2VPNName: l2vpnClaimName},
 			false),
-		Entry("Create L2VPNClaim CR, identifier range locked by other resource",
+		Entry("Create L2VPNClaim CR, range-based claim blocked by identifier lock held by other resource",
 			defaultL2VPNClaimCRWithRange(), netboxv1.L2VPNSpec{},
+			[]func(*mock_interfaces.MockVpnAPI, chan error){},
+			[]func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error){},
+			[]func(*mock_interfaces.MockVpnAPI, chan error){},
+			[]func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error){},
+			[]func(*mock_interfaces.MockVpnL2vpnsCreateRequest, chan error){},
+			[]func(*mock_interfaces.MockVpnL2vpnsUpdateRequest, chan error){},
+			[]func(*mock_interfaces.MockVpnL2vpnsDestroyRequest, chan error){},
+			false, false,
+			netboxv1.L2VPNClaimStatus{},
+			true),
+		Entry("Create L2VPNClaim CR, explicit-identifier claim blocked by identifier lock held by other resource",
+			defaultL2VPNClaimCRWithIdentifier(), netboxv1.L2VPNSpec{},
 			[]func(*mock_interfaces.MockVpnAPI, chan error){},
 			[]func(*mock_interfaces.MockVpnL2vpnsListRequest, chan error){},
 			[]func(*mock_interfaces.MockVpnAPI, chan error){},
