@@ -47,7 +47,6 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                name: l2vpnclaim-explicit-apply-update
                 type: vxlan-evpn
                 identifier: 5100001
                 tenant: MY_TENANT
