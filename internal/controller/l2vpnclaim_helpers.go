@@ -56,7 +56,6 @@ func generateL2VPNSpec(claim *netboxv1.L2VPNClaim, identifier int64, logger logr
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generateL2VPNRestorationHash(claim)
 
 	return netboxv1.L2VPNSpec{
-		Name:             claim.Name,
 		Type:             claim.Spec.Type,
 		Identifier:       identifier,
 		Tenant:           claim.Spec.Tenant,

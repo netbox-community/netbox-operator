@@ -316,7 +316,7 @@ func (r *L2VPNReconciler) generateNetboxL2VPNModelFromL2VPNSpec(o *netboxv1.L2VP
 	}
 
 	return &models.L2VPN{
-		Name:       o.Spec.Name,
+		Name:       o.Name,
 		Type:       o.Spec.Type,
 		Identifier: o.Spec.Identifier,
 		Metadata: &models.NetboxMetadata{

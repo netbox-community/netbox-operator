@@ -65,7 +65,6 @@ func defaultL2VPNCR(preserveInNetbox bool) *netboxv1.L2VPN {
 			Namespace: l2vpnNamespace,
 		},
 		Spec: netboxv1.L2VPNSpec{
-			Name:             l2vpnName,
 			Type:             l2vpnType,
 			Identifier:       l2vpnIdentifier,
 			CustomFields:     l2vpnCustomFields,
@@ -86,7 +85,6 @@ func defaultL2VPNCreatedByClaim(preserveInNetbox bool) *netboxv1.L2VPN {
 			Namespace: l2vpnNamespace,
 		},
 		Spec: netboxv1.L2VPNSpec{
-			Name:             l2vpnName,
 			Type:             l2vpnType,
 			Identifier:       l2vpnIdentifier,
 			CustomFields:     l2vpnCustomFieldsWithHash,
@@ -143,7 +141,6 @@ func expectedL2VPNSpecFromClaim(claim *netboxv1.L2VPNClaim, identifier int64) ne
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generateL2VPNRestorationHash(claim)
 
 	return netboxv1.L2VPNSpec{
-		Name:             claim.Name,
 		Type:             claim.Spec.Type,
 		Identifier:       identifier,
 		Tenant:           claim.Spec.Tenant,

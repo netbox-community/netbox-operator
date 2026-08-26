@@ -22,12 +22,6 @@ import (
 
 // L2VPNSpec defines the desired state of L2VPN
 type L2VPNSpec struct {
-	// The name of the L2VPN in NetBox
-	// Field is immutable, required
-	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'name' is immutable"
-	Name string `json:"name"`
-
 	// The NetBox L2VPN type. Only VXLAN-based types are supported, since those
 	// are the ones that carry a VNI in their identifier.
 	// Field is immutable, required
@@ -104,7 +98,6 @@ type L2VPNStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
-//+kubebuilder:printcolumn:name="Name",type=string,JSONPath=`.spec.name`
 //+kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`
 //+kubebuilder:printcolumn:name="Identifier",type=integer,JSONPath=`.spec.identifier`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
@@ -112,7 +105,9 @@ type L2VPNStatus struct {
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 //+kubebuilder:resource:shortName=l2v
 
-// L2VPN allows to create a NetBox L2VPN, e.g. to track a VXLAN VNI. More info about NetBox L2VPNs: https://github.com/netbox-community/netbox/blob/main/docs/models/vpn/l2vpn.md
+// L2VPN allows to create a NetBox L2VPN, e.g. to track a VXLAN VNI. The
+// Kubernetes object name (metadata.name) is used as the L2VPN's name in
+// NetBox. More info about NetBox L2VPNs: https://github.com/netbox-community/netbox/blob/main/docs/models/vpn/l2vpn.md
 type L2VPN struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

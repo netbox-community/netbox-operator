@@ -11,6 +11,5 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
-  name: "l2vpn-sample"
   type: "vxlan-evpn"
   identifier: 5000123

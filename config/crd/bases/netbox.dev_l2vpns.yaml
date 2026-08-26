@@ -17,9 +17,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: Name
-      type: string
     - jsonPath: .spec.type
       name: Type
       type: string
@@ -38,8 +35,10 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: 'L2VPN allows to create a NetBox L2VPN, e.g. to track a VXLAN
-          VNI. More info about NetBox L2VPNs: https://github.com/netbox-community/netbox/blob/main/docs/models/vpn/l2vpn.md'
+        description: |-
+          L2VPN allows to create a NetBox L2VPN, e.g. to track a VXLAN VNI. The
+          Kubernetes object name (metadata.name) is used as the L2VPN's name in
+          NetBox. More info about NetBox L2VPNs: https://github.com/netbox-community/netbox/blob/main/docs/models/vpn/l2vpn.md
         properties:
           apiVersion:
             description: |-
@@ -95,14 +94,6 @@ spec:
                 x-kubernetes-validations:
                 - message: Field 'identifier' is immutable
                   rule: self == oldSelf
-              name:
-                description: |-
-                  The name of the L2VPN in NetBox
-                  Field is immutable, required
-                type: string
-                x-kubernetes-validations:
-                - message: Field 'name' is immutable
-                  rule: self == oldSelf
               preserveInNetbox:
                 description: |-
                   Defines whether the Resource should be preserved in NetBox when the
@@ -139,7 +130,6 @@ spec:
                   rule: self == oldSelf
             required:
             - identifier
-            - name
             - type
             type: object
           status:
