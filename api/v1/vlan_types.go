@@ -22,12 +22,6 @@ import (
 
 // VlanSpec defines the desired state of Vlan
 type VlanSpec struct {
-	// The name of the VLAN in NetBox
-	// Field is immutable, required
-	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'name' is immutable"
-	Name string `json:"name"`
-
 	// The VLAN ID (VID) to be assigned to this VLAN in NetBox
 	// Field is immutable, required, range from 1-4094
 	//+kubebuilder:validation:Required
@@ -103,7 +97,6 @@ type VlanStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
-//+kubebuilder:printcolumn:name="Name",type=string,JSONPath=`.spec.name`
 //+kubebuilder:printcolumn:name="Vid",type=integer,JSONPath=`.spec.vid`
 //+kubebuilder:printcolumn:name="Site",type=string,JSONPath=`.spec.site`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
@@ -111,7 +104,9 @@ type VlanStatus struct {
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 //+kubebuilder:resource:shortName=vln
 
-// Vlan allows to create a NetBox VLAN. More info about NetBox VLANs: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md
+// Vlan allows to create a NetBox VLAN. The Kubernetes object name
+// (metadata.name) is used as the VLAN's name in NetBox. More info about
+// NetBox VLANs: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md
 type Vlan struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

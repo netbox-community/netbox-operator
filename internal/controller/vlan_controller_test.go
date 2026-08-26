@@ -147,7 +147,7 @@ var _ = Describe("Vlan Controller", Ordered, func() {
 				mockVlanIpamAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByName,
+				mockVlanListRequestByVid,
 				mockVlanListRequestExecuteEmpty,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){
@@ -166,7 +166,7 @@ var _ = Describe("Vlan Controller", Ordered, func() {
 				mockVlanIpamAPIUpdate,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByName,
+				mockVlanListRequestByVid,
 				mockVlanListRequestExecuteExistingNoHash,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){},
@@ -184,7 +184,7 @@ var _ = Describe("Vlan Controller", Ordered, func() {
 				mockVlanIpamAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByName,
+				mockVlanListRequestByVid,
 				mockVlanListRequestExecuteExistingNoHash,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){},
@@ -204,7 +204,7 @@ var _ = Describe("Vlan Controller", Ordered, func() {
 				mockVlanIpamAPIDestroyZeroId,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByName,
+				mockVlanListRequestByVid,
 				mockVlanListRequestExecuteEmpty,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){
@@ -222,7 +222,7 @@ var _ = Describe("Vlan Controller", Ordered, func() {
 				mockVlanIpamAPIList,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByName,
+				mockVlanListRequestByVid,
 				mockVlanListRequestExecuteExistingWithMismatchedHash,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){},

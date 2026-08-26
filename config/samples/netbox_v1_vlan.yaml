@@ -12,5 +12,4 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
-  name: "vlan-sample"
-  vid: 100
+  vid: 101

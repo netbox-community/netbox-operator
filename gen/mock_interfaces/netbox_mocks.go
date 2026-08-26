@@ -992,6 +992,20 @@ func (mr *MockIpamVlansListRequestMockRecorder) Site(site any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Site", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Site), site)
 }
 
+// Vid mocks base method.
+func (m *MockIpamVlansListRequest) Vid(vid []int32) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Vid", vid)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// Vid indicates an expected call of Vid.
+func (mr *MockIpamVlansListRequestMockRecorder) Vid(vid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Vid", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Vid), vid)
+}
+
 // MockIpamVlansCreateRequest is a mock of IpamVlansCreateRequest interface.
 type MockIpamVlansCreateRequest struct {
 	ctrl     *gomock.Controller

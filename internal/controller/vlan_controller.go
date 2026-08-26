@@ -117,44 +117,42 @@ func (r *VlanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (recon
 		}
 	}
 
-	// 1. try to lock lease of the VID range if Vlan status condition is
-	// not true, is owned by a range-based VlanClaim, and hasn't been created
-	// in NetBox yet. Claims with an explicit VID don't draw from a shared
-	// pool, so there's nothing to serialize against.
+	// 1. try to lock the shared per-site vlan vid pool if Vlan status
+	// condition is not true, is owned by a VlanClaim, and hasn't been created
+	// in NetBox yet. This serializes against the same lock the VlanClaim
+	// controller held while assigning this Vlan's VID.
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	var cancelLock context.CancelFunc
 	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
-		leaseLockerNSN, owner, rangeDesc, ok, err := r.getLeaseLockerNSNandOwner(ctx, o)
+		leaseLockerNSN, owner, identifierDesc, err := r.getLeaseLockerNSNandOwner(ctx, o)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 
-		if ok {
-			ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, owner)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-
-			var lockCtx context.Context
-			lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
-			defer func() {
-				if cancelLock != nil {
-					cancelLock()
-				}
-			}()
-
-			// create lock
-			locked := ll.TryLock(lockCtx)
-			if !locked {
-				errorMsg := fmt.Sprintf("failed to lock vid range %s", rangeDesc)
-				r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockVidRange", errorMsg)
-				return ctrl.Result{
-					RequeueAfter: 2 * time.Second,
-				}, NewDomainError("%s", errorMsg)
-			}
-			logger.V(4).Info(fmt.Sprintf("successfully locked vid range %s", rangeDesc))
+		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, owner)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
+
+		var lockCtx context.Context
+		lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
+		defer func() {
+			if cancelLock != nil {
+				cancelLock()
+			}
+		}()
+
+		// create lock
+		locked := ll.TryLock(lockCtx)
+		if !locked {
+			errorMsg := fmt.Sprintf("failed to lock vlan vids for %s", identifierDesc)
+			r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockVidRange", errorMsg)
+			return ctrl.Result{
+				RequeueAfter: 2 * time.Second,
+			}, NewDomainError("%s", errorMsg)
+		}
+		logger.V(4).Info(fmt.Sprintf("successfully locked vlan vids for %s", identifierDesc))
 	}
 
 	// 2. reserve or update vlan in netbox
@@ -317,7 +315,7 @@ func (r *VlanReconciler) generateNetboxVlanModelFromVlanSpec(o *netboxv1.Vlan, r
 	}
 
 	return &models.Vlan{
-		Name:   o.Spec.Name,
+		Name:   o.Name,
 		Vid:    o.Spec.Vid,
 		Status: o.Spec.Status,
 		Metadata: &models.NetboxMetadata{
@@ -331,10 +329,11 @@ func (r *VlanReconciler) generateNetboxVlanModelFromVlanSpec(o *netboxv1.Vlan, r
 }
 
 // getLeaseLockerNSNandOwner returns the lease lock identity for the Vlan's
-// owning claim's VID range. ok is false when the owning claim uses an
-// explicit VID instead of a range, in which case there's no shared pool to
-// lock.
-func (r *VlanReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netboxv1.Vlan) (nsn types.NamespacedName, owner string, rangeDesc string, ok bool, err error) {
+// owning claim, against the same shared lock (vlanIdentifierLockName) the
+// VlanClaim controller used while assigning this Vlan's VID, so NetBox
+// reservation stays serialized against concurrent claims for the duration of
+// the create.
+func (r *VlanReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netboxv1.Vlan) (nsn types.NamespacedName, owner string, identifierDesc string, err error) {
 	orLookupKey := types.NamespacedName{
 		Name:      o.ObjectMeta.OwnerReferences[0].Name,
 		Namespace: o.Namespace,
@@ -343,19 +342,13 @@ func (r *VlanReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netbo
 	vlanClaim := &netboxv1.VlanClaim{}
 	err = r.Get(ctx, orLookupKey, vlanClaim)
 	if err != nil {
-		return types.NamespacedName{}, "", "", false, err
+		return types.NamespacedName{}, "", "", err
 	}
-
-	if vlanClaim.Spec.VidRangeStart == 0 && vlanClaim.Spec.VidRangeEnd == 0 {
-		return types.NamespacedName{}, "", "", false, nil
-	}
-
-	rangeDesc = fmt.Sprintf("%s:%d-%d", vlanClaim.Spec.Site, vlanClaim.Spec.VidRangeStart, vlanClaim.Spec.VidRangeEnd)
 
 	leaseLockerNSN := types.NamespacedName{
-		Name:      convertVlanRangeToLeaseLockName(vlanClaim.Spec.Site, vlanClaim.Spec.VidRangeStart, vlanClaim.Spec.VidRangeEnd),
+		Name:      vlanIdentifierLockName(vlanClaim.Spec.Site),
 		Namespace: r.OperatorNamespace,
 	}
 
-	return leaseLockerNSN, orLookupKey.String(), rangeDesc, true, nil
+	return leaseLockerNSN, orLookupKey.String(), describeVlanClaimIdentifier(vlanClaim), nil
 }

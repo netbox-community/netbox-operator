@@ -51,9 +51,12 @@ func TestVlan(t *testing.T) {
 	description := Description
 
 	expectedTenant := v4client.NewBriefTenant(int32(tenantId), "", "", tenantName, "")
-	expectedSite := v4client.NewBriefSite(int32(siteId), "", "", siteName, siteName)
 	expectedLastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
+	// expectedVlan is deliberately siteless: getVlan filters NetBox's
+	// response to VLANs with no site set when the desired vlan (built from
+	// the CR) has none either, so a response carrying a site here would
+	// wrongly get filtered out by the subtests below that don't set one.
 	expectedVlan := func() v4client.VLAN {
 		lastUpdated := expectedLastUpdated
 		vlan := v4client.VLAN{
@@ -63,7 +66,6 @@ func TestVlan(t *testing.T) {
 			Comments:    &comments,
 			Description: &description,
 			Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
-			Site:        *v4client.NewNullableBriefSite(expectedSite),
 			LastUpdated: *v4client.NewNullableTime(&lastUpdated),
 		}
 		return vlan
@@ -77,7 +79,8 @@ func TestVlan(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Vid([]int32{vid}).Return(mockListRequest)
+		mockListRequest.EXPECT().Site([]string{siteName}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{Results: []v4client.VLAN{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockIpamAPI.EXPECT().IpamVlansCreate(gomock.Any()).Return(mockCreateRequest)
@@ -133,7 +136,7 @@ func TestVlan(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Vid([]int32{vid}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{Results: []v4client.VLAN{
 			{
 				CustomFields: map[string]interface{}{"netboxOperatorRestorationHash": "abc"},
@@ -170,7 +173,7 @@ func TestVlan(t *testing.T) {
 		existing.CustomFields = map[string]interface{}{"netboxOperatorRestorationHash": "abc"}
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Vid([]int32{vid}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{Results: []v4client.VLAN{existing}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockIpamAPI.EXPECT().IpamVlansUpdate(gomock.Any(), VlanId).Return(mockUpdateRequest)
@@ -197,7 +200,7 @@ func TestVlan(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Vid([]int32{vid}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{Results: []v4client.VLAN{expectedVlan()}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
