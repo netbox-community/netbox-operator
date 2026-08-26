@@ -305,11 +305,11 @@ func (r *VlanClaimReconciler) restoreOrAssignVlanAndSetCondition(ctx context.Con
 		return &vlanModel.Vid, cancelLock, ctrl.Result{}, nil
 	}
 
-	// vlan cannot be restored from netbox — resolve the VID range to check for
-	// availability. An explicit vid is treated as a range of one, so it goes
-	// through the same free/used scan as a range claim instead of being
-	// assigned blind: GetAvailableVlanByClaim errors with
-	// ErrVlanRangeExhausted if that single VID is already taken.
+	// vlan cannot be restored from netbox. We need to resolve the VID range
+	// to check for availability. An explicit vid is treated as a range of one,
+	//  so it goes through the same free/used scan as a range claim.
+	// GetAvailableVlanByClaim errors with ErrVlanRangeExhausted if that single VID
+	// is already taken.
 	vidRangeStart, vidRangeEnd := o.Spec.VidRangeStart, o.Spec.VidRangeEnd
 	if o.Spec.Vid != 0 {
 		vidRangeStart, vidRangeEnd = o.Spec.Vid, o.Spec.Vid

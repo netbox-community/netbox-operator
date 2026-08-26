@@ -34,10 +34,7 @@ import (
 const vlanListPageSize = int32(100)
 
 // forEachVlan pages through NetBox's VLAN list, scoped to siteSlug when
-// non-empty (VLAN IDs are only guaranteed unique within a site, unlike e.g.
-// L2VPN's globally-unique VNI), and invokes visit for every result. siteSlug
-// must be a NetBox site slug, not its display name — NetBox's site list
-// filter matches on slug. visit returns false to stop iterating early.
+// non-empty, and invokes visit for every result.
 func (c *NetboxCompositeClient) forEachVlan(ctx context.Context, siteSlug string, visit func(vlan *v4client.VLAN) bool) error {
 	var offset int32
 	for {

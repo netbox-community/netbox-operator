@@ -96,15 +96,8 @@ type VlanClaimRestorationData struct {
 var leaseLockNameInvalidCharsRegex = regexp.MustCompile(`[^a-z0-9-]+`)
 
 // vlanIdentifierLockName builds the shared lease lock name serializing VID
-// allocation for a site, so that no two claims — range-based or
-// explicit-VID — can be assigned the same VID within that site. VIDs are
-// only guaranteed unique within a site (unlike e.g. L2VPN's globally-unique
-// VNI), so the lock is scoped per site rather than a single fixed name; it
-// deliberately excludes the range boundaries so that claims with
-// overlapping-but-different ranges within the same site still serialize
-// against each other. Unlike L2VPN's "type" (a controlled enum), a NetBox
-// Site name is free text, so it is sanitized here to satisfy the Lease
-// resource's DNS-1123 name requirements.
+// allocation for a site, so that no two claims can be assigned the same VID
+// within that site.
 func vlanIdentifierLockName(site string) string {
 	sanitizedSite := leaseLockNameInvalidCharsRegex.ReplaceAllString(strings.ToLower(strings.TrimSpace(site)), "-")
 	sanitizedSite = strings.Trim(sanitizedSite, "-")
