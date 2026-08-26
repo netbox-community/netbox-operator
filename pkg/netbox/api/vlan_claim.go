@@ -33,29 +33,32 @@ import (
 // VLAN list endpoint.
 const vlanListPageSize = int32(100)
 
-// forEachVlan pages through NetBox's VLAN list, scoped to site when non-empty
-// (VLAN IDs are only guaranteed unique within a site, unlike e.g. L2VPN's
-// globally-unique VNI), and invokes visit for every result. visit returns
-// false to stop iterating early.
-func (c *NetboxCompositeClient) forEachVlan(ctx context.Context, site string, visit func(vlan *v4client.VLAN) bool) error {
+// forEachVlan pages through NetBox's VLAN list, scoped to siteSlug when
+// non-empty (VLAN IDs are only guaranteed unique within a site, unlike e.g.
+// L2VPN's globally-unique VNI), and invokes visit for every result. siteSlug
+// must be a NetBox site slug, not its display name — NetBox's site list
+// filter matches on slug. visit returns false to stop iterating early.
+func (c *NetboxCompositeClient) forEachVlan(ctx context.Context, siteSlug string, visit func(vlan *v4client.VLAN) bool) error {
 	var offset int32
 	for {
 		req := c.clientV4.IpamAPI.IpamVlansList(ctx).Limit(vlanListPageSize).Offset(offset)
-		if site != "" {
-			req = req.Site([]string{site})
+		if siteSlug != "" {
+			req = req.Site([]string{siteSlug})
 		}
 		resp, httpResp, err := req.Execute()
 
+		var body []byte
 		if httpResp != nil && httpResp.Body != nil {
-			_, _ = io.ReadAll(httpResp.Body)
+			var readErr error
+			body, readErr = io.ReadAll(httpResp.Body)
 			closeErr := httpResp.Body.Close()
-			err = errors.Join(err, closeErr)
+			err = errors.Join(err, closeErr, readErr)
 		}
 		if httpResp == nil {
 			return fmt.Errorf("failed to list vlans: %w", err)
 		}
 		if httpResp.StatusCode != http.StatusOK {
-			return fmt.Errorf("failed to list vlans: status %d", httpResp.StatusCode)
+			return fmt.Errorf("failed to list vlans: status %d, body: %s", httpResp.StatusCode, string(body))
 		}
 		if err != nil {
 			return fmt.Errorf("failed to list vlans: %w", err)
@@ -120,14 +123,17 @@ func (c *NetboxCompositeClient) GetAvailableVlanByClaim(ctx context.Context, cla
 			return nil, err
 		}
 	}
+	siteSlug := ""
 	if site != "" {
-		if _, err := c.getSiteDetails(site); err != nil {
+		siteDetails, err := c.getSiteDetails(site)
+		if err != nil {
 			return nil, err
 		}
+		siteSlug = siteDetails.Slug
 	}
 
 	var used []int32
-	err := c.forEachVlan(ctx, site, func(vlan *v4client.VLAN) bool {
+	err := c.forEachVlan(ctx, siteSlug, func(vlan *v4client.VLAN) bool {
 		vid := vlan.GetVid()
 		if vid >= claim.VidRangeStart && vid <= claim.VidRangeEnd {
 			used = append(used, vid)

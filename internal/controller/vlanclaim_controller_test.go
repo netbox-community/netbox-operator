@@ -65,7 +65,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 		expectedConditionReady bool, // Expected state of the ConditionReady condition
 		expectedConditionAssigned bool, // Expected state of the ConditionVlanAssigned condition
 		expectedCRStatus netboxv1.VlanClaimStatus, // Expected status of the CR
-		rangeLockedByOtherOwner bool, // If the vid range is locked by another owner when the claim CR is created
+		identifierLockedByOtherOwner bool, // If the shared vlan vid lock is held by another owner when the claim CR is created
 	) {
 		By("Setting up mocks")
 		for _, mock := range IpamAPIClaimMocks {
@@ -105,9 +105,9 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			}
 		}()
 
-		if rangeLockedByOtherOwner {
+		if identifierLockedByOtherOwner {
 			leaseLockerNSN := types.NamespacedName{
-				Name:      convertVlanRangeToLeaseLockName(cr.Spec.Site, cr.Spec.VidRangeStart, cr.Spec.VidRangeEnd),
+				Name:      vlanIdentifierLockName(cr.Spec.Site),
 				Namespace: OperatorNamespace,
 			}
 			ll, err := leaselocker.NewLeaseLocker(cfg, leaseLockerNSN, "default/some-other-owner")
@@ -191,7 +191,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 				mockVlanIpamAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByClaimName,
+				mockVlanListRequestByClaimVid(vlanRangeStart),
 				mockVlanListRequestExecuteEmpty,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){
@@ -220,7 +220,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 				mockVlanIpamAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByClaimName,
+				mockVlanListRequestByClaimVid(vlanRestoredVid),
 				mockVlanListRequestExecuteClaimExistingWithHash(generateVlanRestorationHash(defaultVlanClaimCRWithRange()), vlanRestoredVid),
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){},
@@ -234,7 +234,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			true, true,
 			netboxv1.VlanClaimStatus{Vid: vlanRestoredVid, VlanName: vlanClaimName},
 			false),
-		Entry("Create VlanClaim CR, explicit vid (no range lock)",
+		Entry("Create VlanClaim CR, explicit vid",
 			defaultVlanClaimCRWithVid(), expectedVlanSpecFromClaim(defaultVlanClaimCRWithVid(), vlanVid),
 			[]func(*mock_interfaces.MockIpamAPI, chan error){
 				mockVlanIpamAPIClaimList,
@@ -249,7 +249,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 				mockVlanIpamAPIDestroy,
 			},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanListRequestByClaimName,
+				mockVlanListRequestByClaimVid(vlanVid),
 				mockVlanListRequestExecuteEmpty,
 			},
 			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){
@@ -263,8 +263,20 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			true, true,
 			netboxv1.VlanClaimStatus{Vid: vlanVid, VlanName: vlanClaimName},
 			false),
-		Entry("Create VlanClaim CR, vid range locked by other resource",
+		Entry("Create VlanClaim CR, range-based claim blocked by identifier lock held by other resource",
 			defaultVlanClaimCRWithRange(), netboxv1.VlanSpec{},
+			[]func(*mock_interfaces.MockIpamAPI, chan error){},
+			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){},
+			[]func(*mock_interfaces.MockIpamAPI, chan error){},
+			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){},
+			[]func(*mock_interfaces.MockIpamVlansCreateRequest, chan error){},
+			[]func(*mock_interfaces.MockIpamVlansUpdateRequest, chan error){},
+			[]func(*mock_interfaces.MockIpamVlansDestroyRequest, chan error){},
+			false, false,
+			netboxv1.VlanClaimStatus{},
+			true),
+		Entry("Create VlanClaim CR, explicit-vid claim blocked by identifier lock held by other resource",
+			defaultVlanClaimCRWithVid(), netboxv1.VlanSpec{},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},

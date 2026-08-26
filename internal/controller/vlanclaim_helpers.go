@@ -58,7 +58,6 @@ func generateVlanSpec(claim *netboxv1.VlanClaim, vid int32, logger logr.Logger) 
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generateVlanRestorationHash(claim)
 
 	return netboxv1.VlanSpec{
-		Name:             claim.Name,
 		Vid:              vid,
 		Site:             claim.Spec.Site,
 		Tenant:           claim.Spec.Tenant,
@@ -96,17 +95,21 @@ type VlanClaimRestorationData struct {
 
 var leaseLockNameInvalidCharsRegex = regexp.MustCompile(`[^a-z0-9-]+`)
 
-// convertVlanRangeToLeaseLockName builds a lease lock name identifying the
-// shared VID range a range-based VlanClaim draws from, so that concurrent
-// claims against the same site+range serialize their allocation. Unlike
-// L2VPN's "type" (a controlled enum), a NetBox Site name is free text, so it
-// is sanitized here to satisfy the Lease resource's DNS-1123 name
-// requirements.
-func convertVlanRangeToLeaseLockName(site string, start int32, end int32) string {
+// vlanIdentifierLockName builds the shared lease lock name serializing VID
+// allocation for a site, so that no two claims — range-based or
+// explicit-VID — can be assigned the same VID within that site. VIDs are
+// only guaranteed unique within a site (unlike e.g. L2VPN's globally-unique
+// VNI), so the lock is scoped per site rather than a single fixed name; it
+// deliberately excludes the range boundaries so that claims with
+// overlapping-but-different ranges within the same site still serialize
+// against each other. Unlike L2VPN's "type" (a controlled enum), a NetBox
+// Site name is free text, so it is sanitized here to satisfy the Lease
+// resource's DNS-1123 name requirements.
+func vlanIdentifierLockName(site string) string {
 	sanitizedSite := leaseLockNameInvalidCharsRegex.ReplaceAllString(strings.ToLower(strings.TrimSpace(site)), "-")
 	sanitizedSite = strings.Trim(sanitizedSite, "-")
 	if sanitizedSite == "" {
 		sanitizedSite = "global"
 	}
-	return fmt.Sprintf("vlan-%s-%d-%d", sanitizedSite, start, end)
+	return fmt.Sprintf("vlan-%s-identifier-pool", sanitizedSite)
 }
