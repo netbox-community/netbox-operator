@@ -1,0 +1,48 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlangroup-invalid-customfieldnotexisting
+  annotations:
+    description: Tests if reservation in NetBox fails when a custom field is not registered
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_vlangroup.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VlanGroup
+              metadata:
+                name: vlangroup-invalid-customfieldnotexisting
+                finalizers:
+                  - vlangroup.netbox.dev/finalizer
+              spec:
+                customFields:
+                  justmade: "thisup"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: FailedToReserveVLANGroupInNetbox
+              source:
+                component: vlan-group-controller
+              message: "Failed to reserve VLAN Group in NetBox: failed to reserve vlan group: status 400, body: {\"__all__\":[\"Unknown field name 'justmade' in custom field data.\"]}, name: vlangroup-invalid-customfieldnotexisting"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: VlanGroup
+                name: vlangroup-invalid-customfieldnotexisting
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=vlangroup-invalid-customfieldnotexisting -n $NAMESPACE
