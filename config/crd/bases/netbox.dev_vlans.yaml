@@ -17,9 +17,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: Name
-      type: string
     - jsonPath: .spec.vid
       name: Vid
       type: integer
@@ -38,8 +35,10 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: 'Vlan allows to create a NetBox VLAN. More info about NetBox
-          VLANs: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md'
+        description: |-
+          Vlan allows to create a NetBox VLAN. The Kubernetes object name
+          (metadata.name) is used as the VLAN's name in NetBox. More info about
+          NetBox VLANs: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md
         properties:
           apiVersion:
             description: |-
@@ -84,14 +83,6 @@ spec:
                   Description that should be added to the resource in NetBox
                   Field is mutable, not required
                 type: string
-              name:
-                description: |-
-                  The name of the VLAN in NetBox
-                  Field is immutable, required
-                type: string
-                x-kubernetes-validations:
-                - message: Field 'name' is immutable
-                  rule: self == oldSelf
               preserveInNetbox:
                 description: |-
                   Defines whether the Resource should be preserved in NetBox when the
@@ -143,7 +134,6 @@ spec:
                 - message: Field 'vid' is immutable
                   rule: self == oldSelf
             required:
-            - name
             - vid
             type: object
           status:

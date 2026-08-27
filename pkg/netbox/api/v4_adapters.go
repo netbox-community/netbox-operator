@@ -185,6 +185,11 @@ func (a *ipamVlansListRequestAdapter) Site(site []string) interfaces.IpamVlansLi
 	return a
 }
 
+func (a *ipamVlansListRequestAdapter) Vid(vid []int32) interfaces.IpamVlansListRequest {
+	a.req = a.req.Vid(vid)
+	return a
+}
+
 func (a *ipamVlansListRequestAdapter) Limit(limit int32) interfaces.IpamVlansListRequest {
 	a.req = a.req.Limit(limit)
 	return a

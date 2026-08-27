@@ -63,7 +63,6 @@ func defaultVlanCR(preserveInNetbox bool) *netboxv1.Vlan {
 			Namespace: vlanNamespace,
 		},
 		Spec: netboxv1.VlanSpec{
-			Name:             vlanName,
 			Vid:              vlanVid,
 			CustomFields:     vlanCustomFields,
 			Comments:         vlanComments,
@@ -83,7 +82,6 @@ func defaultVlanCreatedByClaim(preserveInNetbox bool) *netboxv1.Vlan {
 			Namespace: vlanNamespace,
 		},
 		Spec: netboxv1.VlanSpec{
-			Name:             vlanName,
 			Vid:              vlanVid,
 			CustomFields:     vlanCustomFieldsWithHash,
 			Comments:         vlanComments,
@@ -137,7 +135,6 @@ func expectedVlanSpecFromClaim(claim *netboxv1.VlanClaim, vid int32) netboxv1.Vl
 	customFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] = generateVlanRestorationHash(claim)
 
 	return netboxv1.VlanSpec{
-		Name:             claim.Name,
 		Vid:              vid,
 		Site:             claim.Spec.Site,
 		Tenant:           claim.Spec.Tenant,
@@ -169,7 +166,7 @@ func mockedVlanListEmpty() *v4client.PaginatedVLANList {
 }
 
 // mockedVlanListExisting returns a single-page listing containing one Vlan
-// matching vlanName, as found by VlanReconciler.getVlan (Name filter).
+// matching vlanVid, as found by VlanReconciler.getVlan (Vid filter).
 // customFields is nil for a plain pre-existing NetBox object, or set with the
 // restoration hash key for objects claimed by a VlanClaim.
 func mockedVlanListExisting(customFields map[string]interface{}) *v4client.PaginatedVLANList {

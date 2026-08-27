@@ -117,9 +117,26 @@ func (c *NetboxCompositeClient) ReserveOrUpdateVlan(ctx context.Context, vlan *m
 	return resp, false, nil
 }
 
+// getVlan looks up the NetBox VLAN matching vlan by its unique (site, vid)
+// pair — VIDs are only guaranteed unique within a site, so vid alone isn't
+// enough to identify a single VLAN. When vlan has no site, the result is
+// filtered to VLANs that also have no site, since NetBox's site filter has
+// no "site is unset" query option.
 func (c *NetboxCompositeClient) getVlan(ctx context.Context, vlan *models.Vlan) (*v4client.PaginatedVLANList, error) {
-	req := c.clientV4.IpamAPI.IpamVlansList(ctx).
-		Name([]string{vlan.Name})
+	site := ""
+	if vlan.Metadata != nil {
+		site = vlan.Metadata.Site
+	}
+
+	req := c.clientV4.IpamAPI.IpamVlansList(ctx).Vid([]int32{vlan.Vid})
+	if site != "" {
+		siteDetails, err := c.getSiteDetails(site)
+		if err != nil {
+			return nil, err
+		}
+		req = req.Site([]string{siteDetails.Slug})
+	}
+
 	resp, httpResp, err := req.Execute()
 
 	var body []byte
@@ -145,6 +162,17 @@ func (c *NetboxCompositeClient) getVlan(ctx context.Context, vlan *models.Vlan) 
 
 	if err != nil {
 		return nil, utils.NetboxError("failed to fetch vlan details", err)
+	}
+
+	if site == "" {
+		siteless := make([]v4client.VLAN, 0, len(resp.Results))
+		for _, v := range resp.Results {
+			if !v.Site.IsSet() || v.Site.Get() == nil {
+				siteless = append(siteless, v)
+			}
+		}
+		resp.Results = siteless
+		resp.Count = int32(len(siteless))
 	}
 
 	return resp, nil

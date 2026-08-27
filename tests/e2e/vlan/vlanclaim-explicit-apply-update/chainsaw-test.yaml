@@ -47,7 +47,6 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                name: vlanclaim-explicit-apply-update
                 vid: 100
                 site: MY_SITE
                 tenant: MY_TENANT

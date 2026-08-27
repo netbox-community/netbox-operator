@@ -12,4 +12,4 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: true
-  vid: 100
+  vid: 999

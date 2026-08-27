@@ -235,19 +235,16 @@ func (r *VlanClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.
 	return result, err
 }
 
-// tryLockOnRange serializes concurrent range-based claims against the same
-// VID range. Returns a nil locker and nil error when the claim uses an
-// explicit VID instead of a range, since there's no shared pool to lock.
-func (r *VlanClaimReconciler) tryLockOnRange(ctx context.Context, o *netboxv1.VlanClaim) (ll *leaselocker.LeaseLocker, cleanup context.CancelFunc, res ctrl.Result, err error) {
+// tryLockVlanVid serializes concurrent claims — range-based or
+// explicit-VID — against the shared per-site VID namespace (see
+// vlanIdentifierLockName), so that no two claims for the same site can be
+// assigned the same VID.
+func (r *VlanClaimReconciler) tryLockVlanVid(ctx context.Context, o *netboxv1.VlanClaim) (ll *leaselocker.LeaseLocker, cleanup context.CancelFunc, res ctrl.Result, err error) {
 	logger := log.FromContext(ctx)
 
-	if o.Spec.VidRangeStart == 0 && o.Spec.VidRangeEnd == 0 {
-		return nil, nil, ctrl.Result{}, nil
-	}
-
-	rangeDesc := fmt.Sprintf("%s:%d-%d", o.Spec.Site, o.Spec.VidRangeStart, o.Spec.VidRangeEnd)
+	identifierDesc := describeVlanClaimIdentifier(o)
 	leaseLockerNSN := types.NamespacedName{
-		Name:      convertVlanRangeToLeaseLockName(o.Spec.Site, o.Spec.VidRangeStart, o.Spec.VidRangeEnd),
+		Name:      vlanIdentifierLockName(o.Spec.Site),
 		Namespace: r.OperatorNamespace,
 	}
 
@@ -266,12 +263,12 @@ func (r *VlanClaimReconciler) tryLockOnRange(ctx context.Context, o *netboxv1.Vl
 	locked := ll.TryLock(lockCtx)
 	if !locked {
 		cancel()
-		logger.Info(fmt.Sprintf("failed to lock vid range %s", rangeDesc))
-		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockVidRange", "failed to lock vid range %s",
-			rangeDesc)
-		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, NewDomainError("failed to lock vid range %s", rangeDesc)
+		logger.Info(fmt.Sprintf("failed to lock vlan vids for %s", identifierDesc))
+		r.EventStatusRecorder.Recorder().Eventf(o, corev1.EventTypeWarning, "FailedToLockVidRange", "failed to lock vlan vids for %s",
+			identifierDesc)
+		return nil, nil, ctrl.Result{RequeueAfter: 2 * time.Second}, NewDomainError("failed to lock vlan vids for %s", identifierDesc)
 	}
-	logger.V(4).Info(fmt.Sprintf("successfully locked vid range %s", rangeDesc))
+	logger.V(4).Info(fmt.Sprintf("successfully locked vlan vids for %s", identifierDesc))
 
 	cleanup = func() {
 		cancel()
@@ -280,10 +277,19 @@ func (r *VlanClaimReconciler) tryLockOnRange(ctx context.Context, o *netboxv1.Vl
 	return ll, cleanup, ctrl.Result{}, nil
 }
 
+// describeVlanClaimIdentifier renders the claim's requested VID(s) for
+// log/event messages.
+func describeVlanClaimIdentifier(o *netboxv1.VlanClaim) string {
+	if o.Spec.VidRangeStart == 0 && o.Spec.VidRangeEnd == 0 {
+		return fmt.Sprintf("%s:%d", o.Spec.Site, o.Spec.Vid)
+	}
+	return fmt.Sprintf("%s:%d-%d", o.Spec.Site, o.Spec.VidRangeStart, o.Spec.VidRangeEnd)
+}
+
 func (r *VlanClaimReconciler) restoreOrAssignVlanAndSetCondition(ctx context.Context, o *netboxv1.VlanClaim) (*int32, context.CancelFunc, ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	_, cancelLock, res, err := r.tryLockOnRange(ctx, o)
+	_, cancelLock, res, err := r.tryLockVlanVid(ctx, o)
 	if err != nil {
 		return nil, nil, res, err
 	}
@@ -299,19 +305,21 @@ func (r *VlanClaimReconciler) restoreOrAssignVlanAndSetCondition(ctx context.Con
 		return &vlanModel.Vid, cancelLock, ctrl.Result{}, nil
 	}
 
-	// vlan cannot be restored from netbox
+	// vlan cannot be restored from netbox. We need to resolve the VID range
+	// to check for availability. An explicit vid is treated as a range of one,
+	//  so it goes through the same free/used scan as a range claim.
+	// GetAvailableVlanByClaim errors with ErrVlanRangeExhausted if that single VID
+	// is already taken.
+	vidRangeStart, vidRangeEnd := o.Spec.VidRangeStart, o.Spec.VidRangeEnd
 	if o.Spec.Vid != 0 {
-		// explicit vid, nothing to look up
-		vid := o.Spec.Vid
-		return &vid, cancelLock, ctrl.Result{}, nil
+		vidRangeStart, vidRangeEnd = o.Spec.Vid, o.Spec.Vid
 	}
 
-	// range-based: assign new available vid
 	vlanModel, err = r.NetboxClient.GetAvailableVlanByClaim(
 		ctx,
 		&models.VlanClaim{
-			VidRangeStart: o.Spec.VidRangeStart,
-			VidRangeEnd:   o.Spec.VidRangeEnd,
+			VidRangeStart: vidRangeStart,
+			VidRangeEnd:   vidRangeEnd,
 			Metadata: &models.NetboxMetadata{
 				Site:   o.Spec.Site,
 				Tenant: o.Spec.Tenant,

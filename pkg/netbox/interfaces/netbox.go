@@ -104,6 +104,7 @@ type IpamPrefixesDestroyRequest interface {
 type IpamVlansListRequest interface {
 	Name(name []string) IpamVlansListRequest
 	Site(site []string) IpamVlansListRequest
+	Vid(vid []int32) IpamVlansListRequest
 	Limit(limit int32) IpamVlansListRequest
 	Offset(offset int32) IpamVlansListRequest
 	Execute() (*v4client.PaginatedVLANList, *http.Response, error)

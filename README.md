@@ -97,7 +97,7 @@ The same applies if you use parentPrefixSelector with PrefixClaims. The above ex
 
 NetBox Operator supports managing [VLANs](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md) through two custom resources:
 
-- **Vlan**: Represents a single VLAN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific VLAN (`name`, `vid`, `site`, `tenant`, `status`).
+- **Vlan**: Represents a single VLAN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific VLAN (`vid`, `site`, `tenant`, `status`) using the CR's Kubernetes object name as the NetBox VLAN name.
 - **VlanClaim**: Claims a VID for a VLAN, either an exact `vid` or the next free one from a `vidRangeStart`/`vidRangeEnd` range. Similar to IpAddressClaim, it creates a child Vlan CR with the assigned VID. VID allocation is scoped to `.spec.site` since VLAN IDs are commonly only unique within a site.
 
 ## Example: Claiming a VLAN
