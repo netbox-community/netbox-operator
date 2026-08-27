@@ -18,12 +18,14 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -57,7 +59,16 @@ func (c *NetboxCompositeClient) ReserveOrUpdateVlanGroup(ctx context.Context, vl
 	desiredVlanGroup := v4client.NewVLANGroupRequest(vlanGroup.Name, slugify(vlanGroup.Name))
 
 	if vlanGroup.VidRangeStart != 0 && vlanGroup.VidRangeEnd != 0 {
-		desiredVlanGroup.SetVidRanges([][][]int32{{{vlanGroup.VidRangeStart, vlanGroup.VidRangeEnd}}})
+		// The go-netbox v4 client types VidRanges as [][][]int32, but NetBox's
+		// API actually sends/expects [][]int32 (a list of [lower, upper]
+		// pairs), so using the typed setter produces a payload NetBox rejects.
+		// Set it via AdditionalProperties instead, which is serialized after
+		// (and so overrides) the typed field. See getVlanGroupDecodeBugFallback
+		// for the matching read-side workaround.
+		if desiredVlanGroup.AdditionalProperties == nil {
+			desiredVlanGroup.AdditionalProperties = map[string]interface{}{}
+		}
+		desiredVlanGroup.AdditionalProperties["vid_ranges"] = [][]int32{{vlanGroup.VidRangeStart, vlanGroup.VidRangeEnd}}
 	}
 
 	if vlanGroup.Metadata != nil {
@@ -110,10 +121,83 @@ func (c *NetboxCompositeClient) ReserveOrUpdateVlanGroup(ctx context.Context, vl
 	return resp, false, nil
 }
 
+// vlanGroupFallbackJSON decodes just the fields ReserveOrUpdateVlanGroup and
+// the VlanGroup controller actually read from a NetBox VLAN Group response,
+// using correctly-typed fields (ScopeId as *int32, not the SDK's mis-typed
+// VidRanges). Used by vlanGroupDecodeBugFallback as a workaround for the
+// go-netbox v4 client bug described there.
+type vlanGroupFallbackJSON struct {
+	Id          int32      `json:"id"`
+	Slug        string     `json:"slug"`
+	ScopeId     *int32     `json:"scope_id"`
+	LastUpdated *time.Time `json:"last_updated"`
+}
+
+func (v vlanGroupFallbackJSON) toVLANGroup() v4client.VLANGroup {
+	vg := v4client.VLANGroup{Id: v.Id, Slug: v.Slug}
+	if v.ScopeId != nil {
+		vg.ScopeId = *v4client.NewNullableInt32(v.ScopeId)
+	}
+	if v.LastUpdated != nil {
+		vg.LastUpdated = *v4client.NewNullableTime(v.LastUpdated)
+	}
+	return vg
+}
+
+// vlanGroupDecodeBugFallback recovers from a go-netbox v4 client bug: NetBox
+// returns "vid_ranges" as [][]int32, but the SDK's VLANGroup.VidRanges field
+// is typed as [][][]int32, so decoding any VLAN Group response that has
+// vid_ranges set fails client-side even though the HTTP call succeeded. When
+// that happens this re-decodes the raw response body.
+// Returns ok=false if err isn't this specific situation, in which case the caller
+// should treat err normally.
+func vlanGroupDecodeBugFallback(httpResp *http.Response, err error) (body []byte, ok bool) {
+	if err == nil || httpResp == nil || httpResp.StatusCode >= 300 {
+		return nil, false
+	}
+	apiErr, ok := err.(*v4client.GenericOpenAPIError)
+	if !ok {
+		return nil, false
+	}
+	return apiErr.Body(), true
+}
+
+// getVlanGroup looks up the NetBox VLAN Group matching vlanGroup by its
+// unique (site, name) pair. NetBox only enforces name (and slug) uniqueness
+// within a scope, so name alone isn't enough to identify a single group.
+// When vlanGroup has no site, the result is filtered to groups that also
+// have no scope, since NetBox's site filter has no "scope is unset" query
+// option.
 func (c *NetboxCompositeClient) getVlanGroup(ctx context.Context, vlanGroup *models.VlanGroup) (*v4client.PaginatedVLANGroupList, error) {
-	req := c.clientV4.IpamAPI.IpamVlanGroupsList(ctx).
-		Name([]string{vlanGroup.Name})
+	site := ""
+	if vlanGroup.Metadata != nil {
+		site = vlanGroup.Metadata.Site
+	}
+
+	req := c.clientV4.IpamAPI.IpamVlanGroupsList(ctx).Name([]string{vlanGroup.Name})
+	if site != "" {
+		siteDetails, err := c.getSiteDetails(site)
+		if err != nil {
+			return nil, err
+		}
+		req = req.Site(int32(siteDetails.Id))
+	}
+
 	resp, httpResp, err := req.Execute()
+
+	if rawBody, ok := vlanGroupDecodeBugFallback(httpResp, err); ok {
+		var fallback struct {
+			Count   int32                   `json:"count"`
+			Results []vlanGroupFallbackJSON `json:"results"`
+		}
+		if jsonErr := json.Unmarshal(rawBody, &fallback); jsonErr == nil {
+			results := make([]v4client.VLANGroup, len(fallback.Results))
+			for i, r := range fallback.Results {
+				results[i] = r.toVLANGroup()
+			}
+			resp, err = &v4client.PaginatedVLANGroupList{Count: fallback.Count, Results: results}, nil
+		}
+	}
 
 	var body []byte
 	var readErr error
@@ -140,12 +224,31 @@ func (c *NetboxCompositeClient) getVlanGroup(ctx context.Context, vlanGroup *mod
 		return nil, utils.NetboxError("failed to fetch vlan group details", err)
 	}
 
+	if site == "" {
+		scopeless := make([]v4client.VLANGroup, 0, len(resp.Results))
+		for _, v := range resp.Results {
+			if !v.ScopeId.IsSet() || v.ScopeId.Get() == nil {
+				scopeless = append(scopeless, v)
+			}
+		}
+		resp.Results = scopeless
+		resp.Count = int32(len(scopeless))
+	}
+
 	return resp, nil
 }
 
 func (c *NetboxCompositeClient) createVlanGroup(ctx context.Context, vlanGroup *v4client.VLANGroupRequest) (resp *v4client.VLANGroup, err error) {
 	req := c.clientV4.IpamAPI.IpamVlanGroupsCreate(ctx).VLANGroupRequest(*vlanGroup)
 	resp, httpResp, execErr := req.Execute()
+
+	if rawBody, ok := vlanGroupDecodeBugFallback(httpResp, execErr); ok {
+		var fallback vlanGroupFallbackJSON
+		if jsonErr := json.Unmarshal(rawBody, &fallback); jsonErr == nil {
+			vg := fallback.toVLANGroup()
+			resp, execErr = &vg, nil
+		}
+	}
 
 	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusCreated, "reserve vlan group")
 	if closeFunc != nil {
@@ -161,6 +264,14 @@ func (c *NetboxCompositeClient) createVlanGroup(ctx context.Context, vlanGroup *
 func (c *NetboxCompositeClient) updateVlanGroup(ctx context.Context, vlanGroupId int32, vlanGroup *v4client.VLANGroupRequest) (resp *v4client.VLANGroup, err error) {
 	req := c.clientV4.IpamAPI.IpamVlanGroupsUpdate(ctx, vlanGroupId).VLANGroupRequest(*vlanGroup)
 	resp, httpResp, execErr := req.Execute()
+
+	if rawBody, ok := vlanGroupDecodeBugFallback(httpResp, execErr); ok {
+		var fallback vlanGroupFallbackJSON
+		if jsonErr := json.Unmarshal(rawBody, &fallback); jsonErr == nil {
+			vg := fallback.toVLANGroup()
+			resp, execErr = &vg, nil
+		}
+	}
 
 	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "update vlan group")
 	if closeFunc != nil {

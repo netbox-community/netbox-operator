@@ -126,6 +126,7 @@ type IpamVlansDestroyRequest interface {
 
 type IpamVlanGroupsListRequest interface {
 	Name(name []string) IpamVlanGroupsListRequest
+	Site(site int32) IpamVlanGroupsListRequest
 	Execute() (*v4client.PaginatedVLANGroupList, *http.Response, error)
 }
 

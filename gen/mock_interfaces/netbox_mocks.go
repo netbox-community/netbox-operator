@@ -1207,6 +1207,20 @@ func (mr *MockIpamVlanGroupsListRequestMockRecorder) Name(name any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIpamVlanGroupsListRequest)(nil).Name), name)
 }
 
+// Site mocks base method.
+func (m *MockIpamVlanGroupsListRequest) Site(site int32) interfaces.IpamVlanGroupsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Site", site)
+	ret0, _ := ret[0].(interfaces.IpamVlanGroupsListRequest)
+	return ret0
+}
+
+// Site indicates an expected call of Site.
+func (mr *MockIpamVlanGroupsListRequestMockRecorder) Site(site any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Site", reflect.TypeOf((*MockIpamVlanGroupsListRequest)(nil).Site), site)
+}
+
 // MockIpamVlanGroupsCreateRequest is a mock of IpamVlanGroupsCreateRequest interface.
 type MockIpamVlanGroupsCreateRequest struct {
 	ctrl     *gomock.Controller

@@ -4,7 +4,6 @@ kind: VlanGroup
 metadata:
   name: vlangroup-apply-update
 spec:
-  name: "vlangroup-apply-update"
   tenant: "MY_TENANT_2"
   site: "MY_SITE_2"
   description: "new description"

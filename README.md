@@ -110,7 +110,7 @@ NetBox Operator supports managing [VLANs](https://github.com/netbox-community/ne
 
 Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the VLAN is preserved in NetBox upon CR deletion and can be reclaimed when the VlanClaim is re-created.
 
-A **VlanGroup** resource manages a NetBox VLAN Group (a named container for organizing VLANs, optionally scoped to a Site and constrained to a `vidRangeStart`/`vidRangeEnd`). Unlike `Vlan`, it has no claim counterpart — a VLAN Group is user-named rather than auto-allocated, so there's nothing to claim from a pool.
+A **VlanGroup** resource manages a NetBox VLAN Group (a named container for organizing VLANs, optionally scoped to a Site and constrained to a `vidRangeStart`/`vidRangeEnd`) using the CR's Kubernetes object name as the NetBox VLAN Group name. Unlike `Vlan`, it has no claim counterpart — a VLAN Group is user-named rather than auto-allocated, so there's nothing to claim from a pool.
 
 # Restoration from NetBox
 

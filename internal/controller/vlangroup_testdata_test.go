@@ -53,7 +53,6 @@ func defaultVlanGroupCR(preserveInNetbox bool) *netboxv1.VlanGroup {
 			Namespace: vlanGroupNamespace,
 		},
 		Spec: netboxv1.VlanGroupSpec{
-			Name:             vlanGroupName,
 			CustomFields:     vlanGroupCustomFields,
 			Description:      vlanGroupDescription,
 			PreserveInNetbox: preserveInNetbox,

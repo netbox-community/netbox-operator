@@ -22,7 +22,6 @@ spec:
                 finalizers:
                   - vlangroup.netbox.dev/finalizer
               spec:
-                name: "vlangroup-apply-update"
                 tenant: "MY_TENANT"
                 site: "MY_SITE"
                 description: "some description"
@@ -44,7 +43,6 @@ spec:
               metadata:
                 name: vlangroup-apply-update
               spec:
-                name: "vlangroup-apply-update"
                 tenant: "MY_TENANT_2"
                 site: "MY_SITE_2"
                 description: "new description"

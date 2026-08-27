@@ -204,11 +204,11 @@ func (r *VlanGroupReconciler) updateStatus(ctx context.Context, o *netboxv1.Vlan
 	case o.Status.VlanGroupUrl == "":
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionVlanGroupReadyFalse, corev1.EventTypeWarning, reconcileErr,
-			fmt.Sprintf("name: %s", o.Spec.Name))
+			fmt.Sprintf("name: %s", o.Name))
 	case reconcileErr != nil:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionVlanGroupReadyFalse, corev1.EventTypeWarning, reconcileErr,
-			fmt.Sprintf("name: %s", o.Spec.Name))
+			fmt.Sprintf("name: %s", o.Name))
 	default:
 		r.EventStatusRecorder.Report(ctx, o,
 			netboxv1.ConditionVlanGroupReadyTrue, corev1.EventTypeNormal, nil)
@@ -259,7 +259,7 @@ func (r *VlanGroupReconciler) generateNetboxVlanGroupModelFromVlanGroupSpec(o *n
 	}
 
 	return &models.VlanGroup{
-		Name:          o.Spec.Name,
+		Name:          o.Name,
 		VidRangeStart: o.Spec.VidRangeStart,
 		VidRangeEnd:   o.Spec.VidRangeEnd,
 		Metadata: &models.NetboxMetadata{

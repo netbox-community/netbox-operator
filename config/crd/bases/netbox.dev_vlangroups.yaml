@@ -17,9 +17,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.name
-      name: Name
-      type: string
     - jsonPath: .spec.site
       name: Site
       type: string
@@ -35,8 +32,10 @@ spec:
     name: v1
     schema:
       openAPIV3Schema:
-        description: 'VlanGroup allows to create a NetBox VLAN Group. More info about
-          NetBox VLAN Groups: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlangroup.md'
+        description: |-
+          VlanGroup allows to create a NetBox VLAN Group. The Kubernetes object name
+          (metadata.name) is used as the VLAN Group's name in NetBox. More info
+          about NetBox VLAN Groups: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlangroup.md
         properties:
           apiVersion:
             description: |-
@@ -76,14 +75,6 @@ spec:
                   Description that should be added to the resource in NetBox
                   Field is mutable, not required
                 type: string
-              name:
-                description: |-
-                  The name of the VLAN Group in NetBox
-                  Field is immutable, required
-                type: string
-                x-kubernetes-validations:
-                - message: Field 'name' is immutable
-                  rule: self == oldSelf
               preserveInNetbox:
                 description: |-
                   Defines whether the Resource should be preserved in NetBox when the
@@ -123,8 +114,6 @@ spec:
                 maximum: 4094
                 minimum: 1
                 type: integer
-            required:
-            - name
             type: object
             x-kubernetes-validations:
             - message: Fields 'vidRangeStart' and 'vidRangeEnd' must both be set,

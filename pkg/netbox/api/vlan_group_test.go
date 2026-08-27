@@ -77,6 +77,7 @@ func TestVlanGroup(t *testing.T) {
 
 		mockIpamAPI.EXPECT().IpamVlanGroupsList(gomock.Any()).Return(mockListRequest)
 		mockListRequest.EXPECT().Name([]string{name}).Return(mockListRequest)
+		mockListRequest.EXPECT().Site(int32(siteId)).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANGroupList{Results: []v4client.VLANGroup{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockIpamAPI.EXPECT().IpamVlanGroupsCreate(gomock.Any()).Return(mockCreateRequest)

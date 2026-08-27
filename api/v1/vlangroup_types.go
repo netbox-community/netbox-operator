@@ -23,12 +23,6 @@ import (
 // VlanGroupSpec defines the desired state of VlanGroup
 // +kubebuilder:validation:XValidation:rule="(has(self.vidRangeStart) && has(self.vidRangeEnd)) || (!has(self.vidRangeStart) && !has(self.vidRangeEnd))",message="Fields 'vidRangeStart' and 'vidRangeEnd' must both be set, or neither"
 type VlanGroupSpec struct {
-	// The name of the VLAN Group in NetBox
-	// Field is immutable, required
-	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'name' is immutable"
-	Name string `json:"name"`
-
 	// The NetBox Site this VLAN Group is scoped to. Use the `name` value instead of the `slug` value
 	// Field is mutable, not required
 	Site string `json:"site,omitempty"`
@@ -99,14 +93,15 @@ type VlanGroupStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
-//+kubebuilder:printcolumn:name="Name",type=string,JSONPath=`.spec.name`
 //+kubebuilder:printcolumn:name="Site",type=string,JSONPath=`.spec.site`
 //+kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 //+kubebuilder:printcolumn:name="ID",type=string,JSONPath=`.status.id`
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 //+kubebuilder:resource:shortName=vlng
 
-// VlanGroup allows to create a NetBox VLAN Group. More info about NetBox VLAN Groups: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlangroup.md
+// VlanGroup allows to create a NetBox VLAN Group. The Kubernetes object name
+// (metadata.name) is used as the VLAN Group's name in NetBox. More info
+// about NetBox VLAN Groups: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlangroup.md
 type VlanGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -267,6 +267,11 @@ func (a *ipamVlanGroupsListRequestAdapter) Name(name []string) interfaces.IpamVl
 	return a
 }
 
+func (a *ipamVlanGroupsListRequestAdapter) Site(site int32) interfaces.IpamVlanGroupsListRequest {
+	a.req = a.req.Site(site)
+	return a
+}
+
 func (a *ipamVlanGroupsListRequestAdapter) Execute() (*v4client.PaginatedVLANGroupList, *http.Response, error) {
 	return a.req.Execute()
 }
