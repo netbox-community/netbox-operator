@@ -1,0 +1,144 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-asnrangeexhausted
+  annotations:
+    description: Tests if creation fails in case the parent ASN Range is exhausted
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_asnclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-asnrangeexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                parentAsnRange: "E2E Test ASN Range Exhausted"
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                asn: 65300
+                asnName: asnclaim-asnrangeexhausted-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-asnrangeexhausted-1
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: AsnClaim
+                    name: asnclaim-asnrangeexhausted-1
+              spec:
+                comments: your comments
+                description: some description
+                asn: 65300
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_asnclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-asnrangeexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                parentAsnRange: "E2E Test ASN Range Exhausted"
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                asn: 65301
+                asnName: asnclaim-asnrangeexhausted-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-asnrangeexhausted-2
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: AsnClaim
+                    name: asnclaim-asnrangeexhausted-2
+              spec:
+                comments: your comments
+                description: some description
+                asn: 65301
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_asnclaim_3.yaml
+    - name: Check CR 3 spec and status and verify it fails
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-asnrangeexhausted-3
+              spec:
+                comments: your comments
+                description: some description
+                parentAsnRange: "E2E Test ASN Range Exhausted"
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: AsnCRNotCreated
+              source:
+                component: asn-claim-controller
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: AsnClaim
+                name: asnclaim-asnrangeexhausted-3
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-asnrangeexhausted-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=asnclaim-asnrangeexhausted-2 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=asnclaim-asnrangeexhausted-3 -n $NAMESPACE

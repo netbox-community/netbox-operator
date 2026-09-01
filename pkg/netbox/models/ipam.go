@@ -71,3 +71,14 @@ type IpRangeClaim struct {
 	Size         int             `json:"size,omitempty"`
 	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
 }
+
+type ASN struct {
+	Asn      int64           `json:"asn,omitempty"`
+	Id       int64           `json:"id,omitempty"`
+	Metadata *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type ASNClaim struct {
+	ParentAsnRange string          `json:"parentAsnRange,omitempty"`
+	Metadata       *NetboxMetadata `json:"metadata,omitempty"`
+}

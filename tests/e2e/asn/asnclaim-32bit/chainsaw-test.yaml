@@ -1,0 +1,68 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-32bit
+  annotations:
+    description: Tests that a 4-byte ASN above the 2^31 boundary can be claimed and reconciled
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_asnclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-32bit
+              spec:
+                comments: your comments
+                description: some description
+                parentAsnRange: "E2E Test ASN Range 32bit"
+                preserveInNetbox: false
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                asn: 4200000000
+                asnName: asnclaim-32bit
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-32bit
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: AsnClaim
+                    name: asnclaim-32bit
+              spec:
+                comments: your comments
+                description: some description
+                asn: 4200000000
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Delete CR
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              name: asnclaim-32bit
+    - name: Cleanup events
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-32bit -n $NAMESPACE
