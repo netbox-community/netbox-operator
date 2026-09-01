@@ -255,6 +255,14 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					return ctrl.Result{}, NewDomainError("parent prefix exhausted, will restart the parent prefix selection process")
 				}
 
+				if errors.Is(err, api.ErrNoPrefixMatchsSizeCriteria) && len(o.Spec.ParentPrefixSelector) > 0 {
+					// The selected parent prefix no longer has an available child prefix matching the
+					// requested size (e.g. its free space was consumed by another claim between
+					// selection and allocation). Reset the selection so a new candidate is chosen.
+					o.Status.SelectedParentPrefix = ""
+					return ctrl.Result{}, NewDomainError("selected parent prefix no longer matches size criteria, will restart the parent prefix selection process")
+				}
+
 				return ctrl.Result{}, NewDomainError("%w", err)
 			}
 			logger.V(4).Info(fmt.Sprintf("prefix is not reserved in netbox, assigned new prefix: %s", prefixModel.Prefix))
