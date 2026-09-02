@@ -41,6 +41,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ctx context.Context, ip
 		Address:     &ipAddress.IpAddress,
 		Description: TruncateDescription(""),
 		Status:      "active",
+		Vrf:         ipAddress.VrfId,
 	}
 
 	if ipAddress.Metadata != nil {
@@ -64,6 +65,13 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ctx context.Context, ip
 	}
 
 	ipToUpdate := responseIpAddress.Payload.Results[0]
+
+	// preserve the existing NetBox VRF on update when the caller didn't resolve
+	// a fresh one (e.g. IpAddress reconciled outside the IpAddressClaim flow),
+	// since this is a full PUT and would otherwise null out VRF
+	if desiredIPAddress.Vrf == nil && ipToUpdate.Vrf != nil {
+		desiredIPAddress.Vrf = &ipToUpdate.Vrf.ID
+	}
 
 	if ipToUpdate.LastUpdated.IsZero() {
 		return nil, false, fmt.Errorf("last updated field is not set in Netbox for ip address %s", ipAddress.IpAddress)

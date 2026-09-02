@@ -396,6 +396,80 @@ func TestIPAddress(t *testing.T) {
 		assert.Equal(t, expectedIPAddress().LastUpdated, result.LastUpdated)
 	})
 
+	t.Run("create sets vrf from resolved VrfId", func(t *testing.T) {
+		vrfId := int64(11)
+
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{},
+			},
+		}
+
+		expectedWritable := &netboxModels.WritableIPAddress{
+			Address:     &ipAddress,
+			Description: TruncateDescription(""),
+			Status:      "active",
+			Vrf:         &vrfId,
+		}
+		inputCreate := ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(expectedWritable)
+
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil)
+		mockIPAddress.EXPECT().IpamIPAddressesCreate(inputCreate, nil).Return(&ipam.IpamIPAddressesCreateCreated{Payload: expectedIPAddress()}, nil)
+
+		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
+		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
+
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{
+			IpAddress: ipAddress,
+			VrfId:     &vrfId,
+		}, &netboxv1.IpAddress{})
+
+		AssertNil(t, err)
+		assert.NotNil(t, result)
+		assert.False(t, isUpToDate)
+	})
+
+	t.Run("update preserves existing vrf when VrfId is not resolved", func(t *testing.T) {
+		existingVrfId := int64(12)
+
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{
+					{
+						ID:          expectedIPAddress().ID,
+						Address:     expectedIPAddress().Address,
+						LastUpdated: expectedIPAddress().LastUpdated,
+						Vrf:         &netboxModels.NestedVRF{ID: existingVrfId},
+					},
+				},
+			},
+		}
+
+		expectedWritable := &netboxModels.WritableIPAddress{
+			Address:     &ipAddress,
+			Description: TruncateDescription(""),
+			Status:      "active",
+			Vrf:         &existingVrfId,
+		}
+		inputUpdate := ipam.NewIpamIPAddressesUpdateParams().WithDefaults().WithData(expectedWritable).WithID(expectedIPAddress().ID)
+
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil)
+		mockIPAddress.EXPECT().IpamIPAddressesUpdate(inputUpdate, nil).Return(&ipam.IpamIPAddressesUpdateOK{Payload: expectedIPAddress()}, nil)
+
+		clientV3 := &NetboxClientV3{Ipam: mockIPAddress}
+		compositeClient := &NetboxCompositeClient{clientV3: clientV3}
+
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(), &models.IPAddress{
+			IpAddress: ipAddress,
+		}, &netboxv1.IpAddress{})
+
+		AssertNil(t, err)
+		assert.NotNil(t, result)
+		assert.False(t, isUpToDate)
+	})
+
 	t.Run("skip update when LastUpdated matches and Condition is Ready and Generation matches (no hash)", func(t *testing.T) {
 		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
 		outputList := &ipam.IpamIPAddressesListOK{

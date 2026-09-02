@@ -66,8 +66,14 @@ func (c *NetboxCompositeClient) RestoreExistingIpByHash(hash string) (*models.IP
 		return nil, errors.New("ipaddress in netbox is nil")
 	}
 
+	var vrfId *int64
+	if res.Vrf != nil {
+		vrfId = &res.Vrf.ID
+	}
+
 	return &models.IPAddress{
 		IpAddress: *res.Address,
+		VrfId:     vrfId,
 	}, nil
 }
 
@@ -98,13 +104,21 @@ func (c *NetboxCompositeClient) GetAvailableIpAddressByClaim(ctx context.Context
 		return nil, err
 	}
 
-	ipAddress, err := SetIpAddressMask(responseAvailableIPs.Payload[0].Address, responseAvailableIPs.Payload[0].Family)
+	availableIp := responseAvailableIPs.Payload[0]
+
+	ipAddress, err := SetIpAddressMask(availableIp.Address, availableIp.Family)
 	if err != nil {
 		return nil, err
 	}
 
+	var vrfId *int64
+	if availableIp.Vrf != nil {
+		vrfId = &availableIp.Vrf.ID
+	}
+
 	return &models.IPAddress{
 		IpAddress: ipAddress,
+		VrfId:     vrfId,
 	}, nil
 }
 
