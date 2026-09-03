@@ -1,0 +1,103 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: l2vpnclaim-range-exhausted
+  annotations:
+    description: Tests if creation fails once the identifier range is exhausted
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-range-exhausted-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                identifier: 5400001
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                name: l2vpnclaim-range-exhausted-1
+                finalizers:
+                  - l2vpn.netbox.dev/finalizer
+              spec:
+                identifier: 5400001
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-range-exhausted-2
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                identifier: 5400002
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                name: l2vpnclaim-range-exhausted-2
+                finalizers:
+                  - l2vpn.netbox.dev/finalizer
+              spec:
+                identifier: 5400002
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim_3.yaml
+    - name: Check CR 3 spec and status and verify it fails
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-range-exhausted-3
+              status:
+                (conditions[?type == 'L2VPNAssigned']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: L2VPNCRNotCreated
+              source:
+                component: l2vpn-claim-controller
+              message: "Failed to fetch new identifier from NetBox: l2vpn identifier range exhausted"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: L2VPNClaim
+                name: l2vpnclaim-range-exhausted-3
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same identifier range
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=l2vpnclaim-range-exhausted-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=l2vpnclaim-range-exhausted-2 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=l2vpnclaim-range-exhausted-3 -n $NAMESPACE
