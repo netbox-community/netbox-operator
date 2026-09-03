@@ -222,7 +222,7 @@ func TestL2VPN(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{VpnAPI: mockVpnAPI}}
 
-		err := compositeClient.DeleteL2VPN(context.TODO(), L2VPNId)
+		err := compositeClient.DeleteL2VPN(context.TODO(), int64(L2VPNId))
 		AssertNil(t, err)
 	})
 
@@ -235,7 +235,7 @@ func TestL2VPN(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{VpnAPI: mockVpnAPI}}
 
-		err := compositeClient.DeleteL2VPN(context.TODO(), L2VPNId)
+		err := compositeClient.DeleteL2VPN(context.TODO(), int64(L2VPNId))
 		AssertNil(t, err)
 	})
 
@@ -248,7 +248,7 @@ func TestL2VPN(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{VpnAPI: mockVpnAPI}}
 
-		err := compositeClient.DeleteL2VPN(context.TODO(), L2VPNId)
+		err := compositeClient.DeleteL2VPN(context.TODO(), int64(L2VPNId))
 		AssertError(t, err, "failed to delete l2vpn from netbox: status 400, body: ")
 	})
 }

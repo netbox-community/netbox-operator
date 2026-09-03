@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -187,8 +188,12 @@ func (c *NetboxCompositeClient) updateL2VPN(ctx context.Context, l2vpnId int32, 
 	return resp, nil
 }
 
-func (c *NetboxCompositeClient) DeleteL2VPN(ctx context.Context, l2vpnId int32) (err error) {
-	req := c.clientV4.VpnAPI.VpnL2vpnsDestroy(ctx, l2vpnId)
+func (c *NetboxCompositeClient) DeleteL2VPN(ctx context.Context, l2vpnId int64) (err error) {
+	if l2vpnId > math.MaxInt32 {
+		return fmt.Errorf("deletion of l2vpns with id's larger than %d is not supported", math.MaxInt32)
+	}
+
+	req := c.clientV4.VpnAPI.VpnL2vpnsDestroy(ctx, int32(l2vpnId))
 	httpResp, execErr := req.Execute()
 
 	if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {

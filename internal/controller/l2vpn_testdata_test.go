@@ -95,6 +95,9 @@ func defaultL2VPNCreatedByClaim(preserveInNetbox bool) *netboxv1.L2VPN {
 	}
 }
 
+// defaultL2VPNClaimCRWithIdentifier returns a claim for a single exact VNI,
+// expressed as a range of one (identifierRangeStart == identifierRangeEnd)
+// since L2VPNClaimSpec no longer has a separate explicit identifier field.
 func defaultL2VPNClaimCRWithIdentifier() *netboxv1.L2VPNClaim {
 	return &netboxv1.L2VPNClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -102,12 +105,13 @@ func defaultL2VPNClaimCRWithIdentifier() *netboxv1.L2VPNClaim {
 			Namespace: l2vpnNamespace,
 		},
 		Spec: netboxv1.L2VPNClaimSpec{
-			Type:             l2vpnType,
-			Identifier:       l2vpnIdentifier,
-			CustomFields:     l2vpnCustomFields,
-			Comments:         l2vpnComments,
-			Description:      l2vpnDescription,
-			PreserveInNetbox: false,
+			Type:                 l2vpnType,
+			IdentifierRangeStart: l2vpnIdentifier,
+			IdentifierRangeEnd:   l2vpnIdentifier,
+			CustomFields:         l2vpnCustomFields,
+			Comments:             l2vpnComments,
+			Description:          l2vpnDescription,
+			PreserveInNetbox:     false,
 		},
 	}
 }

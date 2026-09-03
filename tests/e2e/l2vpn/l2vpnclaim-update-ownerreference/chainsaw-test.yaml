@@ -38,7 +38,8 @@ spec:
                 comments: your comments
                 description: some description
                 type: vxlan-evpn
-                identifier: 5500001
+                identifierRangeStart: 5500001
+                identifierRangeEnd: 5500001
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
@@ -62,7 +63,7 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: af1597bb78b62cddb76419182d41e2e32f973111
+                  netboxOperatorRestorationHash: 424a2b761b989f7077fc289b3b77459adbe5cf50
                 description: some description
                 identifier: 5500001
                 tenant: MY_TENANT

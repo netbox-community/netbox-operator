@@ -79,7 +79,7 @@ done
 NetBox Operator supports managing [L2VPNs](https://github.com/netbox-community/netbox/blob/main/docs/models/vpn/l2vpn.md) (Layer 2 VPNs, e.g. to track VXLAN VNIs) through two custom resources:
 
 - **L2VPN**: Represents a single L2VPN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific L2VPN (`type`, `identifier`) using the CR's Kubernetes object name as the NetBox L2VPN name.
-- **L2VPNClaim**: Claims a VNI for an L2VPN, either an exact `identifier` or the next free one from an `identifierRangeStart`/`identifierRangeEnd` range. Similar to IpAddressClaim, it creates a child L2VPN CR with the assigned identifier.
+- **L2VPNClaim**: Claims a VNI for an L2VPN from an `identifierRangeStart`/`identifierRangeEnd` range. Set both to the same value to claim an exact VNI. Similar to IpAddressClaim, it creates a child L2VPN CR with the assigned identifier.
 
 Only VXLAN-based L2VPN types (`vxlan`, `vxlan-evpn`) are supported, since those are the ones that carry a VNI (4000-16777215) in their identifier.
 
@@ -89,7 +89,7 @@ Only VXLAN-based L2VPN types (`vxlan`, `vxlan-evpn`) are supported, since those 
 2. Wait for ready condition: `kubectl wait l2vpnclaim l2vpnclaim-sample --for=condition=Ready`
 3. List L2VPNClaim and L2VPN resources: `kubectl get l2vc,l2v`
 
-`identifier` and `identifierRangeStart`/`identifierRangeEnd` are mutually exclusive on `L2VPNClaim` — set exactly one form. When a range is used, the operator picks the next free VNI in NetBox from that range.
+`identifierRangeStart` and `identifierRangeEnd` are both required on `L2VPNClaim`; set them to the same value for an exact VNI, or a wider range to let the operator pick the next free VNI in NetBox from that range.
 
 Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the L2VPN is preserved in NetBox upon CR deletion and can be reclaimed when the L2VPNClaim is re-created.
 

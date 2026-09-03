@@ -64,10 +64,12 @@ func (c *NetboxCompositeClient) forEachL2VPN(ctx context.Context, visit func(l2v
 			}
 		}
 
-		offset += int32(len(resp.Results))
-		if offset >= resp.Count || len(resp.Results) == 0 {
+		// A page shorter than requested means there's nothing left to fetch
+		if int32(len(resp.Results)) < l2vpnListPageSize {
 			return nil
 		}
+
+		offset += int32(len(resp.Results))
 	}
 }
 
@@ -78,18 +80,22 @@ func (c *NetboxCompositeClient) RestoreExistingL2VPNByHash(ctx context.Context, 
 
 	var found *v4client.L2VPN
 	err := c.forEachL2VPN(ctx, func(l2vpn *v4client.L2VPN) bool {
-		if l2vpn.CustomFields == nil {
+		if len(l2vpn.CustomFields) == 0 {
 			return true
 		}
+
 		if v, ok := l2vpn.CustomFields[hashKey]; ok && v == hash {
 			found = l2vpn
 			return false
 		}
+
 		return true
 	})
+
 	if err != nil {
 		return nil, err
 	}
+
 	if found == nil {
 		return nil, nil
 	}

@@ -84,34 +84,27 @@ spec:
                   Description that should be added to the resource in NetBox
                   Field is mutable, not required
                 type: string
-              identifier:
+              identifierRangeEnd:
                 description: |-
-                  The exact VNI to claim. Mutually exclusive with identifierRangeStart/identifierRangeEnd.
-                  Field is immutable, not required, range from 4000-16777215
+                  The upper bound (inclusive) of the range to pick a free VNI from. Set
+                  both this and identifierRangeStart to the same value to claim an exact
+                  VNI.
+                  Field is immutable, required
                 format: int64
                 maximum: 16777215
                 minimum: 4000
-                type: integer
-                x-kubernetes-validations:
-                - message: Field 'identifier' is immutable
-                  rule: self == oldSelf
-              identifierRangeEnd:
-                description: |-
-                  The upper bound (inclusive) of the range to pick a free VNI from.
-                  Mutually exclusive with identifier, required together with identifierRangeStart.
-                  Field is immutable
-                format: int64
-                maximum: 16777215
                 type: integer
                 x-kubernetes-validations:
                 - message: Field 'identifierRangeEnd' is immutable
                   rule: self == oldSelf
               identifierRangeStart:
                 description: |-
-                  The lower bound (inclusive) of the range to pick a free VNI from.
-                  Mutually exclusive with identifier, required together with identifierRangeEnd.
-                  Field is immutable
+                  The lower bound (inclusive) of the range to pick a free VNI from. Set
+                  both this and identifierRangeEnd to the same value to claim an exact
+                  VNI.
+                  Field is immutable, required
                 format: int64
+                maximum: 16777215
                 minimum: 4000
                 type: integer
                 x-kubernetes-validations:
@@ -152,13 +145,10 @@ spec:
                 - message: Field 'type' is immutable
                   rule: self == oldSelf
             required:
+            - identifierRangeEnd
+            - identifierRangeStart
             - type
             type: object
-            x-kubernetes-validations:
-            - message: Exactly one of 'identifier' or ('identifierRangeStart' and
-                'identifierRangeEnd') must be set
-              rule: (has(self.identifier) && !has(self.identifierRangeStart) && !has(self.identifierRangeEnd))
-                || (!has(self.identifier) && has(self.identifierRangeStart) && has(self.identifierRangeEnd))
           status:
             description: L2VPNClaimStatus defines the observed state of L2VPNClaim
             properties:

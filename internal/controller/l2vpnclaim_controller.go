@@ -277,12 +277,9 @@ func (r *L2VPNClaimReconciler) tryLockL2VPNIdentifier(ctx context.Context, o *ne
 	return ll, cleanup, ctrl.Result{}, nil
 }
 
-// describeL2VPNClaimIdentifier renders the claim's requested identifier(s)
+// describeL2VPNClaimIdentifier renders the claim's requested identifier range
 // for log/event messages.
 func describeL2VPNClaimIdentifier(o *netboxv1.L2VPNClaim) string {
-	if o.Spec.IdentifierRangeStart == 0 && o.Spec.IdentifierRangeEnd == 0 {
-		return fmt.Sprintf("%s:%d", o.Spec.Type, o.Spec.Identifier)
-	}
 	return fmt.Sprintf("%s:%d-%d", o.Spec.Type, o.Spec.IdentifierRangeStart, o.Spec.IdentifierRangeEnd)
 }
 
@@ -305,14 +302,11 @@ func (r *L2VPNClaimReconciler) restoreOrAssignL2VPNAndSetCondition(ctx context.C
 		return &l2vpnModel.Identifier, cancelLock, ctrl.Result{}, nil
 	}
 
-	// l2vpn cannot be restored from netbox
-	if o.Spec.Identifier != 0 {
-		// explicit identifier, nothing to look up
-		identifier := o.Spec.Identifier
-		return &identifier, cancelLock, ctrl.Result{}, nil
-	}
-
-	// range-based: assign new available identifier
+	// If l2vpn cannot be restored from netbox, assign a new available
+	// identifier from the requested range. An exact VNI claim is expressed
+	// as a range of one (identifierRangeStart == identifierRangeEnd), which
+	// GetAvailableL2VPNIdentifierByClaim checks for availability the same
+	// way as any other range.
 	l2vpnModel, err = r.NetboxClient.GetAvailableL2VPNIdentifierByClaim(
 		ctx,
 		&models.L2VPNClaim{

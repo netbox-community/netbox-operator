@@ -21,7 +21,6 @@ import (
 )
 
 // L2VPNClaimSpec defines the desired state of L2VPNClaim
-// +kubebuilder:validation:XValidation:rule="(has(self.identifier) && !has(self.identifierRangeStart) && !has(self.identifierRangeEnd)) || (!has(self.identifier) && has(self.identifierRangeStart) && has(self.identifierRangeEnd))",message="Exactly one of 'identifier' or ('identifierRangeStart' and 'identifierRangeEnd') must be set"
 type L2VPNClaimSpec struct {
 	// The NetBox L2VPN type. Only VXLAN-based types are supported, since those
 	// are the ones that carry a VNI in their identifier.
@@ -31,26 +30,25 @@ type L2VPNClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'type' is immutable"
 	Type string `json:"type"`
 
-	// The exact VNI to claim. Mutually exclusive with identifierRangeStart/identifierRangeEnd.
-	// Field is immutable, not required, range from 4000-16777215
+	// The lower bound (inclusive) of the range to pick a free VNI from. Set
+	// both this and identifierRangeEnd to the same value to claim an exact
+	// VNI.
+	// Field is immutable, required
+	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=4000
 	//+kubebuilder:validation:Maximum=16777215
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'identifier' is immutable"
-	Identifier int64 `json:"identifier,omitempty"`
-
-	// The lower bound (inclusive) of the range to pick a free VNI from.
-	// Mutually exclusive with identifier, required together with identifierRangeEnd.
-	// Field is immutable
-	//+kubebuilder:validation:Minimum=4000
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'identifierRangeStart' is immutable"
-	IdentifierRangeStart int64 `json:"identifierRangeStart,omitempty"`
+	IdentifierRangeStart int64 `json:"identifierRangeStart"`
 
-	// The upper bound (inclusive) of the range to pick a free VNI from.
-	// Mutually exclusive with identifier, required together with identifierRangeStart.
-	// Field is immutable
+	// The upper bound (inclusive) of the range to pick a free VNI from. Set
+	// both this and identifierRangeStart to the same value to claim an exact
+	// VNI.
+	// Field is immutable, required
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Minimum=4000
 	//+kubebuilder:validation:Maximum=16777215
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'identifierRangeEnd' is immutable"
-	IdentifierRangeEnd int64 `json:"identifierRangeEnd,omitempty"`
+	IdentifierRangeEnd int64 `json:"identifierRangeEnd"`
 
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	// Field is immutable, not required

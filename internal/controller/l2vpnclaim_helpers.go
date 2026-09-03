@@ -72,11 +72,10 @@ func generateL2VPNRestorationHash(claim *netboxv1.L2VPNClaim) string {
 		Name:                 claim.Name,
 		Type:                 claim.Spec.Type,
 		Tenant:               claim.Spec.Tenant,
-		Identifier:           fmt.Sprintf("%d", claim.Spec.Identifier),
 		IdentifierRangeStart: fmt.Sprintf("%d", claim.Spec.IdentifierRangeStart),
 		IdentifierRangeEnd:   fmt.Sprintf("%d", claim.Spec.IdentifierRangeEnd),
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.Type+rd.Tenant+rd.Identifier+rd.IdentifierRangeStart+rd.IdentifierRangeEnd)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.Type+rd.Tenant+rd.IdentifierRangeStart+rd.IdentifierRangeEnd)))
 }
 
 type L2VPNClaimRestorationData struct {
@@ -85,7 +84,6 @@ type L2VPNClaimRestorationData struct {
 	Name                 string
 	Type                 string
 	Tenant               string
-	Identifier           string
 	IdentifierRangeStart string
 	IdentifierRangeEnd   string
 }
@@ -96,6 +94,6 @@ type L2VPNClaimRestorationData struct {
 // GetAvailableL2VPNIdentifierByClaim, which scans for used identifiers
 // across all types), and ranges from different claims may overlap, so a
 // single fixed lock name is used rather than one keyed by type/range: any
-// two claims — range-based or explicit-identifier — must serialize against
-// each other to avoid assigning the same VNI twice.
+// two claims must serialize against each other to avoid assigning the same
+// VNI twice.
 const l2vpnIdentifierLockName = "l2vpn-identifier-pool"

@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -98,10 +97,7 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		}
 
 		if !o.Spec.PreserveInNetbox {
-			if o.Status.L2VPNId > math.MaxInt32 {
-				return ctrl.Result{}, fmt.Errorf("reconciliation of l2vpns with id's larger than 2147483647 is not supported")
-			}
-			if err := r.NetboxClient.DeleteL2VPN(ctx, int32(o.Status.L2VPNId)); err != nil {
+			if err := r.NetboxClient.DeleteL2VPN(ctx, o.Status.L2VPNId); err != nil {
 				return ctrl.Result{}, NewDomainError("failed to delete l2vpn in netbox: %w", err)
 			}
 		}
@@ -334,6 +330,10 @@ func (r *L2VPNReconciler) generateNetboxL2VPNModelFromL2VPNSpec(o *netboxv1.L2VP
 // NetBox reservation stays serialized against concurrent claims for the
 // duration of the create.
 func (r *L2VPNReconciler) getLeaseLockerNSNandOwner(ctx context.Context, o *netboxv1.L2VPN) (nsn types.NamespacedName, owner string, identifierDesc string, err error) {
+	if len(o.OwnerReferences) == 0 {
+		return types.NamespacedName{}, "", "", fmt.Errorf("L2VPN %s/%s has no owner references", o.Namespace, o.Name)
+	}
+
 	orLookupKey := types.NamespacedName{
 		Name:      o.ObjectMeta.OwnerReferences[0].Name,
 		Namespace: o.Namespace,

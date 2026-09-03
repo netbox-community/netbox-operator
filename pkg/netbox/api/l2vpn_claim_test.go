@@ -94,6 +94,11 @@ func TestRestoreExistingL2VPNByHash(t *testing.T) {
 		mockListRequestPage1 := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)
 		mockListRequestPage2 := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)
 
+		page1 := make([]v4client.L2VPN, l2vpnListPageSize)
+		for i := range page1 {
+			page1[i] = l2vpnWithIdentifier(int64(i))
+		}
+
 		match := l2vpnWithIdentifier(9999)
 		match.CustomFields = map[string]interface{}{"netboxOperatorRestorationHash": "page2-hash"}
 
@@ -101,15 +106,15 @@ func TestRestoreExistingL2VPNByHash(t *testing.T) {
 		mockListRequestPage1.EXPECT().Limit(l2vpnListPageSize).Return(mockListRequestPage1)
 		mockListRequestPage1.EXPECT().Offset(int32(0)).Return(mockListRequestPage1)
 		mockListRequestPage1.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{
-			Count:   2,
-			Results: []v4client.L2VPN{l2vpnWithIdentifier(1)},
+			Count:   l2vpnListPageSize + 1,
+			Results: page1,
 		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		mockVpnAPI.EXPECT().VpnL2vpnsList(gomock.Any()).Return(mockListRequestPage2)
 		mockListRequestPage2.EXPECT().Limit(l2vpnListPageSize).Return(mockListRequestPage2)
-		mockListRequestPage2.EXPECT().Offset(int32(1)).Return(mockListRequestPage2)
+		mockListRequestPage2.EXPECT().Offset(l2vpnListPageSize).Return(mockListRequestPage2)
 		mockListRequestPage2.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{
-			Count:   2,
+			Count:   l2vpnListPageSize + 1,
 			Results: []v4client.L2VPN{match},
 		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 

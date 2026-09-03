@@ -24,7 +24,8 @@ spec:
                 description: "some description"
                 comments: "your comments"
                 type: "vxlan-evpn"
-                identifier: 5100001
+                identifierRangeStart: 5100001
+                identifierRangeEnd: 5100001
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
@@ -71,7 +72,8 @@ spec:
                 description: "new description"
                 comments: "new comments"
                 type: "vxlan-evpn"
-                identifier: 5100001
+                identifierRangeStart: 5100001
+                identifierRangeEnd: 5100001
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'

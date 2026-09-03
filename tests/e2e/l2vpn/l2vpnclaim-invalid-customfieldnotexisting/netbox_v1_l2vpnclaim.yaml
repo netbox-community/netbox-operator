@@ -9,6 +9,7 @@ spec:
   comments: "your comments"
   preserveInNetbox: false
   type: "vxlan-evpn"
-  identifier: 5700001
+  identifierRangeStart: 5700001
+  identifierRangeEnd: 5700001
   customFields:
     justmade: "thisup"
