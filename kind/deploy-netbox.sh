@@ -149,7 +149,6 @@ if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
 fi
 
 # Install NetBox
-# --force-conflicts: override fields taken over by kubectl (server-side apply) on re-runs
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
