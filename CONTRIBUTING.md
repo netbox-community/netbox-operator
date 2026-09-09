@@ -43,7 +43,7 @@ Note: This requires a running NetBox instance that you can use (e.g. <https://de
 - Prepare NetBox (based on the demo NetBox instance):
   - Open <https://demo.netbox.dev/plugins/demo/login/> and create any user
   - Open <https://demo.netbox.dev/user/api-tokens/> and create a token "0123456789abcdef0123456789abcdef01234567" with default settings
-  - Open <https://demo.netbox.dev/extras/custom-fields/add/> and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address" and "IPAM > Prefix"
+  - Open <https://demo.netbox.dev/extras/custom-fields/add/> and create a custom field called "netboxOperatorRestorationHash" for Object types "IPAM > IP Address", "IPAM > Prefix" and "IPAM > VLAN"
 - Open a new terminal window and export the following environment variables:
   ```bash
   export NETBOX_HOST="demo.netbox.dev"
@@ -57,7 +57,7 @@ Note: This requires a running NetBox instance that you can use (e.g. <https://de
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, Vlan and VlanClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 

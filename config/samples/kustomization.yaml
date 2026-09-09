@@ -9,4 +9,7 @@ resources:
   - netbox_v1_prefixclaim_parentprefixselector.yaml
   - netbox_v1_iprangeclaim.yaml
   - netbox_v1_iprange.yaml
+  - netbox_v1_vlanclaim.yaml
+  - netbox_v1_vlanclaim_range.yaml
+  - netbox_v1_vlan.yaml
   # +kubebuilder:scaffold:manifestskustomizesamples

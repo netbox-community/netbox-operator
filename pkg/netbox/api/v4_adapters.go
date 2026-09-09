@@ -170,6 +170,93 @@ func (a *ipamV4APIAdapter) IpamPrefixesDestroy(ctx context.Context, id int32) in
 	return &ipamPrefixesDestroyRequestAdapter{req: a.api.IpamPrefixesDestroy(ctx, id)}
 }
 
+// ipamVlansListRequestAdapter adapts the v4 list request to the interface
+type ipamVlansListRequestAdapter struct {
+	req v4client.ApiIpamVlansListRequest
+}
+
+func (a *ipamVlansListRequestAdapter) Name(name []string) interfaces.IpamVlansListRequest {
+	a.req = a.req.Name(name)
+	return a
+}
+
+func (a *ipamVlansListRequestAdapter) Site(site []string) interfaces.IpamVlansListRequest {
+	a.req = a.req.Site(site)
+	return a
+}
+
+func (a *ipamVlansListRequestAdapter) Vid(vid []int32) interfaces.IpamVlansListRequest {
+	a.req = a.req.Vid(vid)
+	return a
+}
+
+func (a *ipamVlansListRequestAdapter) Limit(limit int32) interfaces.IpamVlansListRequest {
+	a.req = a.req.Limit(limit)
+	return a
+}
+
+func (a *ipamVlansListRequestAdapter) Offset(offset int32) interfaces.IpamVlansListRequest {
+	a.req = a.req.Offset(offset)
+	return a
+}
+
+func (a *ipamVlansListRequestAdapter) Execute() (*v4client.PaginatedVLANList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamVlansCreateRequestAdapter adapts the v4 create request to the interface
+type ipamVlansCreateRequestAdapter struct {
+	req v4client.ApiIpamVlansCreateRequest
+}
+
+func (a *ipamVlansCreateRequestAdapter) WritableVLANRequest(writableVLANRequest v4client.WritableVLANRequest) interfaces.IpamVlansCreateRequest {
+	a.req = a.req.WritableVLANRequest(writableVLANRequest)
+	return a
+}
+
+func (a *ipamVlansCreateRequestAdapter) Execute() (*v4client.VLAN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamVlansUpdateRequestAdapter adapts the v4 update request to the interface
+type ipamVlansUpdateRequestAdapter struct {
+	req v4client.ApiIpamVlansUpdateRequest
+}
+
+func (a *ipamVlansUpdateRequestAdapter) WritableVLANRequest(writableVLANRequest v4client.WritableVLANRequest) interfaces.IpamVlansUpdateRequest {
+	a.req = a.req.WritableVLANRequest(writableVLANRequest)
+	return a
+}
+
+func (a *ipamVlansUpdateRequestAdapter) Execute() (*v4client.VLAN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// ipamVlansDestroyRequestAdapter adapts the v4 destroy request to the interface
+type ipamVlansDestroyRequestAdapter struct {
+	req v4client.ApiIpamVlansDestroyRequest
+}
+
+func (a *ipamVlansDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+func (a *ipamV4APIAdapter) IpamVlansList(ctx context.Context) interfaces.IpamVlansListRequest {
+	return &ipamVlansListRequestAdapter{req: a.api.IpamVlansList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamVlansCreate(ctx context.Context) interfaces.IpamVlansCreateRequest {
+	return &ipamVlansCreateRequestAdapter{req: a.api.IpamVlansCreate(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamVlansUpdate(ctx context.Context, id int32) interfaces.IpamVlansUpdateRequest {
+	return &ipamVlansUpdateRequestAdapter{req: a.api.IpamVlansUpdate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamVlansDestroy(ctx context.Context, id int32) interfaces.IpamVlansDestroyRequest {
+	return &ipamVlansDestroyRequestAdapter{req: a.api.IpamVlansDestroy(ctx, id)}
+}
+
 type statusRetrieveRequestAdapter struct {
 	req v4client.ApiStatusRetrieveRequest
 }

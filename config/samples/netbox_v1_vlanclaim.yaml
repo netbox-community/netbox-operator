@@ -1,0 +1,15 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: vlanclaim-sample
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  site: "DM-Akron"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  vid: 999
