@@ -138,7 +138,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			// NetBox creates the ASN as part of the available-asns request, so the
 			// restoration hash has to be part of that request. Otherwise a crash before
 			// the Asn resource is reconciled would leave an unidentifiable ASN behind.
-			asnModel, err = r.NetboxClient.GetAvailableAsnByClaim(
+			asnModel, err = r.NetboxClient.ReserveAvailableAsnByClaim(
 				ctx,
 				&models.ASNClaim{
 					ParentAsnRange: o.Spec.ParentAsnRange,

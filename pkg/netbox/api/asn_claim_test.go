@@ -211,7 +211,7 @@ func TestAsnClaim(t *testing.T) {
 			clientV3: &NetboxClientV3{Tenancy: mockTenancy},
 		}
 
-		result, err := compositeClient.GetAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
+		result, err := compositeClient.ReserveAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
 			ParentAsnRange: asnRangeName,
 			Metadata: &models.NetboxMetadata{
 				Description: description,
@@ -239,7 +239,7 @@ func TestAsnClaim(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
 
-		result, err := compositeClient.GetAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
+		result, err := compositeClient.ReserveAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
 			ParentAsnRange: asnRangeName,
 			Metadata:       &models.NetboxMetadata{Description: description},
 		})
@@ -264,7 +264,7 @@ func TestAsnClaim(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
 
-		result, err := compositeClient.GetAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
+		result, err := compositeClient.ReserveAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
 			ParentAsnRange: asnRangeName,
 			Metadata:       &models.NetboxMetadata{Description: description},
 		})
@@ -289,7 +289,7 @@ func TestAsnClaim(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
 
-		result, err := compositeClient.GetAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
+		result, err := compositeClient.ReserveAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
 			ParentAsnRange: asnRangeName,
 			Metadata:       &models.NetboxMetadata{Description: description},
 		})
@@ -313,7 +313,7 @@ func TestAsnClaim(t *testing.T) {
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
 
-		result, err := compositeClient.GetAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
+		result, err := compositeClient.ReserveAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
 			ParentAsnRange: asnRangeName,
 			Metadata:       &models.NetboxMetadata{Description: description},
 		})

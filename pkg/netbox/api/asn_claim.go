@@ -61,8 +61,9 @@ func (c *NetboxCompositeClient) RestoreExistingAsnByHash(ctx context.Context, ha
 	}, nil
 }
 
-// GetAvailableAsnByClaim finds an available ASN from the specified ASN Range
-func (c *NetboxCompositeClient) GetAvailableAsnByClaim(ctx context.Context, asnClaim *models.ASNClaim) (asn *models.ASN, err error) {
+// ReserveAvailableAsnByClaim allocates an ASN from the specified ASN Range. Unlike the
+// IP address and prefix equivalents this already creates the object in NetBox.
+func (c *NetboxCompositeClient) ReserveAvailableAsnByClaim(ctx context.Context, asnClaim *models.ASNClaim) (asn *models.ASN, err error) {
 	// Claim an available ASN from the range by POSTing to available-asns. The custom
 	// fields (in particular the restoration hash) and the tenant have to be set as part
 	// of this request: NetBox allocates and persists the ASN in a single transaction, so
