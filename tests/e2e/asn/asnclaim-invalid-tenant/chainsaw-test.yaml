@@ -1,0 +1,54 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-invalid-tenant
+  annotations:
+    description: Tests if creation fails in case the tenant does not exist in NetBox
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_asnclaim.yaml
+    - name: Check CR spec and status and verify it fails
+      description: The tenant is looked up before the ASN is claimed, so no ASN is allocated
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-invalid-tenant
+              spec:
+                tenant: "NON_EXISTING_TENANT"
+                parentAsnRange: "E2E Test ASN Range Invalid Tenant"
+              status:
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'False'
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: AsnCRNotCreated
+              source:
+                component: asn-claim-controller
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: AsnClaim
+                name: asnclaim-invalid-tenant
+        - error:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-invalid-tenant
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-invalid-tenant -n $NAMESPACE

@@ -163,8 +163,9 @@ custom_fields = [
         filter_logic="exact"
     ),
     CustomField(
-        content_types=["ipam.prefix"],
-        object_types=["ipam.prefix"],
+        # ipam.asn is required by the chainsaw test asnclaim-invalid-customfieldwrongdatatype
+        content_types=["ipam.prefix", "ipam.asn"],
+        object_types=["ipam.prefix", "ipam.asn"],
         type="integer",
         name="cfDataTypeInteger",
         label="cf Data Type Integer",
@@ -1168,6 +1169,66 @@ asn_ranges = [
         },
         description="chainsaw test asnclaim-rir-override",
     ),
+    AsnRange(
+        name="E2E Test ASN Range Invalid RIR",
+        slug="e2e-test-asn-range-invalid-rir",
+        start=65600,
+        end=65610,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-invalid-rir",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range Invalid Tenant",
+        slug="e2e-test-asn-range-invalid-tenant",
+        start=65620,
+        end=65630,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-invalid-tenant",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range Invalid CustomField",
+        slug="e2e-test-asn-range-invalid-customfield",
+        start=65640,
+        end=65660,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw tests asnclaim-invalid-customfield*",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range Description Truncation",
+        slug="e2e-test-asn-range-description-truncation",
+        start=65670,
+        end=65680,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-description-truncation",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range CustomField Removal",
+        slug="e2e-test-asn-range-customfield-removal",
+        start=65690,
+        end=65700,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-customfield-removal",
+    ),
     ###                      END                    ###
     ###                Used by e2e tests            ###
     ### Modifying entries might cause tests to fail ###
@@ -1211,6 +1272,16 @@ try:
             }
             for asn in range(ASN_FILLER_START, ASN_FILLER_START + ASN_FILLER_COUNT)
         ]
+    )
+except pynetbox.RequestError as e:
+    pprint(e.error)
+
+# ASN without a restoration hash, so the operator has to reject adopting it
+try:
+    nb.ipam.asns.create(
+        asn=65910,
+        rir=rir.id,
+        description="chainsaw test asn-restoration-hash-mismatch",
     )
 except pynetbox.RequestError as e:
     pprint(e.error)

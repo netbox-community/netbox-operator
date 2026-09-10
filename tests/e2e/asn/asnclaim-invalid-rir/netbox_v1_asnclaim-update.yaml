@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: AsnClaim
+metadata:
+  name: asnclaim-invalid-rir
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  parentAsnRange: "E2E Test ASN Range Invalid RIR"
+  rir: "E2E Test RIR"

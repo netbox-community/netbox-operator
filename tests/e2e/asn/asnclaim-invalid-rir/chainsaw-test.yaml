@@ -2,36 +2,38 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: asnclaim-rir-override
+  name: asnclaim-invalid-rir
   annotations:
-    description: Tests that an AsnClaim inherits the RIR of its parent ASN Range and that overriding it is propagated to the Asn
+    description: Tests if the Asn resource fails to reconcile in case the RIR set on the claim does not exist in NetBox
 spec:
   steps:
-    - name: Apply CR without an explicit RIR
+    - name: Apply CR
       try:
         - apply:
             file: netbox_v1_asnclaim.yaml
-    - name: Check that the Asn inherited the RIR of the parent ASN Range
+    - name: Check CR spec and status and verify it fails
+      description: The claim controller does not validate the RIR override, the Asn controller does
       try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: AsnClaim
               metadata:
-                name: asnclaim-rir-override
+                name: asnclaim-invalid-rir
+              spec:
+                parentAsnRange: "E2E Test ASN Range Invalid RIR"
+                rir: NON_EXISTING_RIR
               status:
-                (conditions[?type == 'Ready']):
-                  - status: 'True'
                 (conditions[?type == 'ASNAssigned']):
                   - status: 'True'
-                asn: 65400
-                asnName: asnclaim-rir-override
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Asn
               metadata:
-                name: asnclaim-rir-override
+                name: asnclaim-invalid-rir
                 finalizers:
                   - asn.netbox.dev/finalizer
                 ownerReferences:
@@ -39,62 +41,57 @@ spec:
                     blockOwnerDeletion: true
                     controller: true
                     kind: AsnClaim
-                    name: asnclaim-rir-override
+                    name: asnclaim-invalid-rir
               spec:
-                asn: 65400
-                rir: E2E Test RIR
+                rir: NON_EXISTING_RIR
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
-                  - status: 'True'
-    - name: Override the RIR on the claim
+                  - status: 'False'
+                    reason: FailedToReserveAsnInNetbox
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: FailedToReserveAsnInNetbox
+              source:
+                component: asn-controller
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: Asn
+                name: asnclaim-invalid-rir
+    - name: Set a valid RIR on the claim
+      description: Required so that the already claimed ASN is cleaned up in NetBox on teardown
       try:
         - apply:
             file: netbox_v1_asnclaim-update.yaml
-    - name: Check that the override was propagated to the Asn
+    - name: Check that the Asn recovers
       try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: Asn
               metadata:
-                name: asnclaim-rir-override
+                name: asnclaim-invalid-rir
               spec:
-                asn: 65400
-                rir: E2E Test RIR Override
+                rir: E2E Test RIR
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
-    - name: Remove the RIR override again
-      description: chainsaw apply uses a merge patch, so the field has to be unset explicitly
-      try:
-        - script:
-            content: kubectl patch asnclaim asnclaim-rir-override -n $NAMESPACE --type=merge -p '{"spec":{"rir":null}}'
-    - name: Check that the Asn fell back to the RIR of the parent ASN Range
-      try:
         - assert:
             resource:
               apiVersion: netbox.dev/v1
               kind: AsnClaim
               metadata:
-                name: asnclaim-rir-override
-              spec:
-                (rir == null): true
-        - assert:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: Asn
-              metadata:
-                name: asnclaim-rir-override
-              spec:
-                asn: 65400
-                rir: E2E Test RIR
+                name: asnclaim-invalid-rir
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
+                asnName: asnclaim-invalid-rir
     - name: Cleanup events
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
         - script:
             content: |-
-              kubectl delete events --field-selector involvedObject.name=asnclaim-rir-override -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=asnclaim-invalid-rir -n $NAMESPACE
