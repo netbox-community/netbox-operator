@@ -19,7 +19,6 @@ package controller
 import (
 	"crypto/sha1"
 	"fmt"
-	"strconv"
 
 	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -80,13 +79,4 @@ type AsnClaimRestorationData struct {
 	Name           string
 	ParentAsnRange string
 	Tenant         string
-}
-
-func convertAsnRangeToLeaseLockName(asnRange string) string {
-	return "asnrange-" + strconv.FormatInt(int64(sha1Hash(asnRange)), 16)
-}
-
-func sha1Hash(s string) uint32 {
-	h := sha1.Sum([]byte(s))
-	return uint32(h[0])<<24 | uint32(h[1])<<16 | uint32(h[2])<<8 | uint32(h[3])
 }

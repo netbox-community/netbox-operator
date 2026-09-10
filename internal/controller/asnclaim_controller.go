@@ -28,13 +28,11 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/scheduler"
 
-	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -47,8 +45,6 @@ type AsnClaimReconciler struct {
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
-	OperatorNamespace   string
-	RestConfig          *rest.Config
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=asnclaims,verbs=get;list;watch;create;update;patch;delete
@@ -103,29 +99,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		logger.V(4).Info("asn object matching asn claim was not found, creating new asn object")
 
-		// 2. check if lease for parent ASN range is available
-		leaseLockerNSN := types.NamespacedName{
-			Name:      convertAsnRangeToLeaseLockName(o.Spec.ParentAsnRange),
-			Namespace: r.OperatorNamespace,
-		}
-		ll, err := leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.Namespace+"/"+asnName)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to create lease locker: %w", err)
-		}
-
-		// 3. try to lock lease for parent ASN range
-		lockCtx, cancelLock := context.WithTimeout(ctx, lockAcquireTimeout)
-		defer cancelLock()
-		locked := ll.TryLock(lockCtx)
-		if !locked {
-			errorMsg := fmt.Sprintf("failed to lock parent ASN range %s", o.Spec.ParentAsnRange)
-			return ctrl.Result{
-				RequeueAfter: 2 * time.Second,
-			}, NewDomainError("%s", errorMsg)
-		}
-		logger.V(4).Info("successfully locked parent ASN range", "asnRange", o.Spec.ParentAsnRange)
-
-		// 4. try to reclaim ASN
+		// 2. try to reclaim ASN
 		h := generateAsnRestorationHash(o)
 		asnModel, err := r.NetboxClient.RestoreExistingAsnByHash(ctx, h)
 		if err != nil {
@@ -134,7 +108,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		if asnModel == nil {
 			// ASN cannot be restored from netbox
-			// 5.a assign new available ASN
+			// 3.a assign new available ASN
 			// NetBox creates the ASN as part of the available-asns request, so the
 			// restoration hash has to be part of that request. Otherwise a crash before
 			// the Asn resource is reconciled would leave an unidentifiable ASN behind.
@@ -155,11 +129,11 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			}
 			logger.V(4).Info("ASN is not reserved in netbox, assigned new ASN", "asn", asnModel.Asn)
 		} else {
-			// 5.b reassign reserved ASN from netbox
+			// 3.b reassign reserved ASN from netbox
 			logger.V(4).Info("reassign reserved ASN from netbox", "asn", asnModel.Asn)
 		}
 
-		// 6.a create the Asn object
+		// 4.a create the Asn object
 		rirName, err := r.resolveRir(ctx, o)
 		if err != nil {
 			return ctrl.Result{}, NewDomainError("failed to resolve RIR: %w", err)
@@ -177,7 +151,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		logger.V(4).Info("successfully created Asn resource")
 
 	} else {
-		// 6.b update fields of Asn object
+		// 4.b update fields of Asn object
 		logger.V(4).Info("update asn resource")
 		rirName, err := r.resolveRir(ctx, o)
 		if err != nil {

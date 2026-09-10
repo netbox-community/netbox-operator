@@ -167,8 +167,6 @@ var _ = BeforeSuite(func() {
 			},
 			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
 		),
-		OperatorNamespace: OperatorNamespace,
-		RestConfig:        k8sManager.GetConfig(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -184,8 +182,6 @@ var _ = BeforeSuite(func() {
 			},
 			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
 		),
-		OperatorNamespace: OperatorNamespace,
-		RestConfig:        k8sManager.GetConfig(),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

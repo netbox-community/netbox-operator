@@ -248,8 +248,6 @@ func main() {
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("asn-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Asn")
 		os.Exit(1)
@@ -259,8 +257,6 @@ func main() {
 		Scheme:              mgr.GetScheme(),
 		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("asn-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient:        netboxCompositeClient,
-		OperatorNamespace:   operatorNamespace,
-		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AsnClaim")
 		os.Exit(1)

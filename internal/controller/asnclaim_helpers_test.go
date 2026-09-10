@@ -137,27 +137,3 @@ func TestGenerateAsnFromAsnClaim(t *testing.T) {
 		t.Errorf("expected restoration hash field %q to be set", hashFieldName)
 	}
 }
-
-func TestConvertAsnRangeToLeaseLockName(t *testing.T) {
-	name := convertAsnRangeToLeaseLockName("private-range")
-
-	// Should start with "asnrange-"
-	if len(name) < 10 {
-		t.Errorf("expected lease lock name to start with 'asnrange-', got %q", name)
-	}
-	if name[:9] != "asnrange-" {
-		t.Errorf("expected lease lock name to start with 'asnrange-', got %q", name)
-	}
-
-	// Different ranges should produce different lock names
-	name2 := convertAsnRangeToLeaseLockName("public-range")
-	if name == name2 {
-		t.Errorf("expected different lock names for different ranges, both got %q", name)
-	}
-
-	// Same range should produce same lock name (deterministic)
-	name3 := convertAsnRangeToLeaseLockName("private-range")
-	if name != name3 {
-		t.Errorf("expected same lock name for same range, got %q and %q", name, name3)
-	}
-}

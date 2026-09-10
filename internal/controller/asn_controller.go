@@ -24,7 +24,6 @@ import (
 	"maps"
 	"strconv"
 	"strings"
-	"time"
 
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -32,14 +31,11 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/netbox-community/netbox-operator/pkg/scheduler"
 
-	"github.com/swisscom/leaselocker"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -55,8 +51,6 @@ type AsnReconciler struct {
 	Scheme              *runtime.Scheme
 	NetboxClient        *api.NetboxCompositeClient
 	EventStatusRecorder *EventStatusRecorder
-	OperatorNamespace   string
-	RestConfig          *rest.Config
 }
 
 //+kubebuilder:rbac:groups=netbox.dev,resources=asns,verbs=get;list;watch;create;update;patch;delete
@@ -89,8 +83,6 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		}
 		logger.Info("reconcile loop finished")
 	}()
-
-	var cancelLock context.CancelFunc
 
 	// if being deleted
 	if !o.DeletionTimestamp.IsZero() {
@@ -126,50 +118,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		}
 	}
 
-	// 1. try to lock lease of parent ASN range if AsnUrl is not set in status
-	// and Asn is owned by an AsnClaim
-	or := o.OwnerReferences
-	var ll *leaselocker.LeaseLocker
-	if len(or) > 0 && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
-		// get ASN claim
-		orLookupKey := types.NamespacedName{
-			Name:      or[0].Name,
-			Namespace: req.Namespace,
-		}
-		asnClaim := &netboxv1.AsnClaim{}
-		err = r.Get(ctx, orLookupKey, asnClaim)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		leaseLockerNSN := types.NamespacedName{
-			Name:      convertAsnRangeToLeaseLockName(asnClaim.Spec.ParentAsnRange),
-			Namespace: r.OperatorNamespace,
-		}
-		ll, err = leaselocker.NewLeaseLocker(r.RestConfig, leaseLockerNSN, req.String())
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		var lockCtx context.Context
-		lockCtx, cancelLock = context.WithTimeout(ctx, lockAcquireTimeout)
-		defer func() {
-			if cancelLock != nil {
-				cancelLock()
-			}
-		}()
-		locked := ll.TryLock(lockCtx)
-		if !locked {
-			errorMsg := fmt.Sprintf("failed to lock parent ASN range %s", asnClaim.Spec.ParentAsnRange)
-			r.EventStatusRecorder.Recorder().Event(o, corev1.EventTypeWarning, "FailedToLockParentAsnRange", errorMsg)
-			return ctrl.Result{
-				RequeueAfter: 2 * time.Second,
-			}, NewDomainError("%s", errorMsg)
-		}
-		logger.V(4).Info("successfully locked parent ASN range", "asnRange", asnClaim.Spec.ParentAsnRange)
-	}
-
-	// 2. reserve or update ASN in netbox
+	// 1. reserve or update ASN in netbox
 	accessor := apismeta.NewAccessor()
 	annotations, err := accessor.Annotations(o)
 	if err != nil {
@@ -194,18 +143,12 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of parent ASN range
-	if ll != nil {
-		cancelLock()
-		ll.UnlockWithRetry(ctx)
-	}
-
-	// 4. if no change in spec generation and NetBox object, skip K8s status update
+	// 2. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 
-	// 4.1 update annotations
+	// 2.1 update annotations
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
@@ -226,7 +169,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, err
 	}
 
-	// 4. update status fields
+	// 3. update status fields
 	o.Status.AsnId = int64(netboxAsnModel.Id)
 	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
 	if netboxAsnModel.LastUpdated.Get() != nil {
