@@ -1,0 +1,73 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-rir-override
+  annotations:
+    description: Tests that an AsnClaim inherits the RIR of its parent ASN Range and that overriding it is propagated to the Asn
+spec:
+  steps:
+    - name: Apply CR without an explicit RIR
+      try:
+        - apply:
+            file: netbox_v1_asnclaim.yaml
+    - name: Check that the Asn inherited the RIR of the parent ASN Range
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-rir-override
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                asn: 65400
+                asnName: asnclaim-rir-override
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-rir-override
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: AsnClaim
+                    name: asnclaim-rir-override
+              spec:
+                asn: 65400
+                rir: E2E Test RIR
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Override the RIR on the claim
+      try:
+        - apply:
+            file: netbox_v1_asnclaim-update.yaml
+    - name: Check that the override was propagated to the Asn
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-rir-override
+              spec:
+                asn: 65400
+                rir: E2E Test RIR Override
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-rir-override -n $NAMESPACE

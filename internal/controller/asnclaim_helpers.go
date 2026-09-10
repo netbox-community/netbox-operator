@@ -27,18 +27,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func generateAsnFromAsnClaim(claim *netboxv1.AsnClaim, asn int64, logger logr.Logger) *netboxv1.Asn {
+func generateAsnFromAsnClaim(claim *netboxv1.AsnClaim, asn int64, rir string, logger logr.Logger) *netboxv1.Asn {
 	asnResource := &netboxv1.Asn{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      claim.Name,
 			Namespace: claim.Namespace,
 		},
-		Spec: generateAsnSpec(claim, asn, logger),
+		Spec: generateAsnSpec(claim, asn, rir, logger),
 	}
 	return asnResource
 }
 
-func generateAsnSpec(claim *netboxv1.AsnClaim, asn int64, logger logr.Logger) netboxv1.AsnSpec {
+func generateAsnSpec(claim *netboxv1.AsnClaim, asn int64, rir string, logger logr.Logger) netboxv1.AsnSpec {
 	// log a warning if the netboxOperatorRestorationHash name is a key in the customFields map of the AsnClaim
 	_, ok := claim.Spec.CustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName]
 	if ok {
@@ -55,6 +55,7 @@ func generateAsnSpec(claim *netboxv1.AsnClaim, asn int64, logger logr.Logger) ne
 
 	return netboxv1.AsnSpec{
 		Asn:              asn,
+		Rir:              rir,
 		Tenant:           claim.Spec.Tenant,
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,

@@ -290,6 +290,29 @@ func (a *ipamAsnRangesAvailableAsnsCreateRequestAdapter) Execute() ([]v4client.A
 	return a.req.Execute()
 }
 
+type ipamRirsListRequestAdapter struct {
+	req v4client.ApiIpamRirsListRequest
+}
+
+func (a *ipamRirsListRequestAdapter) Name(name []string) interfaces.IpamRirsListRequest {
+	a.req = a.req.Name(name)
+	return a
+}
+
+func (a *ipamRirsListRequestAdapter) Limit(limit int32) interfaces.IpamRirsListRequest {
+	a.req = a.req.Limit(limit)
+	return a
+}
+
+func (a *ipamRirsListRequestAdapter) Offset(offset int32) interfaces.IpamRirsListRequest {
+	a.req = a.req.Offset(offset)
+	return a
+}
+
+func (a *ipamRirsListRequestAdapter) Execute() (*v4client.PaginatedRIRList, *http.Response, error) {
+	return a.req.Execute()
+}
+
 func (a *ipamV4APIAdapter) IpamAsnsList(ctx context.Context) interfaces.IpamAsnsListRequest {
 	return &ipamAsnsListRequestAdapter{req: a.api.IpamAsnsList(ctx)}
 }
@@ -316,4 +339,8 @@ func (a *ipamV4APIAdapter) IpamAsnRangesList(ctx context.Context) interfaces.Ipa
 
 func (a *ipamV4APIAdapter) IpamAsnRangesAvailableAsnsCreate(ctx context.Context, id int32) interfaces.IpamAsnRangesAvailableAsnsCreateRequest {
 	return &ipamAsnRangesAvailableAsnsCreateRequestAdapter{req: a.api.IpamAsnRangesAvailableAsnsCreate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamRirsList(ctx context.Context) interfaces.IpamRirsListRequest {
+	return &ipamRirsListRequestAdapter{req: a.api.IpamRirsList(ctx)}
 }

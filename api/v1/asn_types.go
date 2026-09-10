@@ -31,6 +31,14 @@ type AsnSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'asn' is immutable"
 	Asn int64 `json:"asn"`
 
+	// The NetBox RIR (Regional Internet Registry) to be assigned to this resource in
+	// NetBox. Use the `name` value instead of the `slug` value
+	// Field is mutable, required
+	// Example: "RFC 6996" or "ARIN"
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength=1
+	Rir string `json:"rir"`
+
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	// Field is immutable, not required
 	// Example: "Initech" or "Cyberdyne Systems"

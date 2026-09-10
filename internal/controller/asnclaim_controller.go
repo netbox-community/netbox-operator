@@ -160,7 +160,12 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		}
 
 		// 6.a create the Asn object
-		asnResource := generateAsnFromAsnClaim(o, asnModel.Asn, logger)
+		rirName, err := r.resolveRir(ctx, o)
+		if err != nil {
+			return ctrl.Result{}, NewDomainError("failed to resolve RIR: %w", err)
+		}
+
+		asnResource := generateAsnFromAsnClaim(o, asnModel.Asn, rirName, logger)
 		if err := controllerutil.SetControllerReference(o, asnResource, r.Scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
 		}
@@ -174,9 +179,15 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	} else {
 		// 6.b update fields of Asn object
 		logger.V(4).Info("update asn resource")
-		updatedAsnSpec := generateAsnSpec(o, asn.Spec.Asn, logger)
-		_, err := ctrl.CreateOrUpdate(ctx, r.Client, asn, func() error {
+		rirName, err := r.resolveRir(ctx, o)
+		if err != nil {
+			return ctrl.Result{}, NewDomainError("failed to resolve RIR: %w", err)
+		}
+
+		updatedAsnSpec := generateAsnSpec(o, asn.Spec.Asn, rirName, logger)
+		_, err = ctrl.CreateOrUpdate(ctx, r.Client, asn, func() error {
 			// only add the mutable fields here
+			asn.Spec.Rir = updatedAsnSpec.Rir
 			asn.Spec.CustomFields = updatedAsnSpec.CustomFields
 			asn.Spec.Comments = updatedAsnSpec.Comments
 			asn.Spec.Description = updatedAsnSpec.Description
@@ -192,6 +203,15 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// resolveRir returns the RIR name to assign to the Asn resource: the explicit override
+// from the claim if set, otherwise the RIR the parent ASN Range belongs to.
+func (r *AsnClaimReconciler) resolveRir(ctx context.Context, o *netboxv1.AsnClaim) (string, error) {
+	if o.Spec.Rir != "" {
+		return o.Spec.Rir, nil
+	}
+	return r.NetboxClient.GetAsnRangeRirName(ctx, o.Spec.ParentAsnRange)
 }
 
 // SetupWithManager sets up the controller with the Manager.

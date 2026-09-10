@@ -135,3 +135,17 @@ func (c *NetboxCompositeClient) getAsnRangeIdByName(ctx context.Context, name st
 
 	return result.Results[0].Id, nil
 }
+
+// GetAsnRangeRirName returns the name of the RIR the given ASN Range belongs to.
+func (c *NetboxCompositeClient) GetAsnRangeRirName(ctx context.Context, name string) (string, error) {
+	result, err := c.listAsnRangesPage(ctx, []string{name}, 0)
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Results) == 0 {
+		return "", utils.NetboxNotFoundError("ASN Range")
+	}
+
+	return result.Results[0].Rir.Name, nil
+}

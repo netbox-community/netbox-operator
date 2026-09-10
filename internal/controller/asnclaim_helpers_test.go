@@ -52,6 +52,24 @@ func TestGenerateAsnRestorationHash(t *testing.T) {
 	testAsnClaimHash(t, claim, expectedHash)
 }
 
+func TestGenerateAsnRestorationHash_IgnoresRir(t *testing.T) {
+	claim := &netboxv1.AsnClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "my-asn-claim",
+		},
+		Spec: netboxv1.AsnClaimSpec{
+			ParentAsnRange: "private-range",
+			Tenant:         "test-tenant",
+			Rir:            "ARIN",
+		},
+	}
+
+	// The RIR is mutable and must not influence the restoration hash.
+	expectedHash := fmt.Sprintf("%x", sha1.Sum([]byte("defaultmy-asn-claimprivate-rangetest-tenant")))
+	testAsnClaimHash(t, claim, expectedHash)
+}
+
 func TestGenerateAsnRestorationHash_NoTenant(t *testing.T) {
 	claim := &netboxv1.AsnClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -83,7 +101,7 @@ func TestGenerateAsnFromAsnClaim(t *testing.T) {
 		},
 	}
 
-	asnResource := generateAsnFromAsnClaim(claim, 65001, ctrl.Log)
+	asnResource := generateAsnFromAsnClaim(claim, 65001, "RFC 6996", ctrl.Log)
 
 	if asnResource.Name != "my-asn-claim" {
 		t.Errorf("expected name %q, got %q", "my-asn-claim", asnResource.Name)
@@ -93,6 +111,9 @@ func TestGenerateAsnFromAsnClaim(t *testing.T) {
 	}
 	if asnResource.Spec.Asn != 65001 {
 		t.Errorf("expected ASN %d, got %d", 65001, asnResource.Spec.Asn)
+	}
+	if asnResource.Spec.Rir != "RFC 6996" {
+		t.Errorf("expected RIR %q, got %q", "RFC 6996", asnResource.Spec.Rir)
 	}
 	if asnResource.Spec.Tenant != "test-tenant" {
 		t.Errorf("expected tenant %q, got %q", "test-tenant", asnResource.Spec.Tenant)

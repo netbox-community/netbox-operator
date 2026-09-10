@@ -50,6 +50,7 @@ spec:
                 comments: your comments
                 description: some description
                 asn: 65300
+                rir: E2E Test RIR
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):
@@ -97,6 +98,7 @@ spec:
                 comments: your comments
                 description: some description
                 asn: 65301
+                rir: E2E Test RIR
                 tenant: MY_TENANT
               status:
                 (conditions[?type == 'Ready']):

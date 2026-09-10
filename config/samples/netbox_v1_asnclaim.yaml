@@ -12,3 +12,5 @@ spec:
   comments: "your comments"
   preserveInNetbox: true
   parentAsnRange: "64512-65534"
+  # optional, inherited from the parent ASN Range when omitted
+  rir: "RFC 6996"

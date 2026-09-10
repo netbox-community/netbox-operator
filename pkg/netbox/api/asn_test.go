@@ -37,14 +37,15 @@ import (
 
 const AsnId = int32(10)
 
-// expectAsnRangesListAll queues the paginated ASN Range listing used to resolve the RIR.
-func expectAsnRangesListAll(ctrl *gomock.Controller, mockIpamAPI *mock_interfaces.MockIpamAPI, results []v4client.ASNRange) {
-	req := mock_interfaces.NewMockIpamAsnRangesListRequest(ctrl)
-	mockIpamAPI.EXPECT().IpamAsnRangesList(gomock.Any()).Return(req)
+// expectRirLookup queues the RIR lookup by name used to resolve the RIR of an ASN.
+func expectRirLookup(ctrl *gomock.Controller, mockIpamAPI *mock_interfaces.MockIpamAPI, name string, results []v4client.RIR) {
+	req := mock_interfaces.NewMockIpamRirsListRequest(ctrl)
+	mockIpamAPI.EXPECT().IpamRirsList(gomock.Any()).Return(req)
+	req.EXPECT().Name([]string{name}).Return(req)
 	req.EXPECT().Limit(int32(asnListPageSize)).Return(req)
 	req.EXPECT().Offset(int32(0)).Return(req)
 	req.EXPECT().Execute().
-		Return(&v4client.PaginatedASNRangeList{Count: int32(len(results)), Results: results}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+		Return(&v4client.PaginatedRIRList{Count: int32(len(results)), Results: results}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 }
 
 // expectAsnListByValue queues the single-page ASN lookup by the `asn=` filter.
@@ -68,8 +69,9 @@ func TestAsn(t *testing.T) {
 	comments := Comments
 	description := Description
 	rirId := int32(9)
+	rirName := "RFC 6996"
 
-	asnRanges := []v4client.ASNRange{{Id: 1, Start: 64512, End: 65534, Rir: v4client.BriefRIR{Id: rirId}}}
+	rirs := []v4client.RIR{{Id: rirId, Name: rirName, Slug: "rfc-6996"}}
 
 	expectedLastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
@@ -181,8 +183,7 @@ func TestAsn(t *testing.T) {
 		// Setup: list returns empty → create
 		expectAsnListByValue(ctrl, mockIpamAPI, asnValue, []v4client.ASN{})
 
-		// Mock ASN range lookup for RIR
-		expectAsnRangesListAll(ctrl, mockIpamAPI, asnRanges)
+		expectRirLookup(ctrl, mockIpamAPI, rirName, rirs)
 
 		mockIpamAPI.EXPECT().
 			IpamAsnsCreate(gomock.Any()).
@@ -220,6 +221,7 @@ func TestAsn(t *testing.T) {
 					Tenant:      tenantName,
 					Comments:    comments,
 					Description: description,
+					Rir:         rirName,
 				},
 			}, &netboxv1.Asn{})
 
@@ -232,13 +234,14 @@ func TestAsn(t *testing.T) {
 		assert.Equal(t, rirId, *createdAsn.Rir.Get().Int32)
 	})
 
-	t.Run("update existing ASN preserves the RIR", func(t *testing.T) {
+	t.Run("update existing ASN sets the RIR from the spec", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamAsnsUpdateRequest(ctrl)
 
 		// List returns an existing ASN
 		expectAsnListByValue(ctrl, mockIpamAPI, asnValue, []v4client.ASN{expectedASN()})
+		expectRirLookup(ctrl, mockIpamAPI, rirName, rirs)
 
 		mockIpamAPI.EXPECT().
 			IpamAsnsUpdate(gomock.Any(), AsnId).
@@ -278,6 +281,7 @@ func TestAsn(t *testing.T) {
 					Tenant:      tenantName,
 					Comments:    comments,
 					Description: updatedDesc,
+					Rir:         rirName,
 				},
 			}, &netboxv1.Asn{
 				Status: netboxv1.AsnStatus{
@@ -293,14 +297,16 @@ func TestAsn(t *testing.T) {
 		assert.Equal(t, rirId, *updatedAsn.Rir.Get().Int32)
 	})
 
-	t.Run("update existing ASN without a RIR falls back to the ASN range", func(t *testing.T) {
+	t.Run("changing the RIR updates the ASN", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockUpdateRequest := mock_interfaces.NewMockIpamAsnsUpdateRequest(ctrl)
 
-		expectAsnListByValue(ctrl, mockIpamAPI, asnValue, []v4client.ASN{
-			{Id: AsnId, Asn: asnValue, LastUpdated: *v4client.NewNullableTime(&expectedLastUpdated)},
-		})
-		expectAsnRangesListAll(ctrl, mockIpamAPI, asnRanges)
+		overrideRirId := int32(42)
+		overrideRirName := "ARIN"
+
+		expectAsnListByValue(ctrl, mockIpamAPI, asnValue, []v4client.ASN{expectedASN()})
+		expectRirLookup(ctrl, mockIpamAPI, overrideRirName,
+			[]v4client.RIR{{Id: overrideRirId, Name: overrideRirName, Slug: "arin"}})
 
 		mockIpamAPI.EXPECT().IpamAsnsUpdate(gomock.Any(), AsnId).Return(mockUpdateRequest)
 
@@ -317,7 +323,7 @@ func TestAsn(t *testing.T) {
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
 
 		_, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
-			&models.ASN{Asn: asnValue, Metadata: &models.NetboxMetadata{Description: description}},
+			&models.ASN{Asn: asnValue, Metadata: &models.NetboxMetadata{Description: description, Rir: overrideRirName}},
 			&netboxv1.Asn{
 				Status: netboxv1.AsnStatus{
 					LastUpdated: metav1.NewTime(expectedLastUpdated.Add(-1 * time.Hour)),
@@ -327,7 +333,7 @@ func TestAsn(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, isUpToDate)
 		assert.True(t, updatedAsn.Rir.IsSet())
-		assert.Equal(t, rirId, *updatedAsn.Rir.Get().Int32)
+		assert.Equal(t, overrideRirId, *updatedAsn.Rir.Get().Int32)
 	})
 
 	t.Run("up to date ASN is not updated", func(t *testing.T) {
@@ -418,36 +424,6 @@ func TestAsn(t *testing.T) {
 		assert.ErrorIs(t, err, ErrRestorationHashMismatch)
 		assert.False(t, isUpToDate)
 		assert.Nil(t, result)
-	})
-
-	t.Run("get RIR pages through all ASN ranges", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-
-		fillerPage := make([]v4client.ASNRange, asnListPageSize)
-		for i := range fillerPage {
-			fillerPage[i] = v4client.ASNRange{Id: int32(i + 1), Start: 1, End: 2}
-		}
-
-		firstPage := mock_interfaces.NewMockIpamAsnRangesListRequest(ctrl)
-		mockIpamAPI.EXPECT().IpamAsnRangesList(gomock.Any()).Return(firstPage)
-		firstPage.EXPECT().Limit(int32(asnListPageSize)).Return(firstPage)
-		firstPage.EXPECT().Offset(int32(0)).Return(firstPage)
-		firstPage.EXPECT().Execute().
-			Return(&v4client.PaginatedASNRangeList{Count: asnListPageSize + 1, Results: fillerPage}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-
-		secondPage := mock_interfaces.NewMockIpamAsnRangesListRequest(ctrl)
-		mockIpamAPI.EXPECT().IpamAsnRangesList(gomock.Any()).Return(secondPage)
-		secondPage.EXPECT().Limit(int32(asnListPageSize)).Return(secondPage)
-		secondPage.EXPECT().Offset(int32(asnListPageSize)).Return(secondPage)
-		secondPage.EXPECT().Execute().
-			Return(&v4client.PaginatedASNRangeList{Count: asnListPageSize + 1, Results: asnRanges}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
-
-		actual, err := compositeClient.getRirIdForAsn(context.TODO(), asnValue)
-
-		assert.NoError(t, err)
-		assert.Equal(t, rirId, actual)
 	})
 
 	t.Run("delete ASN", func(t *testing.T) {

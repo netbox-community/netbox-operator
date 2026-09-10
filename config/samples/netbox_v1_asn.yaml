@@ -8,6 +8,7 @@ metadata:
   name: asn-sample
 spec:
   asn: 65001
+  rir: "RFC 6996"
   tenant: "Dunder-Mifflin, Inc."
   description: "some description"
   comments: "your comments"

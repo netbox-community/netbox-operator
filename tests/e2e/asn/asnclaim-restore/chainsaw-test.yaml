@@ -50,6 +50,7 @@ spec:
                   netboxOperatorRestorationHash: 6b52c7ee152377f08fccd5686d2ca775a88555d6  # note that this will require the tests to run in the e2e namespace!
                 description: some description
                 asn: 64700
+                rir: E2E Test RIR
                 preserveInNetbox: true
                 tenant: MY_TENANT
               status:

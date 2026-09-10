@@ -325,6 +325,7 @@ func generateNetboxAsnModelFromAsnSpec(spec *netboxv1.AsnSpec, req ctrl.Request,
 			Comments:    spec.Comments,
 			Custom:      netboxCustomFields,
 			Description: req.String() + " // " + spec.Description,
+			Rir:         spec.Rir,
 			Tenant:      spec.Tenant,
 		},
 	}, nil

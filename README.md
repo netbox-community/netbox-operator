@@ -89,6 +89,15 @@ NetBox Operator supports managing [ASNs (Autonomous System Numbers)](https://git
 
 The `parentAsnRange` field in the AsnClaim spec must match the **name** of an existing ASN Range in NetBox. The operator will claim an available ASN from that range.
 
+## RIR assignment
+
+NetBox requires every ASN to belong to a RIR (Regional Internet Registry).
+
+- On an **Asn**, `rir` is required and must match the **name** of an existing RIR in NetBox.
+- On an **AsnClaim**, `rir` is optional. When omitted, the RIR of the parent ASN Range is inherited and written to the generated Asn CR.
+
+`rir` is mutable on both resources and is not part of the restoration hash, so changing it never causes an ASN to be re-claimed. When the field changes, the operator updates the ASN in NetBox.
+
 Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the ASN is preserved in NetBox upon CR deletion and can be reclaimed when the AsnClaim is re-created.
 
 # Mixed usage of Prefixes

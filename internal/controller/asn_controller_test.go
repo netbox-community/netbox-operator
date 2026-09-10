@@ -44,6 +44,7 @@ var _ = Describe("Asn Controller", func() {
 				Asn:          65001,
 				Comments:     "a comment",
 				Description:  "a description",
+				Rir:          "a rir",
 				Tenant:       "a tenant",
 				CustomFields: map[string]string{"custom_field_2": "valueToBeSet"},
 			},
@@ -70,6 +71,7 @@ var _ = Describe("Asn Controller", func() {
 					Comments:    "a comment",
 					Description: "default/test-asn // a description",
 					Custom:      map[string]string{"custom_field_2": "valueToBeSet", "custom_field_1": ""},
+					Rir:         "a rir",
 					Tenant:      "a tenant",
 				},
 			}))
@@ -95,6 +97,7 @@ var _ = Describe("Asn Controller", func() {
 					Comments:    "a comment",
 					Description: "default/test-asn // a description",
 					Custom:      map[string]string{"custom_field_2": "valueToBeSet"},
+					Rir:         "a rir",
 					Tenant:      "a tenant",
 				},
 			}))
@@ -112,6 +115,7 @@ var _ = Describe("Asn Controller", func() {
 					Asn:         65001,
 					Comments:    "a comment",
 					Description: "a description",
+					Rir:         "a rir",
 					Tenant:      "a tenant",
 				},
 			}
@@ -124,6 +128,7 @@ var _ = Describe("Asn Controller", func() {
 					Comments:    "a comment",
 					Description: "default/test-asn // a description",
 					Custom:      map[string]string{"custom_field_1": ""},
+					Rir:         "a rir",
 					Tenant:      "a tenant",
 				},
 			}))
@@ -152,6 +157,7 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 			Spec: netboxv1.AsnSpec{
 				Asn:          65001,
 				Description:  "a description",
+				Rir:          asnTestRirName,
 				CustomFields: map[string]string{hashKey: "0000000000000000000000000000000000000000"},
 			},
 		}
@@ -166,7 +172,7 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 		Expect(store.get(65001)).NotTo(BeNil())
 	})
 
-	It("should keep the RIR of an existing ASN when updating it", func() {
+	It("should set the RIR from the spec when updating an existing ASN", func() {
 		store := newAsnStore(65000, 65010)
 		installAsnMocks(store)
 		hash := "1111111111111111111111111111111111111111"
@@ -177,6 +183,7 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 			Spec: netboxv1.AsnSpec{
 				Asn:          65002,
 				Description:  "a new description",
+				Rir:          asnTestRirName,
 				CustomFields: map[string]string{hashKey: hash},
 			},
 		}
@@ -208,7 +215,7 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 		for _, value := range []int64{0, 4294967296} {
 			asn := &netboxv1.Asn{
 				ObjectMeta: metav1.ObjectMeta{Name: "asn-invalid", Namespace: "default"},
-				Spec:       netboxv1.AsnSpec{Asn: value, Description: "a description"},
+				Spec:       netboxv1.AsnSpec{Asn: value, Description: "a description", Rir: asnTestRirName},
 			}
 			Expect(k8sClient.Create(ctx, asn)).To(MatchError(apierrors.IsInvalid, "invalid"), "ASN %d should be rejected", value)
 		}

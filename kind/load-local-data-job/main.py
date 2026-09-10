@@ -1066,6 +1066,16 @@ try:
 except pynetbox.RequestError as e:
     pprint(e.error)
 
+# second RIR so the e2e tests can assert overriding the inherited RIR
+try:
+    nb.ipam.rirs.create(
+        name="E2E Test RIR Override",
+        slug="e2e-test-rir-override",
+        is_private=True,
+    )
+except pynetbox.RequestError as e:
+    pprint(e.error)
+
 print("RIRs loaded")
 
 # insert ASN Ranges
@@ -1145,6 +1155,18 @@ asn_ranges = [
             "slug": "my_tenant",
         },
         description="chainsaw test asnclaim-32bit",
+    ),
+    AsnRange(
+        name="E2E Test ASN Range RIR Override",
+        slug="e2e-test-asn-range-rir-override",
+        start=65400,
+        end=65500,
+        rir=rir.id,
+        tenant={
+            "name": "MY_TENANT",
+            "slug": "my_tenant",
+        },
+        description="chainsaw test asnclaim-rir-override",
     ),
     ###                      END                    ###
     ###                Used by e2e tests            ###

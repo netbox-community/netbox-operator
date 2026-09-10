@@ -1130,6 +1130,20 @@ func (mr *MockIpamAPIMockRecorder) IpamPrefixesUpdate(ctx, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesUpdate), ctx, id)
 }
 
+// IpamRirsList mocks base method.
+func (m *MockIpamAPI) IpamRirsList(ctx context.Context) interfaces.IpamRirsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamRirsList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamRirsListRequest)
+	return ret0
+}
+
+// IpamRirsList indicates an expected call of IpamRirsList.
+func (mr *MockIpamAPIMockRecorder) IpamRirsList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRirsList", reflect.TypeOf((*MockIpamAPI)(nil).IpamRirsList), ctx)
+}
+
 // MockAPIStatusRetrieveRequest is a mock of APIStatusRetrieveRequest interface.
 type MockAPIStatusRetrieveRequest struct {
 	ctrl     *gomock.Controller
@@ -1611,4 +1625,86 @@ func (m *MockIpamAsnRangesAvailableAsnsCreateRequest) Execute() ([]netbox.ASN, *
 func (mr *MockIpamAsnRangesAvailableAsnsCreateRequestMockRecorder) Execute() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamAsnRangesAvailableAsnsCreateRequest)(nil).Execute))
+}
+
+// MockIpamRirsListRequest is a mock of IpamRirsListRequest interface.
+type MockIpamRirsListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamRirsListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamRirsListRequestMockRecorder is the mock recorder for MockIpamRirsListRequest.
+type MockIpamRirsListRequestMockRecorder struct {
+	mock *MockIpamRirsListRequest
+}
+
+// NewMockIpamRirsListRequest creates a new mock instance.
+func NewMockIpamRirsListRequest(ctrl *gomock.Controller) *MockIpamRirsListRequest {
+	mock := &MockIpamRirsListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamRirsListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamRirsListRequest) EXPECT() *MockIpamRirsListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamRirsListRequest) Execute() (*netbox.PaginatedRIRList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedRIRList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamRirsListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamRirsListRequest)(nil).Execute))
+}
+
+// Limit mocks base method.
+func (m *MockIpamRirsListRequest) Limit(limit int32) interfaces.IpamRirsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limit", limit)
+	ret0, _ := ret[0].(interfaces.IpamRirsListRequest)
+	return ret0
+}
+
+// Limit indicates an expected call of Limit.
+func (mr *MockIpamRirsListRequestMockRecorder) Limit(limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limit", reflect.TypeOf((*MockIpamRirsListRequest)(nil).Limit), limit)
+}
+
+// Name mocks base method.
+func (m *MockIpamRirsListRequest) Name(name []string) interfaces.IpamRirsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name", name)
+	ret0, _ := ret[0].(interfaces.IpamRirsListRequest)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockIpamRirsListRequestMockRecorder) Name(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIpamRirsListRequest)(nil).Name), name)
+}
+
+// Offset mocks base method.
+func (m *MockIpamRirsListRequest) Offset(offset int32) interfaces.IpamRirsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Offset", offset)
+	ret0, _ := ret[0].(interfaces.IpamRirsListRequest)
+	return ret0
+}
+
+// Offset indicates an expected call of Offset.
+func (mr *MockIpamRirsListRequestMockRecorder) Offset(offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockIpamRirsListRequest)(nil).Offset), offset)
 }

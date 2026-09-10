@@ -9,4 +9,5 @@ spec:
     netboxOperatorRestorationHash: 587ba69355e24c3ce5c70c6cd4c3faaa4b02cf35
   description: some description
   asn: 65100
+  rir: E2E Test RIR
   tenant: MY_TENANT

@@ -67,16 +67,21 @@ func (c *NetboxCompositeClient) ReserveOrUpdateAsn(ctx context.Context, asn *mod
 			tenantId := int32(tenantDetails.Id)
 			desiredAsn.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
 		}
+
+		// NetBox treats an ASN update as a full replacement and drops the RIR when the
+		// request omits it, so the RIR has to be set on the update path as well.
+		if asn.Metadata.Rir != "" {
+			rirDetails, err := c.getRirDetailsByName(ctx, asn.Metadata.Rir)
+			if err != nil {
+				return nil, false, err
+			}
+			rirId := int32(rirDetails.Id)
+			desiredAsn.SetRir(v4client.Int32AsASNRequestRir(&rirId))
+		}
 	}
 
 	// create ASN since it doesn't exist
 	if asnToUpdate == nil {
-		// Look up RIR from ASN range containing this ASN value
-		rirId, err := c.getRirIdForAsn(ctx, asn.Asn)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to determine RIR for ASN %d: %w", asn.Asn, err)
-		}
-		desiredAsn.SetRir(v4client.Int32AsASNRequestRir(&rirId))
 		resp, err := c.createAsn(ctx, desiredAsn)
 		return resp, false, err
 	}
@@ -102,20 +107,6 @@ func (c *NetboxCompositeClient) ReserveOrUpdateAsn(ctx context.Context, asn *mod
 
 	if IsUpToDate(ctx, netboxLastUpdated, asnV1.Status.LastUpdated, asnV1.Status.Conditions, asnV1.Generation) {
 		return asnToUpdate, true, nil
-	}
-
-	// NetBox treats the ASN update as a full replacement and the generated request omits
-	// `rir` when it is unset, which would clear the RIR. Carry over the RIR the ASN
-	// already has, falling back to the RIR of the containing ASN Range.
-	if rir := asnToUpdate.Rir.Get(); rir != nil {
-		rirId := rir.Id
-		desiredAsn.SetRir(v4client.Int32AsASNRequestRir(&rirId))
-	} else {
-		rirId, err := c.getRirIdForAsn(ctx, asn.Asn)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to determine RIR for ASN %d: %w", asn.Asn, err)
-		}
-		desiredAsn.SetRir(v4client.Int32AsASNRequestRir(&rirId))
 	}
 
 	resp, err = c.updateAsn(ctx, asnToUpdate.Id, desiredAsn)
@@ -236,25 +227,6 @@ func (c *NetboxCompositeClient) listAsnRangesPage(ctx context.Context, nameFilte
 	return result, nil
 }
 
-// listAllAsnRanges pages through every ASN Range known to NetBox.
-func (c *NetboxCompositeClient) listAllAsnRanges(ctx context.Context) ([]v4client.ASNRange, error) {
-	var all []v4client.ASNRange
-	for page := 0; page < asnListMaxPages; page++ {
-		result, err := c.listAsnRangesPage(ctx, nil, int32(len(all)))
-		if err != nil {
-			return nil, err
-		}
-		if len(result.Results) == 0 {
-			return all, nil
-		}
-		all = append(all, result.Results...)
-		if int32(len(all)) >= result.Count {
-			return all, nil
-		}
-	}
-	return nil, fmt.Errorf("failed to fetch ASN Range details: exceeded maximum of %d pages", asnListMaxPages)
-}
-
 func (c *NetboxCompositeClient) createAsn(ctx context.Context, asn v4client.ASNRequest) (resp *v4client.ASN, err error) {
 	result, httpResp, execErr := c.clientV4.IpamAPI.IpamAsnsCreate(ctx).ASNRequest(asn).Execute()
 
@@ -267,25 +239,6 @@ func (c *NetboxCompositeClient) createAsn(ctx context.Context, asn v4client.ASNR
 	}
 
 	return result, nil
-}
-
-// getRirIdForAsn looks up ASN ranges to find which range contains the given ASN value
-// and returns the RIR ID from that range. This is needed because NetBox requires an RIR
-// when creating ASNs directly (as opposed to via the available-asns endpoint which inherits
-// the RIR from the range).
-func (c *NetboxCompositeClient) getRirIdForAsn(ctx context.Context, asnValue int64) (int32, error) {
-	ranges, err := c.listAllAsnRanges(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	for _, r := range ranges {
-		if asnValue >= r.Start && asnValue <= r.End {
-			return r.Rir.Id, nil
-		}
-	}
-
-	return 0, fmt.Errorf("no ASN range found containing ASN %d", asnValue)
 }
 
 func (c *NetboxCompositeClient) updateAsn(ctx context.Context, asnId int32, asn v4client.ASNRequest) (resp *v4client.ASN, err error) {

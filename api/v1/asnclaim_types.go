@@ -31,6 +31,13 @@ type AsnClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'parentAsnRange' is immutable"
 	ParentAsnRange string `json:"parentAsnRange"`
 
+	// The NetBox RIR (Regional Internet Registry) to be assigned to the claimed ASN in
+	// NetBox. Use the `name` value instead of the `slug` value.
+	// If left empty, the RIR of the parent ASN Range is inherited.
+	// Field is mutable, not required
+	// Example: "RFC 6996" or "ARIN"
+	Rir string `json:"rir,omitempty"`
+
 	// The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value
 	// Field is immutable, not required
 	// Example: "Initech" or "Cyberdyne Systems"

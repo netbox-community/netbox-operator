@@ -117,6 +117,7 @@ type IpamAPI interface {
 	IpamAsnsDestroy(ctx context.Context, id int32) IpamAsnsDestroyRequest
 	IpamAsnRangesList(ctx context.Context) IpamAsnRangesListRequest
 	IpamAsnRangesAvailableAsnsCreate(ctx context.Context, id int32) IpamAsnRangesAvailableAsnsCreateRequest
+	IpamRirsList(ctx context.Context) IpamRirsListRequest
 }
 
 type APIStatusRetrieveRequest interface {
@@ -164,4 +165,11 @@ type IpamAsnRangesListRequest interface {
 type IpamAsnRangesAvailableAsnsCreateRequest interface {
 	ASNRequest(aSNRequest []v4client.ASNRequest) IpamAsnRangesAvailableAsnsCreateRequest
 	Execute() ([]v4client.ASN, *http.Response, error)
+}
+
+type IpamRirsListRequest interface {
+	Name(name []string) IpamRirsListRequest
+	Limit(limit int32) IpamRirsListRequest
+	Offset(offset int32) IpamRirsListRequest
+	Execute() (*v4client.PaginatedRIRList, *http.Response, error)
 }

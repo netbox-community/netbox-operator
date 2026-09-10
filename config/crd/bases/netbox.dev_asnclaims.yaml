@@ -106,6 +106,14 @@ spec:
                   recreated in Kubernetes)
                   Field is mutable, not required
                 type: boolean
+              rir:
+                description: |-
+                  The NetBox RIR (Regional Internet Registry) to be assigned to the claimed ASN in
+                  NetBox. Use the `name` value instead of the `slug` value.
+                  If left empty, the RIR of the parent ASN Range is inherited.
+                  Field is mutable, not required
+                  Example: "RFC 6996" or "ARIN"
+                type: string
               tenant:
                 description: |-
                   The NetBox Tenant to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value

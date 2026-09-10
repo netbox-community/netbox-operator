@@ -41,6 +41,7 @@ const (
 	asnTestRangeName = "e2e-test-asn-range"
 	asnTestRangeId   = int32(77)
 	asnTestRirId     = int32(9)
+	asnTestRirName   = "e2e-test-rir"
 	asnTestPageSize  = 250
 )
 
@@ -228,8 +229,23 @@ func installAsnMocks(store *asnStore) {
 						Name:  asnTestRangeName,
 						Start: store.rangeStart,
 						End:   store.rangeEnd,
-						Rir:   v4client.BriefRIR{Id: asnTestRirId},
+						Rir:   v4client.BriefRIR{Id: asnTestRirId, Name: asnTestRirName},
 					}},
+				}, okResponse(http.StatusOK), nil
+			}).AnyTimes()
+			return req
+		}).AnyTimes()
+
+	mockIpamAPI.EXPECT().IpamRirsList(gomock.Any()).
+		DoAndReturn(func(_ context.Context) interfaces.IpamRirsListRequest {
+			req := mock_interfaces.NewMockIpamRirsListRequest(mockCtrl)
+			req.EXPECT().Limit(gomock.Any()).Return(req).AnyTimes()
+			req.EXPECT().Offset(gomock.Any()).Return(req).AnyTimes()
+			req.EXPECT().Name(gomock.Any()).Return(req).AnyTimes()
+			req.EXPECT().Execute().DoAndReturn(func() (*v4client.PaginatedRIRList, *http.Response, error) {
+				return &v4client.PaginatedRIRList{
+					Count:   1,
+					Results: []v4client.RIR{{Id: asnTestRirId, Name: asnTestRirName, Slug: asnTestRirName}},
 				}, okResponse(http.StatusOK), nil
 			}).AnyTimes()
 			return req

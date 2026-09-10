@@ -28,11 +28,18 @@ type Site struct {
 	Slug string `json:"slug,omitempty"`
 }
 
+type Rir struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
 type NetboxMetadata struct {
 	Comments    string            `json:"comments,omitempty"`
 	Custom      map[string]string `json:"customFields,omitempty"`
 	Description string            `json:"description,omitempty"`
 	Region      string            `json:"region,omitempty"`
+	Rir         string            `json:"rir,omitempty"`
 	Site        string            `json:"site,omitempty"`
 	Tenant      string            `json:"tenant,omitempty"`
 }
