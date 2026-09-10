@@ -131,12 +131,14 @@ func TestIPAddressClaim(t *testing.T) {
 			Execute().
 			Return(&v4client.PaginatedPrefixList{Results: []v4client.Prefix{expectedPrefix}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
+		vrfId := int64(7)
 		inputIps := ipam.NewIpamPrefixesAvailableIpsListParams().WithID(int64(parentPrefixIdV4))
 		outputIps := &ipam.IpamPrefixesAvailableIpsListOK{
 			Payload: []*netboxModels.AvailableIP{
 				{
 					Address: ipAddressV4_2,
 					Family:  int64(IPv4Family),
+					Vrf:     &netboxModels.NestedVRF{ID: vrfId},
 				},
 			}}
 
@@ -169,6 +171,8 @@ func TestIPAddressClaim(t *testing.T) {
 		AssertNil(t, err)
 		// assert nil output
 		assert.Equal(t, singleIpAddressV4_2, actual.IpAddress)
+		// assert vrf inherited from parent prefix's available-ip response
+		assert.Equal(t, &vrfId, actual.VrfId)
 	})
 
 	t.Run("Fetch first available IP address by claim (IPv6).", func(t *testing.T) {
@@ -232,6 +236,8 @@ func TestIPAddressClaim(t *testing.T) {
 		AssertNil(t, err)
 		// assert nil output
 		assert.Equal(t, singleIpAddressV6, actual.IpAddress)
+		// assert no vrf when parent prefix is in the global vrf
+		assert.Nil(t, actual.VrfId)
 	})
 
 	t.Run("Fetch first available IP address by claim (invalid IP family).", func(t *testing.T) {
@@ -379,6 +385,7 @@ func TestIPAddressClaim(t *testing.T) {
 	t.Run("Reclaim IP Address", func(t *testing.T) {
 
 		ipAddressRestore := "10.111.111.111/32"
+		restoreVrfId := int64(9)
 
 		input := "403f19fcb98beaf5a25018536ed5275714a132ff"
 		output := &ipam.IpamIPAddressesListOK{
@@ -389,6 +396,7 @@ func TestIPAddressClaim(t *testing.T) {
 				Results: []*netboxModels.IPAddress{
 					{
 						Address: &ipAddressRestore,
+						Vrf:     &netboxModels.NestedVRF{ID: restoreVrfId},
 					},
 				},
 			},
@@ -412,6 +420,7 @@ func TestIPAddressClaim(t *testing.T) {
 
 		assert.Nil(t, err)
 		assert.Equal(t, ipAddressRestore, actual.IpAddress)
+		assert.Equal(t, &restoreVrfId, actual.VrfId)
 	})
 }
 

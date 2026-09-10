@@ -39,6 +39,7 @@ type NetboxMetadata struct {
 
 type IPAddress struct {
 	IpAddress string          `json:"ipAddress,omitempty"`
+	VrfId     *int64          `json:"vrfId,omitempty"`
 	Metadata  *NetboxMetadata `json:"metadata,omitempty"`
 }
 

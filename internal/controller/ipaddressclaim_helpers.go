@@ -19,6 +19,7 @@ package controller
 import (
 	"crypto/sha1"
 	"fmt"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
@@ -26,11 +27,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func generateIpAddressFromIpAddressClaim(claim *netboxv1.IpAddressClaim, ip string, logger logr.Logger) *netboxv1.IpAddress {
+func generateIpAddressFromIpAddressClaim(claim *netboxv1.IpAddressClaim, ip string, vrfId *int64, logger logr.Logger) *netboxv1.IpAddress {
+	var annotations map[string]string
+	if vrfId != nil {
+		annotations = map[string]string{
+			IPVrfIdAnnotationName: strconv.FormatInt(*vrfId, 10),
+		}
+	}
+
 	ipAddressResource := &netboxv1.IpAddress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      claim.Name,
-			Namespace: claim.Namespace,
+			Name:        claim.Name,
+			Namespace:   claim.Namespace,
+			Annotations: annotations,
 		},
 		Spec: generateIpAddressSpec(claim, ip, logger),
 	}

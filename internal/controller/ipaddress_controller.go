@@ -48,6 +48,7 @@ import (
 
 const IpAddressFinalizerName = "ipaddress.netbox.dev/finalizer"
 const IPManagedCustomFieldsAnnotationName = "ipaddress.netbox.dev/managed-custom-fields"
+const IPVrfIdAnnotationName = "ipaddress.netbox.dev/vrf-id"
 
 // IpAddressReconciler reconciles a IpAddress object
 type IpAddressReconciler struct {
@@ -182,6 +183,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ipAddressModel, err := generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req, annotations[IPManagedCustomFieldsAnnotationName])
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if vrfIdStr, ok := annotations[IPVrfIdAnnotationName]; ok && vrfIdStr != "" {
+		vrfId, err := strconv.ParseInt(vrfIdStr, 10, 64)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to parse %s annotation: %w", IPVrfIdAnnotationName, err)
+		}
+		ipAddressModel.VrfId = &vrfId
 	}
 
 	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ctx, ipAddressModel, o)
