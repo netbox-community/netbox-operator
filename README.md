@@ -53,7 +53,7 @@ To optionally access the NetBox UI:
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, and PrefixClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, Vlan, VlanClaim, and VlanGroup resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
@@ -93,17 +93,36 @@ This means that you need to plan your automation carefully. As a rule of thumb:
 
 The same applies if you use parentPrefixSelector with PrefixClaims. The above example is IPv4 based but will be the same with IPv6 equivalents.
 
+# VLAN Management
+
+NetBox Operator supports managing [VLANs](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md) through two custom resources:
+
+- **Vlan**: Represents a single VLAN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific VLAN (`vid`, `site`, `tenant`, `status`) using the CR's Kubernetes object name as the NetBox VLAN name.
+- **VlanClaim**: Claims a VID for a VLAN, either an exact `vid` or the next free one from a `vidRangeStart`/`vidRangeEnd` range. Similar to IpAddressClaim, it creates a child Vlan CR with the assigned VID. VID allocation is scoped to `.spec.site` since VLAN IDs are commonly only unique within a site.
+
+## Example: Claiming a VLAN
+
+1. Apply a VlanClaim: `kubectl apply -f config/samples/netbox_v1_vlanclaim.yaml`
+2. Wait for ready condition: `kubectl wait vlanclaim vlanclaim-sample --for=condition=Ready`
+3. List VlanClaim and Vlan resources: `kubectl get vlnc,vln`
+
+`vid` and `vidRangeStart`/`vidRangeEnd` are mutually exclusive on `VlanClaim` — set exactly one form. When a range is used, the operator picks the next free VID in NetBox from that range.
+
+Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the VLAN is preserved in NetBox upon CR deletion and can be reclaimed when the VlanClaim is re-created.
+
+A **VlanGroup** resource manages a NetBox VLAN Group (a named container for organizing VLANs, optionally scoped to a Site and constrained to a `vidRangeStart`/`vidRangeEnd`) using the CR's Kubernetes object name as the NetBox VLAN Group name. Unlike `Vlan`, it has no claim counterpart — a VLAN Group is user-named rather than auto-allocated, so there's nothing to claim from a pool.
+
 # Restoration from NetBox
 
 In the case that the cluster containing the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
 
-- `IpAddressClaim` and `PrefixClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix in NetBox when the Kubernetes Custom Resource is deleted
-- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix based on data from the IpAddressClaim/PrefixClaim resource
+- `IpAddressClaim`, `PrefixClaim`, and `VlanClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix/VLAN in NetBox when the Kubernetes Custom Resource is deleted
+- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix/VLAN based on data from the IpAddressClaim/PrefixClaim/VlanClaim resource
 
 Use Cases for this Restoration:
 
 - Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
-- Sticky IPs: Some services do not handle changes to IPs well. This ensures the IP/Prefix assigned to a Custom Resource is always the same.
+- Sticky IPs/VIDs: Some services do not handle changes to IPs or VLAN IDs well. This ensures the IP/Prefix/VID assigned to a Custom Resource is always the same.
 
 # `ParentPrefixSelector` in `PrefixClaim`
 

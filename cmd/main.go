@@ -243,6 +243,39 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "IpRange")
 		os.Exit(1)
 	}
+	if err = (&controller.VlanClaimReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("vlan-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VlanClaim")
+		os.Exit(1)
+	}
+	if err = (&controller.VlanReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("vlan-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Vlan")
+		os.Exit(1)
+	}
+	if err = (&controller.VlanGroupReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("vlan-group-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VlanGroup")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
