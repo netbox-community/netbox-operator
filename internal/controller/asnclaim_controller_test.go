@@ -271,6 +271,7 @@ func installAsnMocks(store *asnStore) {
 				store.allocated++
 				store.nextId++
 
+				// NetBox overwrites the RIR of the request with the one of the parent ASN Range.
 				asn := &v4client.ASN{
 					Id:           store.nextId,
 					Asn:          next,

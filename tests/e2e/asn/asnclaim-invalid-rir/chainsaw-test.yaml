@@ -4,7 +4,7 @@ kind: Test
 metadata:
   name: asnclaim-invalid-rir
   annotations:
-    description: Tests if the Asn resource fails to reconcile in case the RIR set on the claim does not exist in NetBox
+    description: Tests if creation fails in case the RIR set on the claim does not exist in NetBox
 spec:
   steps:
     - name: Apply CR
@@ -12,7 +12,7 @@ spec:
         - apply:
             file: netbox_v1_asnclaim.yaml
     - name: Check CR spec and status and verify it fails
-      description: The claim controller does not validate the RIR override, the Asn controller does
+      description: The RIR is looked up before the ASN is claimed, so no ASN is allocated
       try:
         - assert:
             resource:
@@ -25,70 +25,27 @@ spec:
                 rir: NON_EXISTING_RIR
               status:
                 (conditions[?type == 'ASNAssigned']):
-                  - status: 'True'
+                  - status: 'False'
                 (conditions[?type == 'Ready']):
                   - status: 'False'
-        - assert:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: Asn
-              metadata:
-                name: asnclaim-invalid-rir
-                finalizers:
-                  - asn.netbox.dev/finalizer
-                ownerReferences:
-                  - apiVersion: netbox.dev/v1
-                    blockOwnerDeletion: true
-                    controller: true
-                    kind: AsnClaim
-                    name: asnclaim-invalid-rir
-              spec:
-                rir: NON_EXISTING_RIR
-                tenant: MY_TENANT
-              status:
-                (conditions[?type == 'Ready']):
-                  - status: 'False'
-                    reason: FailedToReserveAsnInNetbox
         - assert:
             resource:
               apiVersion: v1
               kind: Event
               type: Warning
-              reason: FailedToReserveAsnInNetbox
+              reason: AsnCRNotCreated
               source:
-                component: asn-controller
+                component: asn-claim-controller
               involvedObject:
                 apiVersion: netbox.dev/v1
-                kind: Asn
+                kind: AsnClaim
                 name: asnclaim-invalid-rir
-    - name: Set a valid RIR on the claim
-      description: Required so that the already claimed ASN is cleaned up in NetBox on teardown
-      try:
-        - apply:
-            file: netbox_v1_asnclaim-update.yaml
-    - name: Check that the Asn recovers
-      try:
-        - assert:
+        - error:
             resource:
               apiVersion: netbox.dev/v1
               kind: Asn
               metadata:
                 name: asnclaim-invalid-rir
-              spec:
-                rir: E2E Test RIR
-              status:
-                (conditions[?type == 'Ready']):
-                  - status: 'True'
-        - assert:
-            resource:
-              apiVersion: netbox.dev/v1
-              kind: AsnClaim
-              metadata:
-                name: asnclaim-invalid-rir
-              status:
-                (conditions[?type == 'Ready']):
-                  - status: 'True'
-                asnName: asnclaim-invalid-rir
     - name: Cleanup events
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:

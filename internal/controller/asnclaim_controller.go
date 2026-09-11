@@ -99,6 +99,12 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		logger.V(4).Info("asn object matching asn claim was not found, creating new asn object")
 
+		// resolved before the reservation so that a failing RIR lookup cannot orphan a reserved ASN
+		rirName, err := r.resolveRir(ctx, o)
+		if err != nil {
+			return ctrl.Result{}, NewDomainError("failed to resolve RIR: %w", err)
+		}
+
 		// 2. try to reclaim ASN
 		h := generateAsnRestorationHash(o)
 		asnModel, err := r.NetboxClient.RestoreExistingAsnByHash(ctx, h)
@@ -112,6 +118,8 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			// NetBox creates the ASN as part of the available-asns request, so the
 			// restoration hash has to be part of that request. Otherwise a crash before
 			// the Asn resource is reconciled would leave an unidentifiable ASN behind.
+			// Only the RIR override is passed on to be validated, an inherited RIR comes
+			// from the parent ASN Range and therefore exists by definition.
 			asnModel, err = r.NetboxClient.ReserveAvailableAsnByClaim(
 				ctx,
 				&models.ASNClaim{
@@ -119,6 +127,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 					Metadata: &models.NetboxMetadata{
 						Tenant:      o.Spec.Tenant,
 						Description: o.Spec.Description,
+						Rir:         o.Spec.Rir,
 						Custom: map[string]string{
 							config.GetOperatorConfig().NetboxRestorationHashFieldName: h,
 						},
@@ -134,11 +143,6 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		}
 
 		// 4.a create the Asn object
-		rirName, err := r.resolveRir(ctx, o)
-		if err != nil {
-			return ctrl.Result{}, NewDomainError("failed to resolve RIR: %w", err)
-		}
-
 		asnResource := generateAsnFromAsnClaim(o, asnModel.Asn, rirName, logger)
 		if err := controllerutil.SetControllerReference(o, asnResource, r.Scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)

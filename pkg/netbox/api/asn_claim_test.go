@@ -68,6 +68,8 @@ func TestAsnClaim(t *testing.T) {
 	description := "test description"
 	tenantId := int64(2)
 	tenantName := "Tenant1"
+	claimRirName := "RFC 6996"
+	claimRirs := []v4client.RIR{{Id: 9, Name: claimRirName, Slug: "rfc-6996"}}
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
 
 	asnRanges := []v4client.ASNRange{{Id: asnRangeId, Name: asnRangeName, Start: 64512, End: 65534}}
@@ -188,12 +190,15 @@ func TestAsnClaim(t *testing.T) {
 
 		expectAsnRangeLookup(ctrl, mockIpamAPI, asnRangeName, asnRanges)
 
+		expectRirLookup(ctrl, mockIpamAPI, claimRirName, claimRirs)
+
 		mockIpamAPI.EXPECT().
 			IpamAsnRangesAvailableAsnsCreate(gomock.Any(), asnRangeId).
 			Return(mockAvailableRequest)
 
 		// The allocation request must already carry the restoration hash and the tenant,
-		// otherwise the ASN NetBox creates would be unidentifiable.
+		// otherwise the ASN NetBox creates would be unidentifiable or incomplete. The RIR is
+		// only validated: NetBox overwrites it with the RIR of the parent ASN Range.
 		var sentRequests []v4client.ASNRequest
 		mockAvailableRequest.EXPECT().
 			ASNRequest(gomock.Any()).
@@ -216,6 +221,7 @@ func TestAsnClaim(t *testing.T) {
 			Metadata: &models.NetboxMetadata{
 				Description: description,
 				Tenant:      tenantName,
+				Rir:         claimRirName,
 				Custom:      map[string]string{restorationHashKey: hash},
 			},
 		})
@@ -230,6 +236,33 @@ func TestAsnClaim(t *testing.T) {
 		assert.Equal(t, TruncateDescription(description), *sentRequests[0].Description)
 		assert.True(t, sentRequests[0].Tenant.IsSet())
 		assert.Equal(t, int32(tenantId), *sentRequests[0].Tenant.Get().Int32)
+		assert.False(t, sentRequests[0].Rir.IsSet())
+	})
+
+	t.Run("get available ASN by claim - RIR not found", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+
+		expectRirLookup(ctrl, mockIpamAPI, "NON_EXISTING_RIR", []v4client.RIR{})
+
+		// nothing may be created in NetBox when the RIR cannot be resolved, otherwise the
+		// ASN is orphaned as soon as the claim is deleted
+		mockIpamAPI.EXPECT().
+			IpamAsnRangesAvailableAsnsCreate(gomock.Any(), gomock.Any()).
+			Times(0)
+
+		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+
+		result, err := compositeClient.ReserveAvailableAsnByClaim(context.TODO(), &models.ASNClaim{
+			ParentAsnRange: asnRangeName,
+			Metadata: &models.NetboxMetadata{
+				Description: description,
+				Rir:         "NON_EXISTING_RIR",
+			},
+		})
+
+		assert.ErrorContains(t, err, "NON_EXISTING_RIR")
+		assert.NotErrorIs(t, err, ErrAsnRangeExhausted)
+		assert.Nil(t, result)
 	})
 
 	t.Run("get available ASN by claim - range not found", func(t *testing.T) {

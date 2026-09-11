@@ -65,8 +65,8 @@ func (c *NetboxCompositeClient) RestoreExistingAsnByHash(ctx context.Context, ha
 // IP address and prefix equivalents this already creates the object in NetBox.
 func (c *NetboxCompositeClient) ReserveAvailableAsnByClaim(ctx context.Context, asnClaim *models.ASNClaim) (asn *models.ASN, err error) {
 	// Claim an available ASN from the range by POSTing to available-asns. The custom
-	// fields (in particular the restoration hash) and the tenant have to be set as part
-	// of this request: NetBox allocates and persists the ASN in a single transaction, so
+	// fields (in particular the restoration hash) and the tenant have to be set as part of
+	// this request: NetBox allocates and persists the ASN in a single transaction, so
 	// setting them afterwards would leave a window in which the ASN is unidentifiable.
 	asnRequest := v4client.ASNRequest{
 		Asn:          0, // The ASN value will be assigned by NetBox
@@ -89,6 +89,17 @@ func (c *NetboxCompositeClient) ReserveAvailableAsnByClaim(ctx context.Context, 
 			}
 			tenantId := int32(tenantDetails.Id)
 			asnRequest.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
+		}
+
+		// Fail before anything is created in NetBox if the RIR requested in the spec does not
+		// exist. The RIR is deliberately not part of the request: the available-asns endpoint
+		// overwrites it with the RIR of the parent ASN Range. An override is applied afterwards
+		// by the Asn controller, and would fail there, leaving an orphaned ASN behind if the
+		// claim were deleted before the Asn resource was created.
+		if asnClaim.Metadata.Rir != "" {
+			if _, err := c.getRirDetailsByName(ctx, asnClaim.Metadata.Rir); err != nil {
+				return nil, err
+			}
 		}
 	}
 
