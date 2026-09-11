@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The Kubernetes authors.
+Copyright 2026 The Kubernetes authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -241,6 +241,24 @@ func main() {
 		RestConfig:          mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IpRange")
+		os.Exit(1)
+	}
+	if err = (&controller.AsnReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("asn-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Asn")
+		os.Exit(1)
+	}
+	if err = (&controller.AsnClaimReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("asn-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AsnClaim")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

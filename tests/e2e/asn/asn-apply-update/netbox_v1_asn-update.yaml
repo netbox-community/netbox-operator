@@ -1,0 +1,11 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asn-apply-update
+spec:
+  asn: 65900
+  rir: "E2E Test RIR"
+  tenant: "MY_TENANT"
+  description: "some updated description"
+  comments: "your updated comments"

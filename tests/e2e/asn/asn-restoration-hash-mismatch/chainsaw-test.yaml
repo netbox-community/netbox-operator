@@ -1,0 +1,28 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asn-restoration-hash-mismatch
+  annotations:
+    description: Tests that an Asn is not adopted if its restoration hash does not match the one of the ASN in NetBox
+spec:
+  steps:
+    - name: Apply CR
+      description: ASN 65910 exists in NetBox without a restoration hash, see kind/load-local-data-job/main.py
+      try:
+        - apply:
+            file: netbox_v1_asn.yaml
+    - name: Verify that the controller removed the Asn again
+      try:
+        - error:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asn-restoration-hash-mismatch
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asn-restoration-hash-mismatch -n $NAMESPACE
