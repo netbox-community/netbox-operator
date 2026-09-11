@@ -65,8 +65,7 @@ func TestRir(t *testing.T) {
 		req := mock_interfaces.NewMockIpamRirsListRequest(ctrl)
 		mockIpamAPI.EXPECT().IpamRirsList(gomock.Any()).Return(req)
 		req.EXPECT().Name([]string{rirName}).Return(req)
-		req.EXPECT().Limit(int32(asnListPageSize)).Return(req)
-		req.EXPECT().Offset(int32(0)).Return(req)
+		req.EXPECT().Limit(int32(listPageSize)).Return(req)
 		req.EXPECT().Execute().
 			Return(nil, &http.Response{StatusCode: 500, Body: http.NoBody}, nil)
 

@@ -46,6 +46,8 @@ type IpamInterface interface {
 	IpamIPRangesUpdate(params *ipam.IpamIPRangesUpdateParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesUpdateOK, error)
 	IpamIPRangesDelete(params *ipam.IpamIPRangesDeleteParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesDeleteNoContent, error)
 	IpamIPRangesAvailableIpsList(params *ipam.IpamIPRangesAvailableIpsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesAvailableIpsListOK, error)
+
+	IpamAsnsList(params *ipam.IpamAsnsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamAsnsListOK, error)
 }
 
 type TenancyInterface interface {
@@ -110,7 +112,6 @@ type IpamAPI interface {
 	IpamPrefixesCreate(ctx context.Context) IpamPrefixesCreateRequest
 	IpamPrefixesUpdate(ctx context.Context, id int32) IpamPrefixesUpdateRequest
 	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
-	IpamAsnsList(ctx context.Context) IpamAsnsListRequest
 	IpamAsnsRetrieve(ctx context.Context, id int32) IpamAsnsRetrieveRequest
 	IpamAsnsCreate(ctx context.Context) IpamAsnsCreateRequest
 	IpamAsnsUpdate(ctx context.Context, id int32) IpamAsnsUpdateRequest
@@ -129,13 +130,6 @@ type StatusAPI interface {
 }
 
 // V4 ASN API Interfaces
-
-type IpamAsnsListRequest interface {
-	Asn(asn []int32) IpamAsnsListRequest
-	Limit(limit int32) IpamAsnsListRequest
-	Offset(offset int32) IpamAsnsListRequest
-	Execute() (*v4client.PaginatedASNList, *http.Response, error)
-}
 
 type IpamAsnsRetrieveRequest interface {
 	Execute() (*v4client.ASN, *http.Response, error)

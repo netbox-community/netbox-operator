@@ -19,9 +19,13 @@ package controller
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/go-openapi/runtime"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
+	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
@@ -42,7 +46,6 @@ const (
 	asnTestRangeId   = int32(77)
 	asnTestRirId     = int32(9)
 	asnTestRirName   = "e2e-test-rir"
-	asnTestPageSize  = 250
 )
 
 // asnStore is an in-memory stand-in for the NetBox ASN endpoints. Using a stateful fake
@@ -118,41 +121,73 @@ func okResponse(code int) *http.Response {
 	return &http.Response{StatusCode: code, Body: http.NoBody}
 }
 
+// asnQueryRecorder captures the query parameters a client option would set. The custom
+// field filter is an opaque function, so replaying it is the only way to read it back.
+type asnQueryRecorder struct {
+	runtime.ClientRequest
+	params map[string]string
+}
+
+func (r *asnQueryRecorder) SetQueryParam(name string, values ...string) error {
+	if len(values) > 0 {
+		r.params[name] = values[0]
+	}
+	return nil
+}
+
+func asnQueryParams(opts []interface{}) map[string]string {
+	rec := &asnQueryRecorder{params: map[string]string{}}
+	for _, o := range opts {
+		opt, ok := o.(ipam.ClientOption)
+		if !ok {
+			continue
+		}
+		co := &runtime.ClientOperation{}
+		opt(co)
+		if co.Params != nil {
+			_ = co.Params.WriteToRequest(rec, nil)
+		}
+	}
+	return rec.params
+}
+
+// installAsnV3Mocks wires the v3 ASN list endpoint, which the operator uses for both the
+// restoration hash lookup and the lookup by ASN value.
+func installAsnV3Mocks(ipamMock *mock_interfaces.MockIpamInterface, store *asnStore) {
+	hashKey := "cf_" + config.GetOperatorConfig().NetboxRestorationHashFieldName
+
+	listFn := func(_ interface{}, _ interface{}, opts ...interface{}) (*ipam.IpamAsnsListOK, error) {
+		query := asnQueryParams(opts)
+		wantHash, filterByHash := query[hashKey]
+		wantValue, filterByValue := query["asn"]
+
+		results := []*netboxModels.ASN{}
+		for _, a := range store.list() {
+			if filterByHash && a.CustomFields[config.GetOperatorConfig().NetboxRestorationHashFieldName] != wantHash {
+				continue
+			}
+			if filterByValue && wantValue != strconv.FormatInt(a.Asn, 10) {
+				continue
+			}
+			value := a.Asn
+			results = append(results, &netboxModels.ASN{ID: int64(a.Id), Asn: &value})
+		}
+
+		count := int64(len(results))
+		return &ipam.IpamAsnsListOK{
+			Payload: &ipam.IpamAsnsListOKBody{Count: &count, Results: results},
+		}, nil
+	}
+
+	ipamMock.EXPECT().IpamAsnsList(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(listFn).AnyTimes()
+}
+
 // installAsnMocks wires the shared IpamAPI mock to the given store. All expectations are
 // AnyTimes so that repeated reconciles do not exhaust them.
 func installAsnMocks(store *asnStore) {
-	mockIpamAPI.EXPECT().IpamAsnsList(gomock.Any()).
-		DoAndReturn(func(_ context.Context) interfaces.IpamAsnsListRequest {
-			req := mock_interfaces.NewMockIpamAsnsListRequest(mockCtrl)
-			var filter []int32
-			var offset int32
-			req.EXPECT().Limit(int32(asnTestPageSize)).Return(req).AnyTimes()
-			req.EXPECT().Offset(gomock.Any()).DoAndReturn(func(o int32) interfaces.IpamAsnsListRequest {
-				offset = o
-				return req
-			}).AnyTimes()
-			req.EXPECT().Asn(gomock.Any()).DoAndReturn(func(f []int32) interfaces.IpamAsnsListRequest {
-				filter = f
-				return req
-			}).AnyTimes()
-			req.EXPECT().Execute().DoAndReturn(func() (*v4client.PaginatedASNList, *http.Response, error) {
-				all := store.list()
-				matched := make([]v4client.ASN, 0, len(all))
-				for _, a := range all {
-					if len(filter) == 0 || int64(filter[0]) == a.Asn {
-						matched = append(matched, a)
-					}
-				}
-				if int(offset) > len(matched) {
-					offset = int32(len(matched))
-				}
-				return &v4client.PaginatedASNList{
-					Count:   int32(len(matched)),
-					Results: matched[offset:],
-				}, okResponse(http.StatusOK), nil
-			}).AnyTimes()
-			return req
-		}).AnyTimes()
+	// The Asn and AsnClaim reconcilers are wired to separate v3 Ipam mocks.
+	installAsnV3Mocks(ipamMockIpAddress, store)
+	installAsnV3Mocks(ipamMockIpAddressClaim, store)
 
 	mockIpamAPI.EXPECT().IpamAsnsRetrieve(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context, id int32) interfaces.IpamAsnsRetrieveRequest {

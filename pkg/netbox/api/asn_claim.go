@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
@@ -31,33 +32,33 @@ import (
 var ErrAsnRangeExhausted = errors.New("ASN range exhausted")
 
 func (c *NetboxCompositeClient) RestoreExistingAsnByHash(ctx context.Context, hash string) (*models.ASN, error) {
-	// The generated v4 client exposes no typed filter for custom fields, so we page
-	// through all ASNs and match the restoration hash client-side.
-	asns, err := c.listAllAsns(ctx)
+	customAsnSearch := newAsnListQuery(nil, []CustomFieldEntry{
+		{
+			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
+			value: hash,
+		},
+	})
+	list, err := c.clientV3.Ipam.IpamAsnsList(ipam.NewIpamAsnsListParams().WithContext(ctx), nil, customAsnSearch)
 	if err != nil {
 		return nil, err
 	}
 
-	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
-	var matches []v4client.ASN
-	for _, asn := range asns {
-		if cfHash, ok := asn.CustomFields[restorationHashKey]; ok && cfHash == hash {
-			matches = append(matches, asn)
-		}
-	}
-
-	if len(matches) == 0 {
+	if len(list.Payload.Results) == 0 {
 		return nil, nil
 	}
 
 	// We should not have more than 1 result...
-	if len(matches) > 1 {
-		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(matches))
+	if len(list.Payload.Results) != 1 {
+		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(list.Payload.Results))
+	}
+	res := list.Payload.Results[0]
+	if res.Asn == nil {
+		return nil, errors.New("asn in netbox is nil")
 	}
 
 	return &models.ASN{
-		Asn: matches[0].Asn,
-		Id:  int64(matches[0].Id),
+		Asn: *res.Asn,
+		Id:  res.ID,
 	}, nil
 }
 
@@ -136,7 +137,7 @@ func (c *NetboxCompositeClient) ReserveAvailableAsnByClaim(ctx context.Context, 
 }
 
 func (c *NetboxCompositeClient) getAsnRangeIdByName(ctx context.Context, name string) (int32, error) {
-	result, err := c.listAsnRangesPage(ctx, []string{name}, 0)
+	result, err := c.listAsnRanges(ctx, []string{name})
 	if err != nil {
 		return 0, err
 	}
@@ -150,7 +151,7 @@ func (c *NetboxCompositeClient) getAsnRangeIdByName(ctx context.Context, name st
 
 // GetAsnRangeRirName returns the name of the RIR the given ASN Range belongs to.
 func (c *NetboxCompositeClient) GetAsnRangeRirName(ctx context.Context, name string) (string, error) {
-	result, err := c.listAsnRangesPage(ctx, []string{name}, 0)
+	result, err := c.listAsnRanges(ctx, []string{name})
 	if err != nil {
 		return "", err
 	}

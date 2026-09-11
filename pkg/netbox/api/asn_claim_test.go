@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
@@ -32,27 +33,22 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// expectAsnListPages queues one IpamAsnsList expectation per given page, asserting that
-// the pagination parameters are set correctly.
-func expectAsnListPages(ctrl *gomock.Controller, mockIpamAPI *mock_interfaces.MockIpamAPI, count int32, pages ...[]v4client.ASN) {
-	offset := int32(0)
-	for _, page := range pages {
-		req := mock_interfaces.NewMockIpamAsnsListRequest(ctrl)
-		mockIpamAPI.EXPECT().IpamAsnsList(gomock.Any()).Return(req)
-		req.EXPECT().Limit(int32(asnListPageSize)).Return(req)
-		req.EXPECT().Offset(offset).Return(req)
-		req.EXPECT().Execute().
-			Return(&v4client.PaginatedASNList{Count: count, Results: page}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-		offset += int32(len(page))
-	}
+// asnRestorationClient returns a composite client whose v3 ASN list returns the given
+// results. The custom field filter is passed as an opaque function that gomock cannot
+// compare, hence gomock.Any() for the params and the options.
+func asnRestorationClient(ctrl *gomock.Controller, count int64, results []*netboxModels.ASN) *NetboxCompositeClient {
+	mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockIpam.EXPECT().IpamAsnsList(gomock.Any(), nil, gomock.Any()).Return(&ipam.IpamAsnsListOK{
+		Payload: &ipam.IpamAsnsListOKBody{Count: &count, Results: results},
+	}, nil)
+	return &NetboxCompositeClient{clientV3: &NetboxClientV3{Ipam: mockIpam}}
 }
 
 // expectAsnRangeLookup queues the ASN Range lookup by name performed before claiming.
 func expectAsnRangeLookup(ctrl *gomock.Controller, mockIpamAPI *mock_interfaces.MockIpamAPI, name string, results []v4client.ASNRange) {
 	req := mock_interfaces.NewMockIpamAsnRangesListRequest(ctrl)
 	mockIpamAPI.EXPECT().IpamAsnRangesList(gomock.Any()).Return(req)
-	req.EXPECT().Limit(int32(asnListPageSize)).Return(req)
-	req.EXPECT().Offset(int32(0)).Return(req)
+	req.EXPECT().Limit(int32(listPageSize)).Return(req)
 	req.EXPECT().Name([]string{name}).Return(req)
 	req.EXPECT().Execute().
 		Return(&v4client.PaginatedASNRangeList{Count: int32(len(results)), Results: results}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
@@ -75,47 +71,11 @@ func TestAsnClaim(t *testing.T) {
 	asnRanges := []v4client.ASNRange{{Id: asnRangeId, Name: asnRangeName, Start: 64512, End: 65534}}
 
 	t.Run("restore existing ASN by hash", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		hash := "abc123hash"
 
-		expectAsnListPages(ctrl, mockIpamAPI, 1, []v4client.ASN{
-			{Id: AsnId, Asn: asnValue, CustomFields: map[string]interface{}{restorationHashKey: hash}},
+		compositeClient := asnRestorationClient(ctrl, 1, []*netboxModels.ASN{
+			{ID: int64(AsnId), Asn: &asnValue},
 		})
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
-
-		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), hash)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, asnValue, result.Asn)
-		assert.Equal(t, int64(AsnId), result.Id)
-	})
-
-	t.Run("restore existing ASN by hash - match on a later page", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-		hash := "abc123hash"
-
-		// Fill the first two pages so the match is only reachable via pagination.
-		fillerPage := func(startId int32) []v4client.ASN {
-			page := make([]v4client.ASN, asnListPageSize)
-			for i := range page {
-				page[i] = v4client.ASN{
-					Id:           startId + int32(i),
-					Asn:          int64(startId) + int64(i),
-					CustomFields: map[string]interface{}{restorationHashKey: "other-hash"},
-				}
-			}
-			return page
-		}
-
-		expectAsnListPages(ctrl, mockIpamAPI, 2*asnListPageSize+1,
-			fillerPage(1000),
-			fillerPage(2000),
-			[]v4client.ASN{{Id: AsnId, Asn: asnValue, CustomFields: map[string]interface{}{restorationHashKey: hash}}},
-		)
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
 
 		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), hash)
 
@@ -126,13 +86,7 @@ func TestAsnClaim(t *testing.T) {
 	})
 
 	t.Run("restore existing ASN by hash - not found", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-
-		expectAsnListPages(ctrl, mockIpamAPI, 1, []v4client.ASN{
-			{Id: AsnId, Asn: asnValue, CustomFields: map[string]interface{}{restorationHashKey: "different-hash"}},
-		})
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+		compositeClient := asnRestorationClient(ctrl, 0, nil)
 
 		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), "nonexistent-hash")
 
@@ -140,34 +94,48 @@ func TestAsnClaim(t *testing.T) {
 		assert.Nil(t, result)
 	})
 
-	t.Run("restore existing ASN by hash - more than one match", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-		hash := "abc123hash"
+	t.Run("restore existing ASN by hash - not found without count", func(t *testing.T) {
+		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+		mockIpam.EXPECT().IpamAsnsList(gomock.Any(), nil, gomock.Any()).Return(&ipam.IpamAsnsListOK{
+			Payload: &ipam.IpamAsnsListOKBody{},
+		}, nil)
 
-		expectAsnListPages(ctrl, mockIpamAPI, 2, []v4client.ASN{
-			{Id: AsnId, Asn: asnValue, CustomFields: map[string]interface{}{restorationHashKey: hash}},
-			{Id: AsnId + 1, Asn: asnValue + 1, CustomFields: map[string]interface{}{restorationHashKey: hash}},
+		compositeClient := &NetboxCompositeClient{clientV3: &NetboxClientV3{Ipam: mockIpam}}
+
+		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), "nonexistent-hash")
+
+		assert.NoError(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("restore existing ASN by hash - asn not set", func(t *testing.T) {
+		compositeClient := asnRestorationClient(ctrl, 1, []*netboxModels.ASN{{ID: int64(AsnId)}})
+
+		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), "abc123hash")
+
+		assert.ErrorContains(t, err, "asn in netbox is nil")
+		assert.Nil(t, result)
+	})
+
+	t.Run("restore existing ASN by hash - more than one match", func(t *testing.T) {
+		otherAsnValue := asnValue + 1
+
+		compositeClient := asnRestorationClient(ctrl, 2, []*netboxModels.ASN{
+			{ID: int64(AsnId), Asn: &asnValue},
+			{ID: int64(AsnId) + 1, Asn: &otherAsnValue},
 		})
 
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
-
-		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), hash)
+		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), "abc123hash")
 
 		assert.ErrorContains(t, err, "incorrect number of restoration results")
 		assert.Nil(t, result)
 	})
 
 	t.Run("restore existing ASN by hash - netbox error", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-		mockListRequest := mock_interfaces.NewMockIpamAsnsListRequest(ctrl)
+		mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+		mockIpam.EXPECT().IpamAsnsList(gomock.Any(), nil, gomock.Any()).Return(nil, assert.AnError)
 
-		mockIpamAPI.EXPECT().IpamAsnsList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Limit(int32(asnListPageSize)).Return(mockListRequest)
-		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
-		mockListRequest.EXPECT().Execute().
-			Return(nil, &http.Response{StatusCode: 500, Body: http.NoBody}, assert.AnError)
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+		compositeClient := &NetboxCompositeClient{clientV3: &NetboxClientV3{Ipam: mockIpam}}
 
 		result, err := compositeClient.RestoreExistingAsnByHash(context.TODO(), "abc123hash")
 

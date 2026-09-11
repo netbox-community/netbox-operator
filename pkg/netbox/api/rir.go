@@ -27,7 +27,7 @@ import (
 
 func (c *NetboxCompositeClient) getRirDetailsByName(ctx context.Context, name string) (rir *models.Rir, err error) {
 	result, httpResp, execErr := c.clientV4.IpamAPI.IpamRirsList(ctx).
-		Name([]string{name}).Limit(asnListPageSize).Offset(0).Execute()
+		Name([]string{name}).Limit(listPageSize).Execute()
 
 	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "fetch RIR details")
 	if closeFunc != nil {

@@ -1253,29 +1253,6 @@ print("ASN Ranges loaded")
 ###                     START                   ###
 ###                Used by e2e tests            ###
 ### Modifying entries might cause tests to fail ###
-# The operator lists ASNs with a page size of 250 (asnListPageSize in
-# pkg/netbox/api/asn.go) when it looks up an ASN by restoration hash. These filler
-# ASNs push the total number of ASNs beyond a single page so that the e2e tests
-# exercise the pagination logic. They use low ASN values on purpose: NetBox orders
-# ASNs by their value, so the ASNs used by the tests (64512 and above) end up on a
-# later page.
-ASN_FILLER_START = 1000
-ASN_FILLER_COUNT = 400
-
-try:
-    nb.ipam.asns.create(
-        [
-            {
-                "asn": asn,
-                "rir": rir.id,
-                "description": "filler ASN to force pagination in e2e tests",
-            }
-            for asn in range(ASN_FILLER_START, ASN_FILLER_START + ASN_FILLER_COUNT)
-        ]
-    )
-except pynetbox.RequestError as e:
-    pprint(e.error)
-
 # ASN without a restoration hash, so the operator has to reject adopting it
 try:
     nb.ipam.asns.create(

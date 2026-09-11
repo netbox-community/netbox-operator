@@ -189,29 +189,6 @@ func (a *statusV4APIAdapter) StatusRetrieve(ctx context.Context) interfaces.APIS
 
 // ASN v4 adapters
 
-type ipamAsnsListRequestAdapter struct {
-	req v4client.ApiIpamAsnsListRequest
-}
-
-func (a *ipamAsnsListRequestAdapter) Asn(asn []int32) interfaces.IpamAsnsListRequest {
-	a.req = a.req.Asn(asn)
-	return a
-}
-
-func (a *ipamAsnsListRequestAdapter) Limit(limit int32) interfaces.IpamAsnsListRequest {
-	a.req = a.req.Limit(limit)
-	return a
-}
-
-func (a *ipamAsnsListRequestAdapter) Offset(offset int32) interfaces.IpamAsnsListRequest {
-	a.req = a.req.Offset(offset)
-	return a
-}
-
-func (a *ipamAsnsListRequestAdapter) Execute() (*v4client.PaginatedASNList, *http.Response, error) {
-	return a.req.Execute()
-}
-
 type ipamAsnsRetrieveRequestAdapter struct {
 	req v4client.ApiIpamAsnsRetrieveRequest
 }
@@ -311,10 +288,6 @@ func (a *ipamRirsListRequestAdapter) Offset(offset int32) interfaces.IpamRirsLis
 
 func (a *ipamRirsListRequestAdapter) Execute() (*v4client.PaginatedRIRList, *http.Response, error) {
 	return a.req.Execute()
-}
-
-func (a *ipamV4APIAdapter) IpamAsnsList(ctx context.Context) interfaces.IpamAsnsListRequest {
-	return &ipamAsnsListRequestAdapter{req: a.api.IpamAsnsList(ctx)}
 }
 
 func (a *ipamV4APIAdapter) IpamAsnsRetrieve(ctx context.Context, id int32) interfaces.IpamAsnsRetrieveRequest {

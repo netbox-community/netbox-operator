@@ -20,9 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
+	"maps"
 	"net/http"
+	"strconv"
 
+	"github.com/go-openapi/runtime"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -30,14 +33,20 @@ import (
 )
 
 const (
-	// asnListPageSize is the number of objects requested per page when paginating
-	// through the NetBox ASN and ASN Range list endpoints.
-	asnListPageSize = 250
-
-	// asnListMaxPages caps the number of pages fetched by the pagination helpers so
-	// that an inconsistent NetBox response cannot make the operator loop forever.
-	asnListMaxPages = 1000
+	// listPageSize is the number of objects requested from the NetBox ASN Range and
+	// RIR list endpoints.
+	listPageSize = 250
 )
+
+// newAsnListQuery builds the query for the v3 ASN list endpoint. It always requests the
+// brief representation, as the full one cannot be decoded: the v3 model types `rir` as an
+// integer, whereas NetBox 4 returns a nested object. Note that the returned option
+// replaces the typed list parameters, so every filter has to be passed through here.
+func newAsnListQuery(netBoxFields map[string]string, customFields []CustomFieldEntry) func(co *runtime.ClientOperation) {
+	query := map[string]string{"brief": "true"}
+	maps.Copy(query, netBoxFields)
+	return newQueryFilterOperation(query, customFields)
+}
 
 func (c *NetboxCompositeClient) ReserveOrUpdateAsn(ctx context.Context, asn *models.ASN, asnV1 *netboxv1.Asn) (resp *v4client.ASN, isUpToDate bool, err error) {
 	asnToUpdate, err := c.getAsn(ctx, asn, asnV1.Status.AsnId)
@@ -124,29 +133,22 @@ func (c *NetboxCompositeClient) getAsn(ctx context.Context, asn *models.ASN, net
 		return c.retrieveAsn(ctx, int32(netboxAsnId))
 	}
 
-	// The generated client's `asn=` filter only accepts int32, so it cannot express 32-bit
-	// ASNs above math.MaxInt32. Fall back to a paginated scan for those.
-	if asn.Asn > math.MaxInt32 {
-		all, err := c.listAllAsns(ctx)
-		if err != nil {
-			return nil, err
-		}
-		for i := range all {
-			if all[i].Asn == asn.Asn {
-				return &all[i], nil
-			}
-		}
-		return nil, nil
-	}
-
-	result, err := c.listAsnsPage(ctx, []int32{int32(asn.Asn)}, 0)
+	// The v4 client types the `asn=` filter as int32, which cannot express 32-bit ASNs
+	// above math.MaxInt32, so the lookup by value goes through the v3 client instead.
+	asnValue := strconv.FormatInt(asn.Asn, 10)
+	list, err := c.clientV3.Ipam.IpamAsnsList(
+		ipam.NewIpamAsnsListParams().WithContext(ctx),
+		nil,
+		newAsnListQuery(map[string]string{"asn": asnValue}, nil),
+	)
 	if err != nil {
 		return nil, err
 	}
-	if len(result.Results) == 0 {
+	if len(list.Payload.Results) == 0 {
 		return nil, nil
 	}
-	return &result.Results[0], nil
+
+	return c.retrieveAsn(ctx, int32(list.Payload.Results[0].ID))
 }
 
 // retrieveAsn fetches a single ASN by its NetBox object id, returning nil if it is gone.
@@ -168,48 +170,9 @@ func (c *NetboxCompositeClient) retrieveAsn(ctx context.Context, asnId int32) (r
 	return result, nil
 }
 
-// listAsnsPage fetches a single page of ASNs, optionally narrowed by the given asn filter.
-func (c *NetboxCompositeClient) listAsnsPage(ctx context.Context, asnFilter []int32, offset int32) (list *v4client.PaginatedASNList, err error) {
-	req := c.clientV4.IpamAPI.IpamAsnsList(ctx).Limit(asnListPageSize).Offset(offset)
-	if len(asnFilter) > 0 {
-		req = req.Asn(asnFilter)
-	}
-
-	result, httpResp, execErr := req.Execute()
-
-	closeFunc, handleErr := handleHTTPResponse(httpResp, execErr, http.StatusOK, "fetch ASN details")
-	if closeFunc != nil {
-		defer func() { err = errors.Join(err, closeFunc()) }()
-	}
-	if handleErr != nil {
-		return nil, handleErr
-	}
-
-	return result, nil
-}
-
-// listAllAsns pages through every ASN known to NetBox.
-func (c *NetboxCompositeClient) listAllAsns(ctx context.Context) ([]v4client.ASN, error) {
-	var all []v4client.ASN
-	for page := 0; page < asnListMaxPages; page++ {
-		result, err := c.listAsnsPage(ctx, nil, int32(len(all)))
-		if err != nil {
-			return nil, err
-		}
-		if len(result.Results) == 0 {
-			return all, nil
-		}
-		all = append(all, result.Results...)
-		if int32(len(all)) >= result.Count {
-			return all, nil
-		}
-	}
-	return nil, fmt.Errorf("failed to fetch ASN details: exceeded maximum of %d pages", asnListMaxPages)
-}
-
-// listAsnRangesPage fetches a single page of ASN Ranges, optionally narrowed by name.
-func (c *NetboxCompositeClient) listAsnRangesPage(ctx context.Context, nameFilter []string, offset int32) (list *v4client.PaginatedASNRangeList, err error) {
-	req := c.clientV4.IpamAPI.IpamAsnRangesList(ctx).Limit(asnListPageSize).Offset(offset)
+// listAsnRanges fetches ASN Ranges, optionally narrowed by name.
+func (c *NetboxCompositeClient) listAsnRanges(ctx context.Context, nameFilter []string) (list *v4client.PaginatedASNRangeList, err error) {
+	req := c.clientV4.IpamAPI.IpamAsnRangesList(ctx).Limit(listPageSize)
 	if len(nameFilter) > 0 {
 		req = req.Name(nameFilter)
 	}
