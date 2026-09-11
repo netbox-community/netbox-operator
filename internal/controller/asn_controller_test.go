@@ -211,6 +211,52 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 		}, timeout, interval).Should(BeTrue())
 	})
 
+	It("should drop a custom field removed from the spec from the managed custom fields annotation", func() {
+		store := newAsnStore(65000, 65010)
+		installAsnMocks(store)
+		hash := "2222222222222222222222222222222222222222"
+		store.seed(65003, map[string]interface{}{hashKey: hash})
+
+		asn := &netboxv1.Asn{
+			ObjectMeta: metav1.ObjectMeta{Name: "asn-customfield-removal", Namespace: "default"},
+			Spec: netboxv1.AsnSpec{
+				Asn:          65003,
+				Description:  "a description",
+				Rir:          asnTestRirName,
+				CustomFields: map[string]string{hashKey: hash, "example_field": "some value"},
+			},
+		}
+		lookupKey := types.NamespacedName{Name: asn.Name, Namespace: asn.Namespace}
+		Expect(k8sClient.Create(ctx, asn)).To(Succeed())
+
+		managedCustomFields := func() string {
+			updated := &netboxv1.Asn{}
+			if err := k8sClient.Get(ctx, lookupKey, updated); err != nil {
+				return ""
+			}
+			return updated.Annotations[AsnManagedCustomFieldsAnnotationName]
+		}
+
+		Eventually(managedCustomFields, timeout, interval).Should(ContainSubstring("example_field"))
+
+		Eventually(func() error {
+			updated := &netboxv1.Asn{}
+			if err := k8sClient.Get(ctx, lookupKey, updated); err != nil {
+				return err
+			}
+			updated.Spec.CustomFields = map[string]string{hashKey: hash}
+			return k8sClient.Update(ctx, updated)
+		}, timeout, interval).Should(Succeed())
+
+		Eventually(managedCustomFields, timeout, interval).ShouldNot(ContainSubstring("example_field"))
+
+		Expect(k8sClient.Delete(ctx, asn)).To(Succeed())
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, lookupKey, &netboxv1.Asn{})
+			return apierrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue())
+	})
+
 	It("should reject ASN values outside of the 32 bit ASN range", func() {
 		for _, value := range []int64{0, 4294967296} {
 			asn := &netboxv1.Asn{

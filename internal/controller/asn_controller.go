@@ -149,6 +149,10 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	}
 
 	// 2.1 update annotations
+	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
+	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
+	patch := client.MergeFrom(o.DeepCopy())
+
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
@@ -157,9 +161,6 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	if err != nil {
 		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
-
-	// snapshot before annotation mutation for merge-patch
-	patch := client.MergeFrom(o.DeepCopy())
 
 	if err = accessor.SetAnnotations(o, annotations); err != nil {
 		return ctrl.Result{}, err
