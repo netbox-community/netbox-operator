@@ -1,0 +1,58 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-description-truncation
+  annotations:
+    description: Tests that a warning event is emitted if the description exceeds the maximum length allowed by NetBox
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_asnclaim.yaml
+    - name: Check CR spec and status
+      description: Truncation is not an error, the resource still becomes ready
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-description-truncation
+              status:
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                asnName: asnclaim-description-truncation
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-description-truncation
+                finalizers:
+                  - asn.netbox.dev/finalizer
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: AsnDescriptionTruncated
+              message: ASN was created with truncated description
+              source:
+                component: asn-controller
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: Asn
+                name: asnclaim-description-truncation
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-description-truncation -n $NAMESPACE

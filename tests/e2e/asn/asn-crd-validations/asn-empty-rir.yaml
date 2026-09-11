@@ -1,0 +1,8 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asn-crd-validations-empty-rir
+spec:
+  asn: 65990
+  rir: ""

@@ -1,0 +1,7 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asn-crd-validations-missing-asn
+spec:
+  rir: "NON_EXISTING_RIR"

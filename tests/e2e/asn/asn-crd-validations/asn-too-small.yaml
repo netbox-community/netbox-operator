@@ -1,0 +1,8 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asn-crd-validations-asn-too-small
+spec:
+  asn: 0
+  rir: "NON_EXISTING_RIR"
