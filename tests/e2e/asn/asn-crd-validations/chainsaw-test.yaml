@@ -1,0 +1,121 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asn-crd-validations
+  annotations:
+    description: Tests the CRD validations (required, bounds and immutability) of Asn and AsnClaim
+spec:
+  steps:
+    - name: Asn without asn
+      try:
+        - script:
+            content: kubectl apply -f asn-missing-asn.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'spec.asn: Required value'))": true
+    - name: Asn without rir
+      try:
+        - script:
+            content: kubectl apply -f asn-missing-rir.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'spec.rir: Required value'))": true
+    - name: Asn with empty rir
+      try:
+        - script:
+            content: kubectl apply -f asn-empty-rir.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              (contains(to_string($stderr), 'spec.rir in body should be at least 1 chars long')): true
+    - name: Asn below the allowed range
+      try:
+        - script:
+            content: kubectl apply -f asn-too-small.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              (contains(to_string($stderr), 'spec.asn in body should be greater than or equal to 1')): true
+    - name: Asn above the allowed range
+      try:
+        - script:
+            content: kubectl apply -f asn-too-large.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              (contains(to_string($stderr), 'spec.asn in body should be less than or equal to')): true
+    - name: Create Asn for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f asn-immutable.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: Asn with changed asn
+      try:
+        - script:
+            content: kubectl apply -f asn-immutable-asn-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'asn' is immutable\"`))": true
+    - name: Asn with changed tenant
+      try:
+        - script:
+            content: kubectl apply -f asn-immutable-tenant-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'tenant' is immutable\"`))": true
+    - name: Asn with changed rir
+      description: rir is mutable, this is the positive control for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f asn-immutable-rir-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: AsnClaim without parentAsnRange
+      try:
+        - script:
+            content: kubectl apply -f asnclaim-missing-parentasnrange.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'spec.parentAsnRange: Required value'))": true
+    - name: AsnClaim with empty parentAsnRange
+      try:
+        - script:
+            content: kubectl apply -f asnclaim-empty-parentasnrange.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              (contains(to_string($stderr), 'spec.parentAsnRange in body should be at least 1 chars long')): true
+    - name: Create AsnClaim for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f asnclaim-immutable.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: AsnClaim with changed parentAsnRange
+      try:
+        - script:
+            content: kubectl apply -f asnclaim-immutable-parentasnrange-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'parentAsnRange' is immutable\"`))": true
+    - name: AsnClaim with changed tenant
+      try:
+        - script:
+            content: kubectl apply -f asnclaim-immutable-tenant-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'tenant' is immutable\"`))": true
+    - name: AsnClaim with changed rir
+      description: rir is mutable, this is the positive control for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f asnclaim-immutable-rir-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: Cleanup
+      description: The CRs are created via kubectl, so chainsaw does not track them for deletion
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete asnclaim asn-crd-validations-claim-immutable -n $NAMESPACE --ignore-not-found
+              kubectl delete asn asn-crd-validations-immutable -n $NAMESPACE --ignore-not-found
+              kubectl delete events --field-selector involvedObject.name=asn-crd-validations-immutable -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=asn-crd-validations-claim-immutable -n $NAMESPACE

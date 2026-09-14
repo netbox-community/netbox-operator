@@ -1,0 +1,68 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-customfield-removal
+  annotations:
+    description: Tests that removing a custom field from the claim is tracked in the managed custom fields annotation of the Asn
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_asnclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-customfield-removal
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                asnName: asnclaim-customfield-removal
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-customfield-removal
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                (contains(annotations."asn.netbox.dev/managed-custom-fields", 'example_field')): true
+              spec:
+                customFields:
+                  example_field: "some value"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                    observedGeneration: 1
+    - name: Remove the custom field
+      description: chainsaw apply uses a merge patch, so the field has to be unset explicitly
+      try:
+        - script:
+            content: kubectl patch asnclaim asnclaim-customfield-removal -n $NAMESPACE --type=merge -p '{"spec":{"customFields":null}}'
+    - name: Check that the custom field is no longer managed
+      description: The controller sends an empty value to NetBox for custom fields that were removed from the spec
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-customfield-removal
+                (contains(annotations."asn.netbox.dev/managed-custom-fields", 'example_field')): false
+              spec:
+                (customFields.example_field == null): true
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                    observedGeneration: 2
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-customfield-removal -n $NAMESPACE

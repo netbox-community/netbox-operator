@@ -1,0 +1,97 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asnclaim-invalid-customfieldnotexisting
+  annotations:
+    description: Tests if creation fails in case a custom field does not exist in NetBox
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_asnclaim.yaml
+    - name: Check CR spec and status and verify it fails
+      description: The custom fields are only applied by the Asn controller, so the ASN itself is claimed successfully
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-invalid-customfieldnotexisting
+              spec:
+                customFields:
+                  nonExistingCustomField: "some value"
+              status:
+                (conditions[?type == 'ASNAssigned']):
+                  - status: 'True'
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-invalid-customfieldnotexisting
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: AsnClaim
+                    name: asnclaim-invalid-customfieldnotexisting
+              spec:
+                customFields:
+                  nonExistingCustomField: "some value"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+                    reason: FailedToReserveAsnInNetbox
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: FailedToReserveAsnInNetbox
+              source:
+                component: asn-controller
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: Asn
+                name: asnclaim-invalid-customfieldnotexisting
+    - name: Remove the invalid custom field
+      description: Required so that the already claimed ASN is cleaned up in NetBox on teardown
+      try:
+        - script:
+            content: kubectl patch asnclaim asnclaim-invalid-customfieldnotexisting -n $NAMESPACE --type=merge -p '{"spec":{"customFields":null}}'
+    - name: Check that the Asn recovers
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asnclaim-invalid-customfieldnotexisting
+              spec:
+                (customFields.nonExistingCustomField == null): true
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: AsnClaim
+              metadata:
+                name: asnclaim-invalid-customfieldnotexisting
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                asnName: asnclaim-invalid-customfieldnotexisting
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asnclaim-invalid-customfieldnotexisting -n $NAMESPACE

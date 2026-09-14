@@ -1,0 +1,8 @@
+---
+apiVersion: netbox.dev/v1
+kind: AsnClaim
+metadata:
+  name: asn-crd-validations-claim-immutable
+spec:
+  parentAsnRange: "NON_EXISTING_ASN_RANGE"
+  tenant: "MY_TENANT_2"

@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: AsnClaim
+metadata:
+  name: asnclaim-customfield-removal
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  parentAsnRange: "E2E Test ASN Range CustomField Removal"
+  customFields:
+    example_field: "some value"

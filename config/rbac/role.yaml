@@ -14,6 +14,8 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - asnclaims
+  - asns
   - ipaddressclaims
   - ipaddresses
   - iprangeclaims
@@ -31,6 +33,8 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - asnclaims/finalizers
+  - asns/finalizers
   - ipaddressclaims/finalizers
   - ipaddresses/finalizers
   - iprangeclaims/finalizers
@@ -42,6 +46,8 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - asnclaims/status
+  - asns/status
   - ipaddressclaims/status
   - ipaddresses/status
   - iprangeclaims/status

@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The Kubernetes authors.
+Copyright 2026 The Kubernetes authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -152,6 +152,36 @@ var _ = BeforeSuite(func() {
 		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&AsnReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("asn-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockIpAddress,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&AsnClaimReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("asn-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockIpAddressClaim,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
