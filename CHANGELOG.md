@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.70] - 2026-09-14
+
+<!-- Release notes generated using configuration in .github/release.yml at a7a297d95715ce4b93d1fe1d887baa8b7b57a473 -->
+
+## What's Changed
+### Contributions
+* Update kind and k8s versions in e2e and integration tests by @jstudler in https://github.com/netbox-community/netbox-operator/pull/631
+* Build(deps): bump the go-dependencies group with 28 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/633
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.69...v0.2.70
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.70)
+
+---
+
 ## [v0.2.69] - 2026-09-07
 
 <!-- Release notes generated using configuration in .github/release.yml at 7f80ad054dad9b54e115dea0cb199d5a318bbb35 -->
