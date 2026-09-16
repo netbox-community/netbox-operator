@@ -31,9 +31,9 @@ type L2VPNSpec struct {
 	Type string `json:"type"`
 
 	// The VNI to be assigned to this L2VPN in NetBox
-	// Field is immutable, required, range from 4000-16777215
+	// Field is immutable, required, range from 0-16777215
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Minimum=4000
+	//+kubebuilder:validation:Minimum=0
 	//+kubebuilder:validation:Maximum=16777215
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'identifier' is immutable"
 	Identifier int64 `json:"identifier"`

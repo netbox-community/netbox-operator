@@ -35,7 +35,7 @@ type L2VPNClaimSpec struct {
 	// VNI.
 	// Field is immutable, required
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Minimum=4000
+	//+kubebuilder:validation:Minimum=0
 	//+kubebuilder:validation:Maximum=16777215
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'identifierRangeStart' is immutable"
 	IdentifierRangeStart int64 `json:"identifierRangeStart"`
@@ -45,7 +45,7 @@ type L2VPNClaimSpec struct {
 	// VNI.
 	// Field is immutable, required
 	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Minimum=4000
+	//+kubebuilder:validation:Minimum=0
 	//+kubebuilder:validation:Maximum=16777215
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'identifierRangeEnd' is immutable"
 	IdentifierRangeEnd int64 `json:"identifierRangeEnd"`

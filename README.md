@@ -81,7 +81,7 @@ NetBox Operator supports managing [L2VPNs](https://github.com/netbox-community/n
 - **L2VPN**: Represents a single L2VPN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific L2VPN (`type`, `identifier`) using the CR's Kubernetes object name as the NetBox L2VPN name.
 - **L2VPNClaim**: Claims a VNI for an L2VPN from an `identifierRangeStart`/`identifierRangeEnd` range. Set both to the same value to claim an exact VNI. Similar to IpAddressClaim, it creates a child L2VPN CR with the assigned identifier.
 
-Only VXLAN-based L2VPN types (`vxlan`, `vxlan-evpn`) are supported, since those are the ones that carry a VNI (4000-16777215) in their identifier.
+Only VXLAN-based L2VPN types (`vxlan`, `vxlan-evpn`) are supported, since those are the ones that carry a VNI (0-16777215) in their identifier.
 
 ## Example: Claiming an L2VPN
 

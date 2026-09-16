@@ -92,7 +92,7 @@ spec:
                   Field is immutable, required
                 format: int64
                 maximum: 16777215
-                minimum: 4000
+                minimum: 0
                 type: integer
                 x-kubernetes-validations:
                 - message: Field 'identifierRangeEnd' is immutable
@@ -105,7 +105,7 @@ spec:
                   Field is immutable, required
                 format: int64
                 maximum: 16777215
-                minimum: 4000
+                minimum: 0
                 type: integer
                 x-kubernetes-validations:
                 - message: Field 'identifierRangeStart' is immutable

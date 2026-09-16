@@ -86,10 +86,10 @@ spec:
               identifier:
                 description: |-
                   The VNI to be assigned to this L2VPN in NetBox
-                  Field is immutable, required, range from 4000-16777215
+                  Field is immutable, required, range from 0-16777215
                 format: int64
                 maximum: 16777215
-                minimum: 4000
+                minimum: 0
                 type: integer
                 x-kubernetes-validations:
                 - message: Field 'identifier' is immutable

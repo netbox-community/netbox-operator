@@ -12,5 +12,5 @@ spec:
   comments: "your comments"
   preserveInNetbox: true
   type: "vxlan-evpn"
-  identifierRangeStart: 4000
+  identifierRangeStart: 0
   identifierRangeEnd: 16777215
