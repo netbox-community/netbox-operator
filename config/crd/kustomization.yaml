@@ -8,6 +8,8 @@ resources:
 - bases/netbox.dev_prefixclaims.yaml
 - bases/netbox.dev_iprangeclaims.yaml
 - bases/netbox.dev_ipranges.yaml
+- bases/netbox.dev_vlanclaims.yaml
+- bases/netbox.dev_vlans.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

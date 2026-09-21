@@ -1,0 +1,45 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlanclaim-invalid-tenant
+  annotations:
+    description: Tests if creation fails when the referenced tenant does not exist
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VlanClaim
+              metadata:
+                name: vlanclaim-invalid-tenant
+              spec:
+                tenant: "nonexistingtenant"
+              status:
+                (conditions[?type == 'VlanAssigned']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: VlanCRNotCreated
+              source:
+                component: vlan-claim-controller
+              message: "Failed to fetch new VID from NetBox: failed to fetch tenant 'nonexistingtenant': not found"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: VlanClaim
+                name: vlanclaim-invalid-tenant
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same vid range
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=vlanclaim-invalid-tenant -n $NAMESPACE

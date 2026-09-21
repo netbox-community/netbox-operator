@@ -1,0 +1,14 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanClaim
+metadata:
+  name: vlanclaim-invalid-customfieldnotexisting
+spec:
+  tenant: "MY_TENANT"
+  site: "MY_SITE"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  vid: 160
+  customFields:
+    justmade: "thisup"
