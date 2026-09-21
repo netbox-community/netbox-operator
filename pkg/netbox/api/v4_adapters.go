@@ -170,6 +170,108 @@ func (a *ipamV4APIAdapter) IpamPrefixesDestroy(ctx context.Context, id int32) in
 	return &ipamPrefixesDestroyRequestAdapter{req: a.api.IpamPrefixesDestroy(ctx, id)}
 }
 
+// vpnL2vpnsListRequestAdapter adapts the v4 list request to the interface
+type vpnL2vpnsListRequestAdapter struct {
+	req v4client.ApiVpnL2vpnsListRequest
+}
+
+func (a *vpnL2vpnsListRequestAdapter) Name(name []string) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.Name(name)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) Type_(type_ []string) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.Type_(type_)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) Identifier(identifier []int32) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.Identifier(identifier)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) IdentifierGte(identifierGte []int32) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.IdentifierGte(identifierGte)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) IdentifierLte(identifierLte []int32) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.IdentifierLte(identifierLte)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) Limit(limit int32) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.Limit(limit)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) Offset(offset int32) interfaces.VpnL2vpnsListRequest {
+	a.req = a.req.Offset(offset)
+	return a
+}
+
+func (a *vpnL2vpnsListRequestAdapter) Execute() (*v4client.PaginatedL2VPNList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// vpnL2vpnsCreateRequestAdapter adapts the v4 create request to the interface
+type vpnL2vpnsCreateRequestAdapter struct {
+	req v4client.ApiVpnL2vpnsCreateRequest
+}
+
+func (a *vpnL2vpnsCreateRequestAdapter) WritableL2VPNRequest(writableL2VPNRequest v4client.WritableL2VPNRequest) interfaces.VpnL2vpnsCreateRequest {
+	a.req = a.req.WritableL2VPNRequest(writableL2VPNRequest)
+	return a
+}
+
+func (a *vpnL2vpnsCreateRequestAdapter) Execute() (*v4client.L2VPN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// vpnL2vpnsUpdateRequestAdapter adapts the v4 update request to the interface
+type vpnL2vpnsUpdateRequestAdapter struct {
+	req v4client.ApiVpnL2vpnsUpdateRequest
+}
+
+func (a *vpnL2vpnsUpdateRequestAdapter) WritableL2VPNRequest(writableL2VPNRequest v4client.WritableL2VPNRequest) interfaces.VpnL2vpnsUpdateRequest {
+	a.req = a.req.WritableL2VPNRequest(writableL2VPNRequest)
+	return a
+}
+
+func (a *vpnL2vpnsUpdateRequestAdapter) Execute() (*v4client.L2VPN, *http.Response, error) {
+	return a.req.Execute()
+}
+
+// vpnL2vpnsDestroyRequestAdapter adapts the v4 destroy request to the interface
+type vpnL2vpnsDestroyRequestAdapter struct {
+	req v4client.ApiVpnL2vpnsDestroyRequest
+}
+
+func (a *vpnL2vpnsDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+// vpnV4APIAdapter adapts the v4 VpnAPI to the interface
+type vpnV4APIAdapter struct {
+	api v4client.VpnAPI
+}
+
+func (a *vpnV4APIAdapter) VpnL2vpnsList(ctx context.Context) interfaces.VpnL2vpnsListRequest {
+	return &vpnL2vpnsListRequestAdapter{req: a.api.VpnL2vpnsList(ctx)}
+}
+
+func (a *vpnV4APIAdapter) VpnL2vpnsCreate(ctx context.Context) interfaces.VpnL2vpnsCreateRequest {
+	return &vpnL2vpnsCreateRequestAdapter{req: a.api.VpnL2vpnsCreate(ctx)}
+}
+
+func (a *vpnV4APIAdapter) VpnL2vpnsUpdate(ctx context.Context, id int32) interfaces.VpnL2vpnsUpdateRequest {
+	return &vpnL2vpnsUpdateRequestAdapter{req: a.api.VpnL2vpnsUpdate(ctx, id)}
+}
+
+func (a *vpnV4APIAdapter) VpnL2vpnsDestroy(ctx context.Context, id int32) interfaces.VpnL2vpnsDestroyRequest {
+	return &vpnL2vpnsDestroyRequestAdapter{req: a.api.VpnL2vpnsDestroy(ctx, id)}
+}
+
 type statusRetrieveRequestAdapter struct {
 	req v4client.ApiStatusRetrieveRequest
 }

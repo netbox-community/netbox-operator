@@ -1032,6 +1032,371 @@ func (mr *MockIpamAPIMockRecorder) IpamPrefixesUpdate(ctx, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamPrefixesUpdate), ctx, id)
 }
 
+// MockVpnL2vpnsListRequest is a mock of VpnL2vpnsListRequest interface.
+type MockVpnL2vpnsListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockVpnL2vpnsListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockVpnL2vpnsListRequestMockRecorder is the mock recorder for MockVpnL2vpnsListRequest.
+type MockVpnL2vpnsListRequestMockRecorder struct {
+	mock *MockVpnL2vpnsListRequest
+}
+
+// NewMockVpnL2vpnsListRequest creates a new mock instance.
+func NewMockVpnL2vpnsListRequest(ctrl *gomock.Controller) *MockVpnL2vpnsListRequest {
+	mock := &MockVpnL2vpnsListRequest{ctrl: ctrl}
+	mock.recorder = &MockVpnL2vpnsListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockVpnL2vpnsListRequest) EXPECT() *MockVpnL2vpnsListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockVpnL2vpnsListRequest) Execute() (*netbox.PaginatedL2VPNList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedL2VPNList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Execute))
+}
+
+// Identifier mocks base method.
+func (m *MockVpnL2vpnsListRequest) Identifier(identifier []int32) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Identifier", identifier)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// Identifier indicates an expected call of Identifier.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Identifier(identifier any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Identifier", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Identifier), identifier)
+}
+
+// IdentifierGte mocks base method.
+func (m *MockVpnL2vpnsListRequest) IdentifierGte(identifierGte []int32) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IdentifierGte", identifierGte)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// IdentifierGte indicates an expected call of IdentifierGte.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) IdentifierGte(identifierGte any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IdentifierGte", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).IdentifierGte), identifierGte)
+}
+
+// IdentifierLte mocks base method.
+func (m *MockVpnL2vpnsListRequest) IdentifierLte(identifierLte []int32) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IdentifierLte", identifierLte)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// IdentifierLte indicates an expected call of IdentifierLte.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) IdentifierLte(identifierLte any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IdentifierLte", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).IdentifierLte), identifierLte)
+}
+
+// Limit mocks base method.
+func (m *MockVpnL2vpnsListRequest) Limit(limit int32) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limit", limit)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// Limit indicates an expected call of Limit.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Limit(limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limit", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Limit), limit)
+}
+
+// Name mocks base method.
+func (m *MockVpnL2vpnsListRequest) Name(name []string) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name", name)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Name(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Name), name)
+}
+
+// Offset mocks base method.
+func (m *MockVpnL2vpnsListRequest) Offset(offset int32) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Offset", offset)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// Offset indicates an expected call of Offset.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Offset(offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Offset), offset)
+}
+
+// Type_ mocks base method.
+func (m *MockVpnL2vpnsListRequest) Type_(type_ []string) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Type_", type_)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// Type_ indicates an expected call of Type_.
+func (mr *MockVpnL2vpnsListRequestMockRecorder) Type_(type_ any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Type_", reflect.TypeOf((*MockVpnL2vpnsListRequest)(nil).Type_), type_)
+}
+
+// MockVpnL2vpnsCreateRequest is a mock of VpnL2vpnsCreateRequest interface.
+type MockVpnL2vpnsCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockVpnL2vpnsCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockVpnL2vpnsCreateRequestMockRecorder is the mock recorder for MockVpnL2vpnsCreateRequest.
+type MockVpnL2vpnsCreateRequestMockRecorder struct {
+	mock *MockVpnL2vpnsCreateRequest
+}
+
+// NewMockVpnL2vpnsCreateRequest creates a new mock instance.
+func NewMockVpnL2vpnsCreateRequest(ctrl *gomock.Controller) *MockVpnL2vpnsCreateRequest {
+	mock := &MockVpnL2vpnsCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockVpnL2vpnsCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockVpnL2vpnsCreateRequest) EXPECT() *MockVpnL2vpnsCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockVpnL2vpnsCreateRequest) Execute() (*netbox.L2VPN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.L2VPN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockVpnL2vpnsCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockVpnL2vpnsCreateRequest)(nil).Execute))
+}
+
+// WritableL2VPNRequest mocks base method.
+func (m *MockVpnL2vpnsCreateRequest) WritableL2VPNRequest(writableL2VPNRequest netbox.WritableL2VPNRequest) interfaces.VpnL2vpnsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WritableL2VPNRequest", writableL2VPNRequest)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsCreateRequest)
+	return ret0
+}
+
+// WritableL2VPNRequest indicates an expected call of WritableL2VPNRequest.
+func (mr *MockVpnL2vpnsCreateRequestMockRecorder) WritableL2VPNRequest(writableL2VPNRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WritableL2VPNRequest", reflect.TypeOf((*MockVpnL2vpnsCreateRequest)(nil).WritableL2VPNRequest), writableL2VPNRequest)
+}
+
+// MockVpnL2vpnsUpdateRequest is a mock of VpnL2vpnsUpdateRequest interface.
+type MockVpnL2vpnsUpdateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockVpnL2vpnsUpdateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockVpnL2vpnsUpdateRequestMockRecorder is the mock recorder for MockVpnL2vpnsUpdateRequest.
+type MockVpnL2vpnsUpdateRequestMockRecorder struct {
+	mock *MockVpnL2vpnsUpdateRequest
+}
+
+// NewMockVpnL2vpnsUpdateRequest creates a new mock instance.
+func NewMockVpnL2vpnsUpdateRequest(ctrl *gomock.Controller) *MockVpnL2vpnsUpdateRequest {
+	mock := &MockVpnL2vpnsUpdateRequest{ctrl: ctrl}
+	mock.recorder = &MockVpnL2vpnsUpdateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockVpnL2vpnsUpdateRequest) EXPECT() *MockVpnL2vpnsUpdateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockVpnL2vpnsUpdateRequest) Execute() (*netbox.L2VPN, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.L2VPN)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockVpnL2vpnsUpdateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockVpnL2vpnsUpdateRequest)(nil).Execute))
+}
+
+// WritableL2VPNRequest mocks base method.
+func (m *MockVpnL2vpnsUpdateRequest) WritableL2VPNRequest(writableL2VPNRequest netbox.WritableL2VPNRequest) interfaces.VpnL2vpnsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WritableL2VPNRequest", writableL2VPNRequest)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsUpdateRequest)
+	return ret0
+}
+
+// WritableL2VPNRequest indicates an expected call of WritableL2VPNRequest.
+func (mr *MockVpnL2vpnsUpdateRequestMockRecorder) WritableL2VPNRequest(writableL2VPNRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WritableL2VPNRequest", reflect.TypeOf((*MockVpnL2vpnsUpdateRequest)(nil).WritableL2VPNRequest), writableL2VPNRequest)
+}
+
+// MockVpnL2vpnsDestroyRequest is a mock of VpnL2vpnsDestroyRequest interface.
+type MockVpnL2vpnsDestroyRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockVpnL2vpnsDestroyRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockVpnL2vpnsDestroyRequestMockRecorder is the mock recorder for MockVpnL2vpnsDestroyRequest.
+type MockVpnL2vpnsDestroyRequestMockRecorder struct {
+	mock *MockVpnL2vpnsDestroyRequest
+}
+
+// NewMockVpnL2vpnsDestroyRequest creates a new mock instance.
+func NewMockVpnL2vpnsDestroyRequest(ctrl *gomock.Controller) *MockVpnL2vpnsDestroyRequest {
+	mock := &MockVpnL2vpnsDestroyRequest{ctrl: ctrl}
+	mock.recorder = &MockVpnL2vpnsDestroyRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockVpnL2vpnsDestroyRequest) EXPECT() *MockVpnL2vpnsDestroyRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockVpnL2vpnsDestroyRequest) Execute() (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockVpnL2vpnsDestroyRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockVpnL2vpnsDestroyRequest)(nil).Execute))
+}
+
+// MockVpnAPI is a mock of VpnAPI interface.
+type MockVpnAPI struct {
+	ctrl     *gomock.Controller
+	recorder *MockVpnAPIMockRecorder
+	isgomock struct{}
+}
+
+// MockVpnAPIMockRecorder is the mock recorder for MockVpnAPI.
+type MockVpnAPIMockRecorder struct {
+	mock *MockVpnAPI
+}
+
+// NewMockVpnAPI creates a new mock instance.
+func NewMockVpnAPI(ctrl *gomock.Controller) *MockVpnAPI {
+	mock := &MockVpnAPI{ctrl: ctrl}
+	mock.recorder = &MockVpnAPIMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockVpnAPI) EXPECT() *MockVpnAPIMockRecorder {
+	return m.recorder
+}
+
+// VpnL2vpnsCreate mocks base method.
+func (m *MockVpnAPI) VpnL2vpnsCreate(ctx context.Context) interfaces.VpnL2vpnsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VpnL2vpnsCreate", ctx)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsCreateRequest)
+	return ret0
+}
+
+// VpnL2vpnsCreate indicates an expected call of VpnL2vpnsCreate.
+func (mr *MockVpnAPIMockRecorder) VpnL2vpnsCreate(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VpnL2vpnsCreate", reflect.TypeOf((*MockVpnAPI)(nil).VpnL2vpnsCreate), ctx)
+}
+
+// VpnL2vpnsDestroy mocks base method.
+func (m *MockVpnAPI) VpnL2vpnsDestroy(ctx context.Context, id int32) interfaces.VpnL2vpnsDestroyRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VpnL2vpnsDestroy", ctx, id)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsDestroyRequest)
+	return ret0
+}
+
+// VpnL2vpnsDestroy indicates an expected call of VpnL2vpnsDestroy.
+func (mr *MockVpnAPIMockRecorder) VpnL2vpnsDestroy(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VpnL2vpnsDestroy", reflect.TypeOf((*MockVpnAPI)(nil).VpnL2vpnsDestroy), ctx, id)
+}
+
+// VpnL2vpnsList mocks base method.
+func (m *MockVpnAPI) VpnL2vpnsList(ctx context.Context) interfaces.VpnL2vpnsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VpnL2vpnsList", ctx)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsListRequest)
+	return ret0
+}
+
+// VpnL2vpnsList indicates an expected call of VpnL2vpnsList.
+func (mr *MockVpnAPIMockRecorder) VpnL2vpnsList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VpnL2vpnsList", reflect.TypeOf((*MockVpnAPI)(nil).VpnL2vpnsList), ctx)
+}
+
+// VpnL2vpnsUpdate mocks base method.
+func (m *MockVpnAPI) VpnL2vpnsUpdate(ctx context.Context, id int32) interfaces.VpnL2vpnsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VpnL2vpnsUpdate", ctx, id)
+	ret0, _ := ret[0].(interfaces.VpnL2vpnsUpdateRequest)
+	return ret0
+}
+
+// VpnL2vpnsUpdate indicates an expected call of VpnL2vpnsUpdate.
+func (mr *MockVpnAPIMockRecorder) VpnL2vpnsUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VpnL2vpnsUpdate", reflect.TypeOf((*MockVpnAPI)(nil).VpnL2vpnsUpdate), ctx, id)
+}
+
 // MockAPIStatusRetrieveRequest is a mock of APIStatusRetrieveRequest interface.
 type MockAPIStatusRetrieveRequest struct {
 	ctrl     *gomock.Controller
