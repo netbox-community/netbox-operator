@@ -127,6 +127,15 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 		fieldEntries["site_id"] = strconv.Itoa(int(details.Id))
 	}
 
+	if vrf, ok := prefixClaimSpec.ParentPrefixSelector["vrf"]; ok {
+		details, err := c.GetVrfDetails(vrf)
+		if err != nil {
+			return nil, err
+		}
+
+		fieldEntries["vrf_id"] = strconv.Itoa(int(details.Id))
+	}
+
 	if family, ok := prefixClaimSpec.ParentPrefixSelector["family"]; ok {
 		switch family {
 		case "IPv4":
@@ -142,7 +151,7 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 	parentPrefixSelectorCustomFields := make([]CustomFieldEntry, 0, len(prefixClaimSpec.ParentPrefixSelector))
 	for k, v := range prefixClaimSpec.ParentPrefixSelector {
 		switch k {
-		case "tenant", "site", "family":
+		case "tenant", "site", "vrf", "family":
 			// skip built in fields
 		default:
 			parentPrefixSelectorCustomFields = append(parentPrefixSelectorCustomFields, CustomFieldEntry{
@@ -220,6 +229,7 @@ func (c *NetboxCompositeClient) isParentPrefixCandidate(ctx context.Context, pre
 			Metadata: &models.NetboxMetadata{
 				Tenant: prefixClaimSpec.Tenant,
 				Site:   prefixClaimSpec.Site,
+				Vrf:    prefixClaimSpec.Vrf,
 			},
 		}); err != nil {
 		return err
@@ -237,6 +247,14 @@ func (c *NetboxCompositeClient) GetAvailablePrefixByClaim(ctx context.Context, p
 	// Don't assign an prefix if the requested site doesn't exist in netbox
 	if prefixClaim.Metadata.Site != "" {
 		_, err := c.getSiteDetails(prefixClaim.Metadata.Site)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Don't assign a prefix if the requested VRF doesn't exist in netbox
+	if prefixClaim.Metadata.Vrf != "" {
+		_, err := c.GetVrfDetails(prefixClaim.Metadata.Vrf)
 		if err != nil {
 			return nil, err
 		}
