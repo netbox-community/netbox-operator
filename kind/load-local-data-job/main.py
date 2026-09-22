@@ -1069,6 +1069,8 @@ prefixes = [
         prefix="4.0.0.0/24",
         description="chainsaw test ipaddressclaim-ipv4-vrf-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -1081,6 +1083,8 @@ prefixes = [
         prefix="4.1.0.0/24",
         description="chainsaw test iprangeclaim-ipv4-vrf-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -1093,6 +1097,8 @@ prefixes = [
         prefix="4.2.0.0/24",
         description="chainsaw test prefixclaim-ipv4-vrf-apply-update",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",
@@ -1105,6 +1111,8 @@ prefixes = [
         prefix="4.3.0.0/24",
         description="chainsaw test prefixclaim-ipv4-parentprefixselector-vrf",
         site=None,
+        scope_id=None,
+        scope_type=None,
         tenant={
             "name": "MY_TENANT",
             "slug": "my_tenant",

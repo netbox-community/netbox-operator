@@ -1715,6 +1715,8 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.
 	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
 	mockExtras := mock_interfaces.NewMockExtrasInterface(ctrl)
 	mockDcim := mock_interfaces.NewMockDcimInterface(ctrl)
+	mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+	mockListRequest := mock_interfaces.NewMockIpamPrefixesListRequest(ctrl)
 
 	// example of site
 	siteId := int64(3)
@@ -1767,6 +1769,7 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.
 
 	parentPrefix := "10.112.140.0/24"
 	parentPrefixId := int64(1)
+	parentPrefixId32 := int32(1)
 	prefixListInput := ipam.
 		NewIpamPrefixesListParams()
 
@@ -1778,19 +1781,6 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.
 				{
 					ID:     parentPrefixId,
 					Prefix: &parentPrefix,
-					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
-				},
-			},
-		},
-	}
-
-	prefixListInputWithParam := ipam.NewIpamPrefixesListParams().WithPrefix(&parentPrefix)
-	prefixListOutputWithParam := &ipam.IpamPrefixesListOK{
-		Payload: &ipam.IpamPrefixesListOKBody{
-			Results: []*netboxModels.Prefix{
-				{
-					Prefix: &parentPrefix,
-					ID:     parentPrefixId,
 					Family: &netboxModels.PrefixFamily{Label: &prefixFamilyLabel, Value: &prefixFamily},
 				},
 			},
@@ -1809,6 +1799,7 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.
 
 	// get prefix to check if it's a candidate
 	expectedCustomFieldName := "environment"
+	expectedCustomFieldParams := extras.NewExtrasCustomFieldsListParams().WithName(&expectedCustomFieldName)
 	expectedCustomFields := &extras.ExtrasCustomFieldsListOK{
 		Payload: &extras.ExtrasCustomFieldsListOKBody{
 			Results: []*netboxModels.CustomField{
@@ -1820,12 +1811,33 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.
 	}
 
 	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInput, nil, gomock.Any()).Return(prefixListOutput, nil).Times(1)
-	mockPrefixIpam.EXPECT().IpamPrefixesList(prefixListInputWithParam, nil).Return(prefixListOutputWithParam, nil).Times(1)
 	mockPrefixIpam.EXPECT().IpamPrefixesAvailablePrefixesList(prefixAvailableListInput, nil).Return(prefixAvailableListOutput, nil).AnyTimes()
 	mockPrefixIpam.EXPECT().IpamVrfsList(inputVrf, nil).Return(expectedVrf, nil).AnyTimes()
 	mockTenancy.EXPECT().TenancyTenantsList(gomock.Any(), nil).Return(expectedTenant, nil).AnyTimes()
 	mockDcim.EXPECT().DcimSitesList(inputSite, nil).Return(expectedSite, nil).AnyTimes()
-	mockExtras.EXPECT().ExtrasCustomFieldsList(extras.NewExtrasCustomFieldsListParams(), gomock.Any(), gomock.Any()).Return(expectedCustomFields, nil).AnyTimes()
+	mockExtras.EXPECT().ExtrasCustomFieldsList(expectedCustomFieldParams, nil).Return(expectedCustomFields, nil).AnyTimes()
+
+	mockIpamAPI.EXPECT().
+		IpamPrefixesList(gomock.Any()).
+		Return(mockListRequest).
+		AnyTimes()
+	mockListRequest.EXPECT().
+		Prefix([]string{parentPrefix}).
+		Return(mockListRequest).
+		AnyTimes()
+	prefixFamilyValue := v4client.AGGREGATEFAMILYVALUE__4
+	mockListRequest.EXPECT().
+		Execute().
+		Return(&v4client.PaginatedPrefixList{
+			Results: []v4client.Prefix{
+				{
+					Id:     parentPrefixId32,
+					Prefix: parentPrefix,
+					Family: v4client.AggregateFamily{Value: &prefixFamilyValue},
+				},
+			},
+		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil).
+		AnyTimes()
 
 	clientV3 := &NetboxClientV3{
 		Ipam:    mockPrefixIpam,
@@ -1833,8 +1845,12 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorWithVrf(t *testing.
 		Extras:  mockExtras,
 		Dcim:    mockDcim,
 	}
+	clientV4 := &NetboxClientV4{
+		IpamAPI: mockIpamAPI,
+	}
 	compositeClient := &NetboxCompositeClient{
 		clientV3: clientV3,
+		clientV4: clientV4,
 	}
 
 	actual, err := compositeClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), &pxcSpec)
