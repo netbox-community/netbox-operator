@@ -38,7 +38,7 @@ func (c *NetboxCompositeClient) getRirDetailsByName(ctx context.Context, name st
 	}
 
 	if len(result.Results) == 0 {
-		return nil, utils.NetboxNotFoundError("RIR '" + name + "'")
+		return nil, utils.NetboxNotFoundError(fmt.Sprintf("RIR '%s'", name))
 	}
 
 	return &models.Rir{
