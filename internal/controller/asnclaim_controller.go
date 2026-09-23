@@ -214,8 +214,7 @@ func (r *AsnClaimReconciler) updateStatus(ctx context.Context, claim *netboxv1.A
 			result, err = IgnoreDomainError(result, err)
 			return
 		}
-		statusBase.SetResourceVersion(claim.GetResourceVersion())
-		statusPatch := client.MergeFrom(statusBase)
+		statusPatch := client.MergeFromWithOptions(statusBase, client.MergeFromWithOptimisticLock{})
 		patchErr := r.Status().Patch(ctx, claim, statusPatch)
 		if patchErr != nil {
 			patchErr = client.IgnoreNotFound(patchErr)
