@@ -33,6 +33,7 @@ import (
 type NetboxClientV4 struct {
 	client    *v4client.APIClient
 	IpamAPI   interfaces.IpamAPI
+	VpnAPI    interfaces.VpnAPI
 	StatusAPI interfaces.StatusAPI
 }
 
@@ -80,6 +81,7 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 	return &NetboxClientV4{
 		client:    client,
 		IpamAPI:   &ipamV4APIAdapter{api: client.IpamAPI},
+		VpnAPI:    &vpnV4APIAdapter{api: client.VpnAPI},
 		StatusAPI: &statusV4APIAdapter{api: client.StatusAPI},
 	}, nil
 }

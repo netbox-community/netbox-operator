@@ -20,6 +20,8 @@ rules:
   - ipaddresses
   - iprangeclaims
   - ipranges
+  - l2vpnclaims
+  - l2vpns
   - prefixclaims
   - prefixes
   verbs:
@@ -39,6 +41,8 @@ rules:
   - ipaddresses/finalizers
   - iprangeclaims/finalizers
   - ipranges/finalizers
+  - l2vpnclaims/finalizers
+  - l2vpns/finalizers
   - prefixclaims/finalizers
   - prefixes/finalizers
   verbs:
@@ -52,6 +56,8 @@ rules:
   - ipaddresses/status
   - iprangeclaims/status
   - ipranges/status
+  - l2vpnclaims/status
+  - l2vpns/status
   - prefixclaims/status
   - prefixes/status
   verbs:

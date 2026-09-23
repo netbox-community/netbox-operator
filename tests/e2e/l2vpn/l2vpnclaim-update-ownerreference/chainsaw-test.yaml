@@ -1,0 +1,78 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: l2vpnclaim-update-ownerreference
+  annotations:
+    description: Tests if controller updates ownerReference if a non-Claim L2VPN existed before (e.g. from a velero backup)
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_l2vpn_1.yaml
+    - name: Check non-claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                name: l2vpnclaim-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim_1.yaml
+    - name: Check claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-update-ownerreference-1
+              spec:
+                comments: your comments
+                description: some description
+                type: vxlan-evpn
+                identifierRangeStart: 5500001
+                identifierRangeEnd: 5500001
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                identifier: 5500001
+                l2VPNName: l2vpnclaim-update-ownerreference-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                name: l2vpnclaim-update-ownerreference-1
+                finalizers:
+                  - l2vpn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: L2VPNClaim
+                    name: l2vpnclaim-update-ownerreference-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 424a2b761b989f7077fc289b3b77459adbe5cf50
+                description: some description
+                identifier: 5500001
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=l2vpnclaim-update-ownerreference-1 -n $NAMESPACE

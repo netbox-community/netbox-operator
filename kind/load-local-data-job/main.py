@@ -113,8 +113,8 @@ class CustomField:
 
 custom_fields = [
     CustomField(
-        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn"],
-        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn"],
+        content_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn", "vpn.l2vpn"],
+        object_types=["ipam.ipaddress", "ipam.iprange", "ipam.prefix", "ipam.asn", "vpn.l2vpn"],
         type="text",
         name="netboxOperatorRestorationHash",
         label="Netbox Restoration Hash",
