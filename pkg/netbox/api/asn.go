@@ -104,13 +104,17 @@ func (c *NetboxCompositeClient) ReserveOrUpdateAsn(ctx context.Context, asn *mod
 	// If the desired ASN carries a restoration hash, the ASN in NetBox must carry exactly
 	// the same one. An ASN without a hash, or with a different hash, belongs to somebody
 	// else and must never be adopted.
+	// A nil metadata, missing key, or empty value means the desired ASN does not carry a
+	// hash; that is not a restore, so the existing object may be updated.
 	restorationHashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
+	desiredHash := ""
 	if asn.Metadata != nil {
-		if restorationHash, ok := asn.Metadata.Custom[restorationHashKey]; ok {
-			cfHash, cfOk := asnToUpdate.CustomFields[restorationHashKey]
-			if !cfOk || cfHash == nil || cfHash == "" || cfHash != restorationHash {
-				return nil, false, fmt.Errorf("%w, assigned ASN %d", ErrRestorationHashMismatch, asn.Asn)
-			}
+		desiredHash = asn.Metadata.Custom[restorationHashKey]
+	}
+	if desiredHash != "" {
+		netboxHash, _ := asnToUpdate.CustomFields[restorationHashKey].(string)
+		if netboxHash != desiredHash {
+			return nil, false, fmt.Errorf("%w, assigned ASN %d", ErrRestorationHashMismatch, asn.Asn)
 		}
 	}
 
