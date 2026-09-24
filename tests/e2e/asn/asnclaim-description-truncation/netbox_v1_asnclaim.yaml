@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: AsnClaim
+metadata:
+  name: asnclaim-description-truncation
+spec:
+  tenant: "MY_TENANT"
+  # the Asn controller prefixes the description with "<namespace>/<name> // ", which pushes
+  # the description sent to NetBox beyond the 200 character limit
+  description: "01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"
+  comments: "your comments"
+  preserveInNetbox: false
+  parentAsnRange: "E2E Test ASN Range Description Truncation"
