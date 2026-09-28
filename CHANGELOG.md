@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.72] - 2026-09-28
+
+<!-- Release notes generated using configuration in .github/release.yml at c91a5df83b6d7fdd84cc22eadd61c5ee62394efe -->
+
+## What's Changed
+### Contributions
+* Add support for L2VPN by @flynn-nrg in https://github.com/netbox-community/netbox-operator/pull/607
+* Build(deps): bump the go-dependencies group with 12 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/639
+
+## New Contributors
+* @flynn-nrg made their first contribution in https://github.com/netbox-community/netbox-operator/pull/607
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.71...v0.2.72
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.72)
+
+---
+
 ## [v0.2.71] - 2026-09-21
 
 <!-- Release notes generated using configuration in .github/release.yml at ac08b91b0253a5298419726b41f4cdad54dd735f -->
