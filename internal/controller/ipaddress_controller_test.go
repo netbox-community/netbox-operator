@@ -126,6 +126,19 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 		createdCR := &netboxv1.IpAddress{}
 
 		if restorationHashMismatch {
+			// the CR is not owned by an IpAddressClaim, so there is nothing that would
+			// recreate it: the controller has to keep it and report the failure instead
+			// of silently discarding user owned state
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)).To(Succeed())
+				g.Expect(apismeta.IsStatusConditionFalse(createdCR.Status.Conditions, netboxv1.ConditionIpaddressReadyFalse.Type)).To(BeTrue())
+			}, timeout, interval).Should(Succeed())
+
+			Expect(createdCR.Status.IpAddressId).To(BeZero())
+
+			// the CR keeps failing and requeueing, so it has to be removed before the
+			// mocks of the next test case are installed
+			Expect(k8sClient.Delete(ctx, createdCR)).Should(Succeed())
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, types.NamespacedName{Name: cr.GetName(), Namespace: cr.GetNamespace()}, createdCR)
 				return apierrors.IsNotFound(err)
@@ -211,7 +224,7 @@ var _ = Describe("IpAddress Controller", Ordered, func() {
 				mockTenancyTenancyTenantsList,
 			},
 			false, netboxv1.ConditionIpaddressReadyFalse, ExpectedIpAddressFailedStatus),
-		Entry("Create IpAddress CR, restoration hash mismatch",
+		Entry("Create IpAddress CR, restoration hash mismatch, standalone CR is kept",
 			defaultIpAddressCreatedByClaim(true),
 			[]func(*mock_interfaces.MockIpamInterface, chan error){
 				mockIpAddressListWithHashFilterMismatch,

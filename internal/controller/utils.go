@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 // DomainError wraps an error that should update status conditions.
@@ -147,6 +149,21 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 	}
 
 	return nil
+}
+
+// isOwnedByClaim reports whether the object was created by one of this operator's
+// claim controllers, which set themselves as the controlling owner reference.
+// A controlling owner from any other controller does not qualify, as only a claim
+// will recreate the object after it has been deleted.
+func isOwnedByClaim(o client.Object) bool {
+	owner := metav1.GetControllerOf(o)
+	if owner == nil {
+		return false
+	}
+
+	group, _, _ := strings.Cut(owner.APIVersion, "/")
+
+	return group == netboxv1.GroupVersion.Group && strings.HasSuffix(owner.Kind, "Claim")
 }
 
 // patchMetadata patches a copy of o so that the API server response cannot overwrite

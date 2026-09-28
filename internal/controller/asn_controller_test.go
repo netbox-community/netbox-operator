@@ -145,15 +145,26 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 
 	hashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
 
-	It("should delete the Asn CR when the restoration hash does not match NetBox", func() {
+	It("should delete a claim owned Asn CR when the restoration hash does not match NetBox", func() {
 		store := newAsnStore(65000, 65010)
 		installAsnMocks(store)
 		// The ASN exists in NetBox but was never allocated by this operator, so it does
 		// not carry a restoration hash and must not be adopted.
 		store.seed(65001, map[string]interface{}{})
 
+		controller := true
 		asn := &netboxv1.Asn{
-			ObjectMeta: metav1.ObjectMeta{Name: "asn-hash-mismatch", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "asn-hash-mismatch",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: "netbox.dev/v1",
+					Kind:       "AsnClaim",
+					Name:       "asn-hash-mismatch",
+					UID:        "3f2b1a64-0000-4000-8000-000000000001",
+					Controller: &controller,
+				}},
+			},
 			Spec: netboxv1.AsnSpec{
 				Asn:          65001,
 				Description:  "a description",
@@ -170,6 +181,48 @@ var _ = Describe("Asn Controller reconciling against NetBox", Ordered, func() {
 
 		// The ASN in NetBox must be left untouched.
 		Expect(store.get(65001)).NotTo(BeNil())
+	})
+
+	It("should keep a standalone Asn CR when the restoration hash does not match NetBox", func() {
+		store := newAsnStore(65000, 65010)
+		installAsnMocks(store)
+		store.seed(65003, map[string]interface{}{})
+
+		asn := &netboxv1.Asn{
+			ObjectMeta: metav1.ObjectMeta{Name: "asn-hash-mismatch-standalone", Namespace: "default"},
+			Spec: netboxv1.AsnSpec{
+				Asn:          65003,
+				Description:  "a description",
+				Rir:          asnTestRirName,
+				CustomFields: map[string]string{hashKey: "0000000000000000000000000000000000000000"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, asn)).To(Succeed())
+
+		// Without a claim owner there is nothing to recreate the CR, so it is kept and
+		// reported as not ready instead of being deleted.
+		key := types.NamespacedName{Name: asn.Name, Namespace: asn.Namespace}
+		Eventually(func() bool {
+			fetched := &netboxv1.Asn{}
+			if err := k8sClient.Get(ctx, key, fetched); err != nil {
+				return false
+			}
+			return apismeta.IsStatusConditionFalse(fetched.Status.Conditions, "Ready")
+		}, timeout, interval).Should(BeTrue())
+
+		Consistently(func() error {
+			return k8sClient.Get(ctx, key, &netboxv1.Asn{})
+		}, time.Second, interval).Should(Succeed())
+
+		Expect(store.get(65003)).NotTo(BeNil())
+
+		// the CR keeps failing and requeueing, so it has to be removed before the
+		// mocks of the next test case are installed
+		Expect(k8sClient.Delete(ctx, asn)).To(Succeed())
+		Eventually(func() bool {
+			err := k8sClient.Get(ctx, key, &netboxv1.Asn{})
+			return apierrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue())
 	})
 
 	It("should set the RIR from the spec when updating an existing ASN", func() {

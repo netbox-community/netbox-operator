@@ -170,7 +170,7 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 
 	netboxL2VPNModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateL2VPN(ctx, l2vpnModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.L2VPNId == 0 {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.L2VPNId == 0 && isOwnedByClaim(o) {
 			logger.Info("conflict in claimed l2vpn, deleting l2vpn custom resource", "identifier",
 				o.Spec.Identifier, "error", err)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {

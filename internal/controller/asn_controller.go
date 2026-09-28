@@ -126,7 +126,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 
 	netboxAsnModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateAsn(ctx, asnModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.AsnId == 0 {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.AsnId == 0 && isOwnedByClaim(o) {
 			logger.Info("restoration hash mismatch, deleting ASN custom resource", "asn", o.Spec.Asn)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
 				return ctrl.Result{}, NewDomainError("failed to delete Asn CR with restoration hash mismatch: %w", deleteErr)

@@ -22,6 +22,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 var _ = Describe("excludeDomainErrors", func() {
@@ -90,5 +93,38 @@ var _ = Describe("excludeDomainErrors", func() {
 
 		var domainErr *DomainError
 		Expect(errors.As(remaining, &domainErr)).To(BeFalse())
+	})
+})
+
+var _ = Describe("isOwnedByClaim", func() {
+	ownedBy := func(refs ...metav1.OwnerReference) *netboxv1.Asn {
+		return &netboxv1.Asn{ObjectMeta: metav1.ObjectMeta{OwnerReferences: refs}}
+	}
+
+	controllerRef := func(apiVersion, kind string) metav1.OwnerReference {
+		controller := true
+		return metav1.OwnerReference{APIVersion: apiVersion, Kind: kind, Name: "owner", Controller: &controller}
+	}
+
+	It("returns false without any owner reference", func() {
+		Expect(isOwnedByClaim(ownedBy())).To(BeFalse())
+	})
+
+	It("returns false for a non-controlling claim owner", func() {
+		Expect(isOwnedByClaim(ownedBy(metav1.OwnerReference{
+			APIVersion: "netbox.dev/v1", Kind: "AsnClaim", Name: "owner",
+		}))).To(BeFalse())
+	})
+
+	It("returns false for a controller of another api group", func() {
+		Expect(isOwnedByClaim(ownedBy(controllerRef("example.com/v1", "AsnClaim")))).To(BeFalse())
+	})
+
+	It("returns false for a netbox.dev controller that is not a claim", func() {
+		Expect(isOwnedByClaim(ownedBy(controllerRef("netbox.dev/v1", "Asn")))).To(BeFalse())
+	})
+
+	It("returns true for a netbox.dev claim controller", func() {
+		Expect(isOwnedByClaim(ownedBy(controllerRef("netbox.dev/v1", "AsnClaim")))).To(BeTrue())
 	})
 })

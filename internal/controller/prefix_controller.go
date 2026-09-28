@@ -195,7 +195,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	netboxPrefixModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdatePrefix(ctx, prefixModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.PrefixId == 0 && isOwnedByClaim(o) {
 			logger.Info("restoration hash mismatch, deleting prefix custom resource", "prefix", o.Spec.Prefix)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
 				return ctrl.Result{}, NewDomainError("failed to delete prefix CR with restoration hash mismatch: %w", deleteErr)
