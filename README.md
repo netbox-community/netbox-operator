@@ -170,6 +170,17 @@ For the monitoring of the state of the CRs reconciled by the operator [kube stat
 `.spec.customFields` are the NetBox Custom Fields assigned to the resource in NetBox.
 `.spec.parentPrefixSelector` is used by a Claim Controller (e.g. the controller of PrefixClaim) to find a suitable Prefix to get e.g. a Prefix from.
 
+## How to set Custom Fields of non-text types?
+
+The values in `.spec.customFields` are strings. For Custom Fields of non-text types (e.g. integer, boolean, json, object) the value is parsed as JSON, values which aren't valid JSON are sent as strings:
+
+```yaml
+customFields:
+  vlanId: "42"
+  managed: "true"
+  metadata: '{"cluster": "mgmt", "role": "mgmt"}'
+```
+
 ## What is the difference between `.spec.tenant` and `.spec.parentPrefixSelector.tenant`?
 
 `.spec.tenant` is the tenant that is assigned to the resource in NetBox.
