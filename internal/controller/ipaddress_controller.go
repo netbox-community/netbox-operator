@@ -106,26 +106,17 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 		}
 
-		logger.V(4).Info("removing the finalizer")
-		removed := controllerutil.RemoveFinalizer(o, IpAddressFinalizerName)
-		if !removed {
-			return ctrl.Result{}, errors.New("failed to remove the finalizer")
-		}
-
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpAddressFinalizerName)
 	}
 
-	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
-		logger.V(4).Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
+	// the finalizer exists only to delete the ip address from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, IpAddressFinalizerName)
+	} else {
+		err = addFinalizer(ctx, r.Client, o, IpAddressFinalizerName)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// 1. try to lock lease of parent prefix if IpAddressUrl is not set in status

@@ -96,26 +96,17 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 			}
 		}
 
-		logger.V(4).Info("removing the finalizer")
-		removed := controllerutil.RemoveFinalizer(o, AsnFinalizerName)
-		if !removed {
-			return ctrl.Result{}, errors.New("failed to remove the finalizer")
-		}
-
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, AsnFinalizerName)
 	}
 
-	// if PreserveInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, AsnFinalizerName) {
-		logger.V(4).Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, AsnFinalizerName)
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
+	// the finalizer exists only to delete the ASN from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, AsnFinalizerName)
+	} else {
+		err = addFinalizer(ctx, r.Client, o, AsnFinalizerName)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// 1. reserve or update ASN in netbox

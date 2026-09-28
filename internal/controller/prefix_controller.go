@@ -106,25 +106,18 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 			}
 		}
 
-		logger.V(4).Info("removing the finalizer")
-		if removed := controllerutil.RemoveFinalizer(o, PrefixFinalizerName); !removed {
-			return ctrl.Result{}, errors.New("failed to remove the finalizer")
-		}
-
-		if err := r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, PrefixFinalizerName)
 	}
 
-	// register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, PrefixFinalizerName) {
-		logger.V(4).Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, PrefixFinalizerName)
-		if err := r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
+	// the finalizer exists only to delete the prefix from NetBox, so it has to follow PreserveInNetbox
+	var err error
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, PrefixFinalizerName)
+	} else {
+		err = addFinalizer(ctx, r.Client, o, PrefixFinalizerName)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	/*
@@ -135,7 +128,6 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	ownerReferences := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	var cancelLock context.CancelFunc
-	var err error
 	if len(ownerReferences) > 0 /* len(nil array) = 0 */ && !apismeta.IsStatusConditionTrue(o.Status.Conditions, "Ready") {
 		// get prefixClaim
 		ownerReferencesLookupKey := types.NamespacedName{

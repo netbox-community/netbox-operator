@@ -105,12 +105,14 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, L2VPNFinalizerName)
 	}
 
-	// if PreserveInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox {
+	// the finalizer exists only to delete the L2VPN from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, L2VPNFinalizerName)
+	} else {
 		err = addFinalizer(ctx, r.Client, o, L2VPNFinalizerName)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// 1. try to lock the shared l2vpn identifier pool if L2VPN status condition

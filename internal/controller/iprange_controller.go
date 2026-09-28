@@ -109,12 +109,14 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
 	}
 
-	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox {
+	// the finalizer exists only to delete the ip range from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
+	} else {
 		err = addFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// 1. try to lock lease of parent prefix if IpRange status condition is not true
