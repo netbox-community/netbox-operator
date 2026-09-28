@@ -178,6 +178,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
 
 	ipAddressModel, err := generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req, annotations[IPManagedCustomFieldsAnnotationName])
 	if err != nil {
@@ -212,17 +215,14 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// 4.1 update annotations
-	if annotations == nil {
-		annotations = make(map[string]string, 1)
-	}
+	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
+	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
+	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
-
-	// snapshot before annotation mutation for merge-patch
-	patch := client.MergeFrom(o.DeepCopy())
 
 	if err = accessor.SetAnnotations(o, annotations); err != nil {
 		return ctrl.Result{}, err

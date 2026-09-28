@@ -160,6 +160,9 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
 
 	ipRangeModel, err := r.generateNetboxIpRangeModelFromIpRangeSpec(o, req, annotations[IPRManagedCustomFieldsAnnotationName])
 	if err != nil {
@@ -195,17 +198,14 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// 4.1 update annotation
-	if annotations == nil {
-		annotations = make(map[string]string, 1)
-	}
+	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
+	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
+	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[IPRManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
-
-	// snapshot before annotation mutation for merge-patch
-	patch := client.MergeFrom(o.DeepCopy())
 
 	err = accessor.SetAnnotations(o, annotations)
 	if err != nil {

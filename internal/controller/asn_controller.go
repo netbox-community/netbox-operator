@@ -124,6 +124,9 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
 
 	asnModel, err := generateNetboxAsnModelFromAsnSpec(&o.Spec, req, annotations[AsnManagedCustomFieldsAnnotationName])
 	if err != nil {
@@ -152,10 +155,6 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
 	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
 	patch := client.MergeFrom(o.DeepCopy())
-
-	if annotations == nil {
-		annotations = make(map[string]string, 1)
-	}
 
 	annotations[AsnManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
