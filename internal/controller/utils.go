@@ -149,6 +149,24 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 	return nil
 }
 
+// patchMetadata patches a copy of o so that the API server response cannot overwrite
+// status fields already set on o, then copies the updated metadata back.
+func patchMetadata(ctx context.Context, c client.Client, o client.Object, patch client.Patch) error {
+	patched, ok := o.DeepCopyObject().(client.Object)
+	if !ok {
+		return fmt.Errorf("failed to copy object of type %T", o)
+	}
+
+	if err := c.Patch(ctx, patched, patch); err != nil {
+		return err
+	}
+
+	o.SetAnnotations(patched.GetAnnotations())
+	o.SetResourceVersion(patched.GetResourceVersion())
+
+	return nil
+}
+
 type EventStatusRecorder struct {
 	rec record.EventRecorder
 }

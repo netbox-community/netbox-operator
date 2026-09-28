@@ -151,6 +151,13 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, nil
 	}
 
+	// 3. update status fields
+	o.Status.AsnId = int64(netboxAsnModel.Id)
+	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
+	if netboxAsnModel.LastUpdated.Get() != nil {
+		o.Status.LastUpdated = metav1.NewTime(*netboxAsnModel.LastUpdated.Get())
+	}
+
 	// 2.1 update annotations
 	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
 	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
@@ -165,15 +172,8 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, err
 	}
 
-	if err := r.Patch(ctx, o, patch); err != nil {
+	if err := patchMetadata(ctx, r.Client, o, patch); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// 3. update status fields
-	o.Status.AsnId = int64(netboxAsnModel.Id)
-	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
-	if netboxAsnModel.LastUpdated.Get() != nil {
-		o.Status.LastUpdated = metav1.NewTime(*netboxAsnModel.LastUpdated.Get())
 	}
 
 	// check if created ASN contains entire description from spec

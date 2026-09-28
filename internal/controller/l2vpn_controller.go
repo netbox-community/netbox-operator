@@ -192,6 +192,14 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, nil
 	}
 
+	// 5. update status fields
+	o.Status.L2VPNId = int64(netboxL2VPNModel.GetId())
+	o.Status.Slug = netboxL2VPNModel.GetSlug()
+	o.Status.L2VPNUrl = config.GetBaseUrl() + "/vpn/l2vpns/" + strconv.FormatInt(int64(netboxL2VPNModel.GetId()), 10)
+	if netboxL2VPNModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxL2VPNModel.LastUpdated.Get())
+	}
+
 	// 4.1 update annotation
 	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
 	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
@@ -208,17 +216,9 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	}
 
 	// patch object to store managed custom fields annotation
-	err = r.Patch(ctx, o, patch)
+	err = patchMetadata(ctx, r.Client, o, patch)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.L2VPNId = int64(netboxL2VPNModel.GetId())
-	o.Status.Slug = netboxL2VPNModel.GetSlug()
-	o.Status.L2VPNUrl = config.GetBaseUrl() + "/vpn/l2vpns/" + strconv.FormatInt(int64(netboxL2VPNModel.GetId()), 10)
-	if netboxL2VPNModel.LastUpdated.IsSet() {
-		o.Status.LastUpdated = metav1.NewTime(*netboxL2VPNModel.LastUpdated.Get())
 	}
 
 	return ctrl.Result{}, nil

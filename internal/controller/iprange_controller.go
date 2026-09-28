@@ -197,6 +197,13 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, nil
 	}
 
+	// 5. update status fields
+	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
+	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
+	if netboxIpRangeModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
+	}
+
 	// 4.1 update annotation
 	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
 	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
@@ -213,16 +220,9 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// patch object to store lastIpRangeMetadata annotation
-	err = r.Patch(ctx, o, patch)
+	err = patchMetadata(ctx, r.Client, o, patch)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
-	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
-	if netboxIpRangeModel.LastUpdated.IsSet() {
-		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
 	}
 
 	return ctrl.Result{}, nil

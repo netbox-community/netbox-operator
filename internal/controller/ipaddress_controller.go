@@ -214,6 +214,13 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
+	// 5. update status fields
+	o.Status.IpAddressId = netboxIpAddressModel.ID
+	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
+	if netboxIpAddressModel.LastUpdated != nil {
+		o.Status.LastUpdated = metav1.NewTime(time.Time(*netboxIpAddressModel.LastUpdated))
+	}
+
 	// 4.1 update annotations
 	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
 	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
@@ -228,15 +235,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	if err := r.Patch(ctx, o, patch); err != nil {
+	if err := patchMetadata(ctx, r.Client, o, patch); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// 4. update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.IpAddressId = netboxIpAddressModel.ID
-	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
-	if netboxIpAddressModel.LastUpdated != nil {
-		o.Status.LastUpdated = metav1.NewTime(time.Time(*netboxIpAddressModel.LastUpdated))
 	}
 
 	// check if created ip address contains entire description from spec

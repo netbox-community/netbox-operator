@@ -226,6 +226,13 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, nil
 	}
 
+	// 5. update status fields
+	o.Status.PrefixId = int64(netboxPrefixModel.Id)
+	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
+	if netboxPrefixModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxPrefixModel.LastUpdated.Get())
+	}
+
 	// 4.1 update annotation
 	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
 	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
@@ -242,15 +249,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	}
 
 	// patch object to store lastPrefixMetadata annotation
-	if err := r.Patch(ctx, o, patch); err != nil {
+	if err := patchMetadata(ctx, r.Client, o, patch); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.PrefixId = int64(netboxPrefixModel.Id)
-	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
-	if netboxPrefixModel.LastUpdated.IsSet() {
-		o.Status.LastUpdated = metav1.NewTime(*netboxPrefixModel.LastUpdated.Get())
 	}
 
 	// check if the created prefix contains the entire description from spec
