@@ -70,7 +70,7 @@ type PrefixReconciler struct {
 func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	/* 0. check if the matching Prefix object exists */
 	o := &netboxv1.Prefix{}
@@ -88,7 +88,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// if being deleted

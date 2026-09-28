@@ -68,7 +68,7 @@ type IpAddressReconciler struct {
 func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.IpAddress{}
 
@@ -87,7 +87,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// cancelLock stops the lease renewal goroutine on early returns (lease expires naturally).

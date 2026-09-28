@@ -57,7 +57,7 @@ type AsnClaimReconciler struct {
 func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	/* 0. check if the matching AsnClaim object exists */
 	o := &netboxv1.AsnClaim{}
@@ -79,7 +79,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// 1. check if matching Asn object already exists
