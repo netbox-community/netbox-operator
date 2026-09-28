@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: IpRangeClaim
+metadata:
+  name: iprangeclaim-ipv4-invalid-vrf
+spec:
+  tenant: "MY_TENANT"
+  vrf: "nonexistingvrf"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  parentPrefix: "3.2.3.0/24"
+  size: 30

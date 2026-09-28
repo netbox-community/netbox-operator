@@ -76,6 +76,14 @@ func (c *NetboxCompositeClient) writablePrefixRequestV4(prefix *models.Prefix) (
 			tenantId := int32(tenantDetails.Id)
 			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
 		}
+		if prefix.Metadata.Vrf != "" {
+			vrfDetails, err := c.GetVrfDetails(prefix.Metadata.Vrf)
+			if err != nil {
+				return nil, err
+			}
+			vrfId := int32(vrfDetails.Id)
+			desiredPrefix.SetVrf(v4client.Int32AsIPAddressRequestVrf(&vrfId))
+		}
 		if prefix.Metadata.Site != "" {
 			siteDetails, err := c.getSiteDetails(prefix.Metadata.Site)
 			if err != nil {

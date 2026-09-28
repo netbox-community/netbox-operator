@@ -1,0 +1,121 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv4-vrf-apply-update
+  annotations:
+    description: Tests if creation and update is successful with VRF
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv4-vrf-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                vrf: "MY_VRF"
+                description: "some description"
+                comments: "your comments"
+                parentPrefix: "4.1.0.0/24"
+                size: 30
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 4.1.0.30/32
+                endAddressDotDecimal: 4.1.0.30
+                ipRangeName: iprangeclaim-ipv4-vrf-apply-update
+                ipRange: 4.1.0.1/32-4.1.0.30/32
+                ipRangeDotDecimal: 4.1.0.1-4.1.0.30
+                startAddress: 4.1.0.1/32
+                startAddressDotDecimal: 4.1.0.1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv4-vrf-apply-update
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv4-vrf-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                startAddress: 4.1.0.1/32
+                endAddress: 4.1.0.30/32
+                tenant: MY_TENANT
+                vrf: MY_VRF
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv4-vrf-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                vrf: "MY_VRF"
+                description: "new description"
+                comments: "new comments"
+                parentPrefix: "4.1.0.0/24"
+                size: 30
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                endAddress: 4.1.0.30/32
+                endAddressDotDecimal: 4.1.0.30
+                ipRangeName: iprangeclaim-ipv4-vrf-apply-update
+                ipRange: 4.1.0.1/32-4.1.0.30/32
+                ipRangeDotDecimal: 4.1.0.1-4.1.0.30
+                startAddress: 4.1.0.1/32
+                startAddressDotDecimal: 4.1.0.1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRange
+              metadata:
+                name: iprangeclaim-ipv4-vrf-apply-update
+                finalizers:
+                  - iprange.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: IpRangeClaim
+                    name: iprangeclaim-ipv4-vrf-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                startAddress: 4.1.0.1/32
+                endAddress: 4.1.0.30/32
+                tenant: MY_TENANT
+                vrf: MY_VRF
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-vrf-apply-update -n $NAMESPACE
