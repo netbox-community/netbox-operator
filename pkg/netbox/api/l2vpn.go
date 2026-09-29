@@ -62,10 +62,9 @@ func (c *NetboxCompositeClient) ReserveOrUpdateL2VPN(ctx context.Context, l2vpn 
 
 	if l2vpn.Metadata != nil {
 		desiredL2VPN.SetComments(l2vpn.Metadata.Comments + warningComment)
-		// Convert map[string]string to map[string]interface{}
-		customFields := make(map[string]interface{}, len(l2vpn.Metadata.Custom))
-		for k, v := range l2vpn.Metadata.Custom {
-			customFields[k] = v
+		customFields, err := c.convertCustomFields(l2vpn.Metadata.Custom)
+		if err != nil {
+			return nil, false, err
 		}
 		desiredL2VPN.SetCustomFields(customFields)
 		desiredL2VPN.SetDescription(TruncateDescription(l2vpn.Metadata.Description))
