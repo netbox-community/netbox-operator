@@ -26,3 +26,7 @@ resources:
 - prefixclaim_viewer_role.yaml
 - prefix_editor_role.yaml
 - prefix_viewer_role.yaml
+- asn_editor_role.yaml
+- asn_viewer_role.yaml
+- asnclaim_editor_role.yaml
+- asnclaim_viewer_role.yaml

@@ -1,0 +1,510 @@
+/*
+Copyright 2026 Swisscom (Schweiz) AG.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package api
+
+import (
+	"context"
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
+	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	v4client "github.com/netbox-community/go-netbox/v4"
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
+	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
+	"github.com/netbox-community/netbox-operator/pkg/config"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
+	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const AsnId = int32(10)
+
+// expectRirLookup queues the RIR lookup by name used to resolve the RIR of an ASN.
+func expectRirLookup(ctrl *gomock.Controller, mockIpamAPI *mock_interfaces.MockIpamAPI, name string, results []v4client.RIR) {
+	req := mock_interfaces.NewMockIpamRirsListRequest(ctrl)
+	mockIpamAPI.EXPECT().IpamRirsList(gomock.Any()).Return(req)
+	req.EXPECT().Name([]string{name}).Return(req)
+	req.EXPECT().Limit(int32(listPageSize)).Return(req)
+	req.EXPECT().Execute().
+		Return(&v4client.PaginatedRIRList{Count: int32(len(results)), Results: results}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+}
+
+// expectAsnLookupByValue queues the v3 lookup by the `asn=` filter and the v4 retrieve
+// that hydrates the match. It returns the v3 Ipam mock to install on the client.
+func expectAsnLookupByValue(ctrl *gomock.Controller, mockIpamAPI *mock_interfaces.MockIpamAPI, results []v4client.ASN) *mock_interfaces.MockIpamInterface {
+	mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+
+	count := int64(len(results))
+	v3Results := make([]*netboxModels.ASN, 0, len(results))
+	for i := range results {
+		asn := results[i].Asn
+		v3Results = append(v3Results, &netboxModels.ASN{ID: int64(results[i].Id), Asn: &asn})
+	}
+	mockIpam.EXPECT().IpamAsnsList(gomock.Any(), nil, gomock.Any()).Return(&ipam.IpamAsnsListOK{
+		Payload: &ipam.IpamAsnsListOKBody{Count: &count, Results: v3Results},
+	}, nil)
+
+	if len(results) > 0 {
+		req := mock_interfaces.NewMockIpamAsnsRetrieveRequest(ctrl)
+		mockIpamAPI.EXPECT().IpamAsnsRetrieve(gomock.Any(), results[0].Id).Return(req)
+		retrieved := results[0]
+		req.EXPECT().Execute().
+			Return(&retrieved, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+	}
+
+	return mockIpam
+}
+
+func TestAsn(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	asnValue := int64(65001)
+	tenantId := int64(2)
+	tenantName := "Tenant1"
+	comments := Comments
+	description := Description
+	rirId := int32(9)
+	rirName := "RFC 6996"
+
+	rirs := []v4client.RIR{{Id: rirId, Name: rirName, Slug: "rfc-6996"}}
+
+	expectedLastUpdated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	expectedASN := func() v4client.ASN {
+		return v4client.ASN{
+			Id:           AsnId,
+			Asn:          asnValue,
+			Comments:     &comments,
+			Description:  &description,
+			CustomFields: map[string]interface{}{"example_field": "example_value"},
+			LastUpdated:  *v4client.NewNullableTime(&expectedLastUpdated),
+			Rir:          *v4client.NewNullableBriefRIR(&v4client.BriefRIR{Id: rirId}),
+		}
+	}
+
+	tenantLookup := func(mockTenancy *mock_interfaces.MockTenancyInterface) {
+		tenancyListInput := tenancy.NewTenancyTenantsListParams().WithName(&tenantName)
+		mockTenancy.EXPECT().TenancyTenantsList(tenancyListInput, nil).Return(&tenancy.TenancyTenantsListOK{
+			Payload: &tenancy.TenancyTenantsListOKBody{
+				Results: []*netboxModels.Tenant{
+					{ID: tenantId, Name: &tenantName, Slug: &tenantName},
+				},
+			},
+		}, nil).AnyTimes()
+	}
+
+	t.Run("get existing ASN", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{expectedASN()})
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam},
+		}
+
+		actual, err := compositeClient.getAsn(context.TODO(), &models.ASN{Asn: asnValue}, 0)
+
+		AssertNil(t, err)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expectedASN().Id, actual.Id)
+		assert.Equal(t, expectedASN().Asn, actual.Asn)
+		assert.Equal(t, expectedASN().Comments, actual.Comments)
+		assert.Equal(t, expectedASN().Description, actual.Description)
+	})
+
+	t.Run("get existing ASN by netbox id", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockRetrieveRequest := mock_interfaces.NewMockIpamAsnsRetrieveRequest(ctrl)
+
+		// Once the netbox id is known the `asn=` filter must not be used at all.
+		mockIpamAPI.EXPECT().IpamAsnsRetrieve(gomock.Any(), AsnId).Return(mockRetrieveRequest)
+		expected := expectedASN()
+		mockRetrieveRequest.EXPECT().Execute().
+			Return(&expected, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+
+		actual, err := compositeClient.getAsn(context.TODO(), &models.ASN{Asn: asnValue}, int64(AsnId))
+
+		AssertNil(t, err)
+		assert.NotNil(t, actual)
+		assert.Equal(t, AsnId, actual.Id)
+	})
+
+	t.Run("get existing ASN by netbox id - gone", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockRetrieveRequest := mock_interfaces.NewMockIpamAsnsRetrieveRequest(ctrl)
+
+		mockIpamAPI.EXPECT().IpamAsnsRetrieve(gomock.Any(), AsnId).Return(mockRetrieveRequest)
+		mockRetrieveRequest.EXPECT().Execute().
+			Return(nil, &http.Response{StatusCode: 404, Body: http.NoBody}, assert.AnError)
+
+		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+
+		actual, err := compositeClient.getAsn(context.TODO(), &models.ASN{Asn: asnValue}, int64(AsnId))
+
+		AssertNil(t, err)
+		assert.Nil(t, actual)
+	})
+
+	t.Run("get existing 32 bit ASN above MaxInt32", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+
+		largeAsn := int64(4200000000)
+
+		// The v4 `asn=` filter is typed int32 and cannot express this value, so the
+		// lookup goes through the v3 client, whose filter is a string.
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{{Id: AsnId, Asn: largeAsn}})
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam},
+		}
+
+		actual, err := compositeClient.getAsn(context.TODO(), &models.ASN{Asn: largeAsn}, 0)
+
+		AssertNil(t, err)
+		assert.NotNil(t, actual)
+		assert.Equal(t, largeAsn, actual.Asn)
+	})
+
+	t.Run("reserve new ASN", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockCreateRequest := mock_interfaces.NewMockIpamAsnsCreateRequest(ctrl)
+
+		// Setup: list returns empty → create
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{})
+
+		expectRirLookup(ctrl, mockIpamAPI, rirName, rirs)
+
+		mockIpamAPI.EXPECT().
+			IpamAsnsCreate(gomock.Any()).
+			Return(mockCreateRequest)
+
+		var createdAsn v4client.ASNRequest
+		mockCreateRequest.EXPECT().
+			ASNRequest(gomock.Any()).
+			DoAndReturn(func(req v4client.ASNRequest) interfaces.IpamAsnsCreateRequest {
+				createdAsn = req
+				return mockCreateRequest
+			})
+
+		mockCreateRequest.EXPECT().
+			Execute().
+			Return(&v4client.ASN{
+				Id:          AsnId,
+				Asn:         asnValue,
+				Comments:    &comments,
+				Description: &description,
+				LastUpdated: *v4client.NewNullableTime(&expectedLastUpdated),
+			}, &http.Response{StatusCode: 201, Body: http.NoBody}, nil)
+
+		tenantLookup(mockTenancy)
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam, Tenancy: mockTenancy},
+		}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
+			&models.ASN{
+				Asn: asnValue,
+				Metadata: &models.NetboxMetadata{
+					Tenant:      tenantName,
+					Comments:    comments,
+					Description: description,
+					Rir:         rirName,
+				},
+			}, &netboxv1.Asn{})
+
+		assert.NoError(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, AsnId, actual.Id)
+		assert.Equal(t, asnValue, actual.Asn)
+		assert.True(t, createdAsn.Rir.IsSet())
+		assert.Equal(t, rirId, *createdAsn.Rir.Get().Int32)
+	})
+
+	t.Run("update existing ASN sets the RIR from the spec", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamAsnsUpdateRequest(ctrl)
+
+		// List returns an existing ASN
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{expectedASN()})
+		expectRirLookup(ctrl, mockIpamAPI, rirName, rirs)
+
+		mockIpamAPI.EXPECT().
+			IpamAsnsUpdate(gomock.Any(), AsnId).
+			Return(mockUpdateRequest)
+
+		// NetBox replaces the whole object on update, so the request has to carry the RIR.
+		var updatedAsn v4client.ASNRequest
+		mockUpdateRequest.EXPECT().
+			ASNRequest(gomock.Any()).
+			DoAndReturn(func(req v4client.ASNRequest) interfaces.IpamAsnsUpdateRequest {
+				updatedAsn = req
+				return mockUpdateRequest
+			})
+
+		updatedDesc := "updated description"
+		mockUpdateRequest.EXPECT().
+			Execute().
+			Return(&v4client.ASN{
+				Id:          AsnId,
+				Asn:         asnValue,
+				Description: &updatedDesc,
+				LastUpdated: *v4client.NewNullableTime(&expectedLastUpdated),
+			}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		tenantLookup(mockTenancy)
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam, Tenancy: mockTenancy},
+		}
+
+		// Asn with old last updated → not up to date → triggers update
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
+			&models.ASN{
+				Asn: asnValue,
+				Metadata: &models.NetboxMetadata{
+					Tenant:      tenantName,
+					Comments:    comments,
+					Description: updatedDesc,
+					Rir:         rirName,
+				},
+			}, &netboxv1.Asn{
+				Status: netboxv1.AsnStatus{
+					LastUpdated: metav1.NewTime(expectedLastUpdated.Add(-1 * time.Hour)),
+				},
+			})
+
+		assert.NoError(t, err)
+		assert.False(t, isUpToDate)
+		assert.NotNil(t, actual)
+		assert.Equal(t, AsnId, actual.Id)
+		assert.True(t, updatedAsn.Rir.IsSet())
+		assert.Equal(t, rirId, *updatedAsn.Rir.Get().Int32)
+	})
+
+	t.Run("changing the RIR updates the ASN", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockUpdateRequest := mock_interfaces.NewMockIpamAsnsUpdateRequest(ctrl)
+
+		overrideRirId := int32(42)
+		overrideRirName := "ARIN"
+
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{expectedASN()})
+		expectRirLookup(ctrl, mockIpamAPI, overrideRirName,
+			[]v4client.RIR{{Id: overrideRirId, Name: overrideRirName, Slug: "arin"}})
+
+		mockIpamAPI.EXPECT().IpamAsnsUpdate(gomock.Any(), AsnId).Return(mockUpdateRequest)
+
+		var updatedAsn v4client.ASNRequest
+		mockUpdateRequest.EXPECT().
+			ASNRequest(gomock.Any()).
+			DoAndReturn(func(req v4client.ASNRequest) interfaces.IpamAsnsUpdateRequest {
+				updatedAsn = req
+				return mockUpdateRequest
+			})
+		mockUpdateRequest.EXPECT().Execute().
+			Return(&v4client.ASN{Id: AsnId, Asn: asnValue}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam},
+		}
+
+		_, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
+			&models.ASN{Asn: asnValue, Metadata: &models.NetboxMetadata{Description: description, Rir: overrideRirName}},
+			&netboxv1.Asn{
+				Status: netboxv1.AsnStatus{
+					LastUpdated: metav1.NewTime(expectedLastUpdated.Add(-1 * time.Hour)),
+				},
+			})
+
+		assert.NoError(t, err)
+		assert.False(t, isUpToDate)
+		assert.True(t, updatedAsn.Rir.IsSet())
+		assert.Equal(t, overrideRirId, *updatedAsn.Rir.Get().Int32)
+	})
+
+	t.Run("up to date ASN is not updated", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{expectedASN()})
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam},
+		}
+
+		actual, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
+			&models.ASN{Asn: asnValue},
+			&netboxv1.Asn{
+				Status: netboxv1.AsnStatus{
+					LastUpdated: metav1.NewTime(expectedLastUpdated),
+					Conditions: []metav1.Condition{
+						{Type: netboxv1.ConditionAsnReadyTrue.Type, Status: metav1.ConditionTrue},
+					},
+				},
+			})
+
+		assert.NoError(t, err)
+		assert.True(t, isUpToDate)
+		assert.NotNil(t, actual)
+	})
+
+	t.Run("restoration hash mismatch", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+
+		// Existing ASN has a different hash
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{
+			{
+				Id:           AsnId,
+				Asn:          asnValue,
+				CustomFields: map[string]interface{}{config.GetOperatorConfig().NetboxRestorationHashFieldName: "different-hash"},
+				LastUpdated:  *v4client.NewNullableTime(&expectedLastUpdated),
+			},
+		})
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam},
+		}
+
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
+			&models.ASN{
+				Asn: asnValue,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: "my-hash",
+					},
+				},
+			}, &netboxv1.Asn{})
+
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, ErrRestorationHashMismatch)
+		assert.False(t, isUpToDate)
+		assert.Nil(t, result)
+	})
+
+	t.Run("ASN without a restoration hash in NetBox is not adopted", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+
+		// NetBox returns null for unset custom fields. Such an ASN was never claimed by
+		// this operator and must never be taken over silently.
+		mockIpam := expectAsnLookupByValue(ctrl, mockIpamAPI, []v4client.ASN{
+			{
+				Id:           AsnId,
+				Asn:          asnValue,
+				CustomFields: map[string]interface{}{config.GetOperatorConfig().NetboxRestorationHashFieldName: nil},
+				LastUpdated:  *v4client.NewNullableTime(&expectedLastUpdated),
+			},
+		})
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Ipam: mockIpam},
+		}
+
+		result, isUpToDate, err := compositeClient.ReserveOrUpdateAsn(context.TODO(),
+			&models.ASN{
+				Asn: asnValue,
+				Metadata: &models.NetboxMetadata{
+					Description: description,
+					Custom: map[string]string{
+						config.GetOperatorConfig().NetboxRestorationHashFieldName: "my-hash",
+					},
+				},
+			}, &netboxv1.Asn{
+				Status: netboxv1.AsnStatus{
+					LastUpdated: metav1.NewTime(expectedLastUpdated.Add(-1 * time.Hour)),
+				},
+			})
+
+		assert.ErrorIs(t, err, ErrRestorationHashMismatch)
+		assert.False(t, isUpToDate)
+		assert.Nil(t, result)
+	})
+
+	t.Run("delete ASN", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockDestroyRequest := mock_interfaces.NewMockIpamAsnsDestroyRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamAsnsDestroy(gomock.Any(), AsnId).
+			Return(mockDestroyRequest)
+
+		mockDestroyRequest.EXPECT().
+			Execute().
+			Return(&http.Response{StatusCode: 204, Body: http.NoBody}, nil)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		err := compositeClient.DeleteAsn(context.TODO(), int64(AsnId))
+		assert.NoError(t, err)
+	})
+
+	t.Run("delete ASN not found", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockDestroyRequest := mock_interfaces.NewMockIpamAsnsDestroyRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamAsnsDestroy(gomock.Any(), AsnId).
+			Return(mockDestroyRequest)
+
+		mockDestroyRequest.EXPECT().
+			Execute().
+			Return(&http.Response{StatusCode: 404, Body: http.NoBody}, assert.AnError)
+
+		clientV4 := &NetboxClientV4{IpamAPI: mockIpamAPI}
+		compositeClient := &NetboxCompositeClient{clientV4: clientV4}
+
+		err := compositeClient.DeleteAsn(context.TODO(), int64(AsnId))
+		assert.NoError(t, err) // Should not error on 404
+	})
+
+	t.Run("delete ASN server error", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockDestroyRequest := mock_interfaces.NewMockIpamAsnsDestroyRequest(ctrl)
+
+		mockIpamAPI.EXPECT().
+			IpamAsnsDestroy(gomock.Any(), AsnId).
+			Return(mockDestroyRequest)
+
+		mockDestroyRequest.EXPECT().
+			Execute().
+			Return(&http.Response{StatusCode: 500, Body: http.NoBody}, assert.AnError)
+
+		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+
+		err := compositeClient.DeleteAsn(context.TODO(), int64(AsnId))
+		assert.Error(t, err)
+	})
+}

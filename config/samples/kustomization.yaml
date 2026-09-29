@@ -9,6 +9,8 @@ resources:
   - netbox_v1_prefixclaim_parentprefixselector.yaml
   - netbox_v1_iprangeclaim.yaml
   - netbox_v1_iprange.yaml
+  - netbox_v1_asn.yaml
+  - netbox_v1_asnclaim.yaml
   - netbox_v1_l2vpnclaim.yaml
   - netbox_v1_l2vpnclaim_range.yaml
   - netbox_v1_l2vpn.yaml
