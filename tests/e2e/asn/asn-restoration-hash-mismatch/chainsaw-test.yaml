@@ -25,7 +25,6 @@ spec:
                 (conditions[?type == 'Ready']):
                   - status: 'False'
                     reason: FailedToReserveAsnInNetbox
-                (asnId || `0`): 0
     - name: Cleanup events
       description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
       cleanup:
