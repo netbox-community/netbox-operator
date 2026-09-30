@@ -45,8 +45,8 @@ fi
 
 # everything below targets the current context, so make sure it points at the kind cluster
 KUBE_CONTEXT="kind-${CLUSTER}"
-if ! kubectl config use-context "${KUBE_CONTEXT}" > /dev/null; then
-    echo "ERROR: no kubectl context '${KUBE_CONTEXT}', refusing to deploy into '$(kubectl config current-context)'" >&2
+if ! kubectl config use-context "${KUBE_CONTEXT}" > /dev/null 2>&1; then
+    echo "ERROR: no kubectl context '${KUBE_CONTEXT}', refusing to deploy into '$(kubectl config current-context 2> /dev/null || echo "none")'" >&2
     exit 1
 fi
 
