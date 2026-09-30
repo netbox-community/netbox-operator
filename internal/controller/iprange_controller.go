@@ -78,8 +78,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (IpRangeId, conditions, etc.).
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -200,14 +200,29 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
 	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
 	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
 	if netboxIpRangeModel.LastUpdated.IsSet() {
 		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
 	}
 
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
 	// 4.1 update annotation
-	// accessor.Annotations aliases o's map, so snapshot the patch base before mutating it
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+
 	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[IPRManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
@@ -221,7 +236,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 
 	// patch object to store lastIpRangeMetadata annotation
-	err = patchMetadata(ctx, r.Client, o, patch)
+	err = r.Patch(ctx, o, patch)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

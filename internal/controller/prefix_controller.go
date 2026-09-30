@@ -78,8 +78,8 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (PrefixId, conditions, etc.).
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -219,14 +219,29 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	}
 
 	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
 	o.Status.PrefixId = int64(netboxPrefixModel.Id)
 	o.Status.PrefixUrl = config.GetBaseUrl() + "/ipam/prefixes/" + strconv.FormatInt(int64(netboxPrefixModel.Id), 10)
 	if netboxPrefixModel.LastUpdated.IsSet() {
 		o.Status.LastUpdated = metav1.NewTime(*netboxPrefixModel.LastUpdated.Get())
 	}
 
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
 	// 4.1 update annotation
-	// accessor.Annotations aliases o's map, so snapshot the patch base before mutating it
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+
 	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[PXManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
@@ -240,7 +255,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	}
 
 	// patch object to store lastPrefixMetadata annotation
-	if err := patchMetadata(ctx, r.Client, o, patch); err != nil {
+	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 

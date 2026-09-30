@@ -77,8 +77,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (IpAddressId, conditions, etc.).
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -206,14 +206,29 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
 	o.Status.IpAddressId = netboxIpAddressModel.ID
 	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
 	if netboxIpAddressModel.LastUpdated != nil {
 		o.Status.LastUpdated = metav1.NewTime(time.Time(*netboxIpAddressModel.LastUpdated))
 	}
 
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
 	// 4.1 update annotations
-	// accessor.Annotations aliases o's map, so snapshot the patch base before mutating it
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+
 	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
@@ -225,7 +240,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	if err := patchMetadata(ctx, r.Client, o, patch); err != nil {
+	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 

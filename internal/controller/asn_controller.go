@@ -72,7 +72,8 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -143,14 +144,29 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	}
 
 	// 3. update status fields
+	statusFieldsBase := o.DeepCopy()
 	o.Status.AsnId = int64(netboxAsnModel.Id)
 	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
 	if netboxAsnModel.LastUpdated.Get() != nil {
 		o.Status.LastUpdated = metav1.NewTime(*netboxAsnModel.LastUpdated.Get())
 	}
 
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
 	// 2.1 update annotations
-	// accessor.Annotations aliases o's map, so snapshot the patch base before mutating it
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+
 	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[AsnManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
@@ -162,7 +178,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, err
 	}
 
-	if err := patchMetadata(ctx, r.Client, o, patch); err != nil {
+	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
 	}
 
