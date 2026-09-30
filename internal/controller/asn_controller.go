@@ -110,7 +110,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, err
 	}
 
-	// 1. reserve or update ASN in netbox
+	// 2. reserve or update ASN in netbox
 	accessor := apismeta.NewAccessor()
 	annotations, err := accessor.Annotations(o)
 	if err != nil {
@@ -138,12 +138,12 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 2. if no change in spec generation and NetBox object, skip K8s status update
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 
-	// 3. update status fields
+	// 5. update status fields
 	statusFieldsBase := o.DeepCopy()
 	o.Status.AsnId = int64(netboxAsnModel.Id)
 	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
@@ -157,7 +157,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	}
 	statusBase = o.DeepCopy()
 
-	// 2.1 update annotations
+	// 6. update annotations
 	// the status patch response replaced o's annotation map, so re-read it
 	annotations, err = accessor.Annotations(o)
 	if err != nil {

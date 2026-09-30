@@ -115,7 +115,7 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, err
 	}
 
-	// 1. try to lock the shared l2vpn identifier pool if L2VPN status condition
+	// 1. try to lock the lease of the shared l2vpn identifier pool if L2VPN status condition
 	// is not true, is owned by a L2VPNClaim, and hasn't been created in NetBox
 	// yet. This serializes against the same lock the L2VPNClaim controller
 	// held while assigning this L2VPN's identifier.
@@ -183,13 +183,13 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of the identifier range
+	// 3. unlock the lease of the shared l2vpn identifier pool
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change, then end loop
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
@@ -209,7 +209,7 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	}
 	statusBase = o.DeepCopy()
 
-	// 4.1 update annotation
+	// 6. update annotations
 	// the status patch response replaced o's annotation map, so re-read it
 	annotations, err = accessor.Annotations(o)
 	if err != nil {

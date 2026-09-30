@@ -109,6 +109,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		logger.V(4).Info("reconcile loop finished")
 	}()
 
+	// 2. check if the matching IpRange object exists
 	err = r.Get(ctx, ipRangeLookupKey, ipRange)
 	if err != nil {
 		// return error if not a notfound error
@@ -126,7 +127,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return res, err
 		}
 
-		// create the IpRange CR
+		// 7.a create the IpRange object
 		ipRangeResource := generateIpRangeFromIpRangeClaim(ctx, o, ipRangeModel.StartAddress, ipRangeModel.EndAddress)
 		err = controllerutil.SetControllerReference(o, ipRangeResource, r.Scheme)
 		if err != nil {
@@ -143,7 +144,7 @@ func (r *IpRangeClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, NewDomainError("failed to create IpRange: %w", err)
 		}
 	} else {
-		// update spec of IpRange object
+		// 7.b update fields of the IpRange object
 		logger.V(4).Info("update iprange resource")
 		ipRange.Spec = generateIpRangeSpec(o, ipRange.Spec.StartAddress, ipRange.Spec.EndAddress, logger)
 		err = controllerutil.SetControllerReference(o, ipRange, r.Scheme)

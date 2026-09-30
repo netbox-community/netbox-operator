@@ -63,7 +63,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	logger.V(4).Info("reconcile loop started")
 
-	/* 0. check if the matching IpAddressClaim object exists */
+	// 0. check if the matching IpAddressClaim object exists
 	o := &netboxv1.IpAddressClaim{}
 	if err := r.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -89,7 +89,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		logger.V(4).Info("reconcile loop finished")
 	}()
 
-	// 1. check if matching IpAddress object already exists
+	// 2. check if the matching IpAddress object exists
 	ipAddress := &netboxv1.IpAddress{}
 	ipAddressName := o.Name
 	ipAddressLookupKey := types.NamespacedName{
@@ -106,7 +106,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		logger.V(4).Info("ipaddress object matching ipaddress claim was not found, creating new ipaddress object")
 
-		// 2. check if lease for parent prefix is available
+		// 3. check if the lease for the parent prefix is available
 		leaseLockerNSN := types.NamespacedName{
 			Name:      convertCIDRToLeaseLockName(o.Spec.ParentPrefix),
 			Namespace: r.OperatorNamespace,
@@ -116,7 +116,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, fmt.Errorf("failed to create lease locker: %w", err)
 		}
 
-		// 3. try to lock lease for parent prefix
+		// 4. try to lock the lease for the parent prefix
 		lockCtx, cancelLock := context.WithTimeout(ctx, lockAcquireTimeout)
 		defer cancelLock() // ensure renewal goroutine stops on any return path
 		locked := ll.TryLock(lockCtx)
@@ -129,7 +129,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 		logger.V(4).Info("successfully locked parent prefix", "prefix", o.Spec.ParentPrefix)
 
-		// 4. try to reclaim ip address
+		// 5. try to reclaim ip address using restorationHash
 		h := generateIpAddressRestorationHash(o)
 		ipAddressModel, err := r.NetboxClient.RestoreExistingIpByHash(h)
 		if err != nil {
@@ -138,7 +138,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		if ipAddressModel == nil {
 			// ip address cannot be restored from netbox
-			// 5.a assign new available ip address
+			// 6.a assign new available ip address
 			ipAddressModel, err = r.NetboxClient.GetAvailableIpAddressByClaim(
 				ctx,
 				&models.IPAddressClaim{
@@ -152,12 +152,12 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			}
 			logger.V(4).Info("ip address is not reserved in netbox, assigned new ip address", "ip", ipAddressModel.IpAddress)
 		} else {
-			// 5.b reassign reserved ip address from netbox
+			// 6.b reassign reserved ip address from netbox
 			// do nothing, ip address restored
 			logger.V(4).Info("reassign reserved ip address from netbox", "ip", ipAddressModel.IpAddress)
 		}
 
-		// 6.a create the IPAddress object
+		// 7.a create the IpAddress object
 		ipAddressResource := generateIpAddressFromIpAddressClaim(o, ipAddressModel.IpAddress, logger)
 		if err := controllerutil.SetControllerReference(o, ipAddressResource, r.Scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
@@ -170,7 +170,7 @@ func (r *IpAddressClaimReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		logger.V(4).Info("successfully created IpAddress resource")
 
 	} else {
-		// 6.b update fields of IPAddress object
+		// 7.b update fields of the IpAddress object
 		logger.V(4).Info("update ipaddress resource")
 		updatedIpAddressSpec := generateIpAddressSpec(o, ipAddress.Spec.IpAddress, logger)
 		_, err := ctrl.CreateOrUpdate(ctx, r.Client, ipAddress, func() error {

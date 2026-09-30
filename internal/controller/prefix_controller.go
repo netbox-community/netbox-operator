@@ -72,7 +72,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 
 	logger.V(4).Info("reconcile loop started")
 
-	/* 0. check if the matching Prefix object exists */
+	// 0. check if the matching Prefix object exists
 	o := &netboxv1.Prefix{}
 	if err := r.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -120,11 +120,9 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, err
 	}
 
-	/*
-		1. try to lock the lease of the parent prefix if all of the following conditions are met
-			- the prefix is owned by at least 1 prefixClaim
-			- the prefix status condition is not ready
-	*/
+	// 1. try to lock the lease of the parent prefix if all of the following conditions are met
+	//    - the prefix is owned by at least 1 prefixClaim
+	//    - the prefix status condition is not ready
 	ownerReferences := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
 	var cancelLock context.CancelFunc
@@ -178,7 +176,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		}
 	}
 
-	/* 2. reserve or update Prefix in netbox */
+	// 2. reserve or update Prefix in netbox
 	accessor := apismeta.NewAccessor()
 	annotations, err := accessor.Annotations(o)
 	if err != nil {
@@ -207,13 +205,13 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	/* 3. unlock lease of parent prefix */
+	// 3. unlock the lease of the parent prefix
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change, then end loop
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
@@ -232,7 +230,7 @@ func (r *PrefixReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 	}
 	statusBase = o.DeepCopy()
 
-	// 4.1 update annotation
+	// 6. update annotations
 	// the status patch response replaced o's annotation map, so re-read it
 	annotations, err = accessor.Annotations(o)
 	if err != nil {

@@ -119,7 +119,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, err
 	}
 
-	// 1. try to lock lease of parent prefix if IpRange status condition is not true
+	// 1. try to lock the lease of the parent prefix if IpRange status condition is not true
 	// and IpRange is owned by an IpRangeClaim
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
@@ -188,13 +188,13 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of parent prefix
+	// 3. unlock the lease of the parent prefix
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change, then end loop
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
@@ -213,7 +213,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	}
 	statusBase = o.DeepCopy()
 
-	// 4.1 update annotation
+	// 6. update annotations
 	// the status patch response replaced o's annotation map, so re-read it
 	annotations, err = accessor.Annotations(o)
 	if err != nil {

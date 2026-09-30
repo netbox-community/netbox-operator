@@ -119,7 +119,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	// 1. try to lock lease of parent prefix if IpAddressUrl is not set in status
+	// 1. try to lock the lease of the parent prefix if IpAddressUrl is not set in status
 	// and IpAddress is owned by an IpAddressClaim
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
@@ -194,7 +194,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of parent prefix — allocation is done, lock no longer needed
+	// 3. unlock the lease of the parent prefix
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
@@ -219,7 +219,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	statusBase = o.DeepCopy()
 
-	// 4.1 update annotations
+	// 6. update annotations
 	// the status patch response replaced o's annotation map, so re-read it
 	annotations, err = accessor.Annotations(o)
 	if err != nil {
