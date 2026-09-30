@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -151,10 +152,9 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 	return nil
 }
 
-// isOwnedByClaim reports whether the object was created by one of this operator's
-// claim controllers, which set themselves as the controlling owner reference.
-// A controlling owner from any other controller does not qualify, as only a claim
-// will recreate the object after it has been deleted.
+// isOwnedByClaim reports whether the object is controlled by the claim of its own
+// kind, the only controller that will recreate it after deletion. The owner's API
+// version is intentionally not compared, only its group.
 func isOwnedByClaim(o client.Object) bool {
 	owner := metav1.GetControllerOf(o)
 	if owner == nil {
@@ -162,8 +162,27 @@ func isOwnedByClaim(o client.Object) bool {
 	}
 
 	group, _, _ := strings.Cut(owner.APIVersion, "/")
+	if group != netboxv1.GroupVersion.Group {
+		return false
+	}
 
-	return group == netboxv1.GroupVersion.Group && strings.HasSuffix(owner.Kind, "Claim")
+	kind := kindOf(o)
+
+	return kind != "" && owner.Kind == kind+"Claim"
+}
+
+// kindOf derives the kind from the Go type, as the typed client clears TypeMeta.
+func kindOf(o client.Object) string {
+	t := reflect.TypeOf(o)
+	if t == nil {
+		return ""
+	}
+
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	return t.Name()
 }
 
 // patchMetadata patches a copy of o so that the API server response cannot overwrite
