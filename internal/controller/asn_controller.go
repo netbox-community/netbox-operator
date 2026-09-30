@@ -150,8 +150,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 	}
 
 	// 2.1 update annotations
-	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
-	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
+	// accessor.Annotations aliases o's map, so snapshot the patch base before mutating it
 	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[AsnManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
