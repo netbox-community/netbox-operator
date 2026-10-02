@@ -22,6 +22,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 var _ = Describe("excludeDomainErrors", func() {
@@ -91,4 +97,71 @@ var _ = Describe("excludeDomainErrors", func() {
 		var domainErr *DomainError
 		Expect(errors.As(remaining, &domainErr)).To(BeFalse())
 	})
+})
+
+var _ = Describe("isOwnedByClaim", func() {
+	var testScheme *runtime.Scheme
+
+	BeforeEach(func() {
+		testScheme = runtime.NewScheme()
+		Expect(netboxv1.AddToScheme(testScheme)).To(Succeed())
+	})
+
+	ownedBy := func(o client.Object, refs ...metav1.OwnerReference) client.Object {
+		o.SetOwnerReferences(refs)
+		return o
+	}
+
+	controllerRef := func(apiVersion, kind string) metav1.OwnerReference {
+		controller := true
+		return metav1.OwnerReference{APIVersion: apiVersion, Kind: kind, Name: "owner", Controller: &controller}
+	}
+
+	It("returns false without any owner reference", func() {
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Asn{}), testScheme)).To(BeFalse())
+	})
+
+	It("returns false for a non-controlling claim owner", func() {
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Asn{}, metav1.OwnerReference{
+			APIVersion: "netbox.dev/v1", Kind: "AsnClaim", Name: "owner",
+		}), testScheme)).To(BeFalse())
+	})
+
+	It("returns false for a controller of another api group", func() {
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Asn{}, controllerRef("example.com/v1", "AsnClaim")), testScheme)).To(BeFalse())
+	})
+
+	It("returns false for a netbox.dev controller that is not a claim", func() {
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Asn{}, controllerRef("netbox.dev/v1", "Asn")), testScheme)).To(BeFalse())
+	})
+
+	It("returns false for a claim controller of another kind", func() {
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Asn{}, controllerRef("netbox.dev/v1", "PrefixClaim")), testScheme)).To(BeFalse())
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Prefix{}, controllerRef("netbox.dev/v1", "AsnClaim")), testScheme)).To(BeFalse())
+	})
+
+	It("returns false for an object that is not registered in the scheme", func() {
+		Expect(isOwnedByClaim(ownedBy(&corev1.ConfigMap{}, controllerRef("netbox.dev/v1", "ConfigMapClaim")), testScheme)).To(BeFalse())
+	})
+
+	It("resolves the kind from the scheme, not from TypeMeta", func() {
+		o := &netboxv1.Prefix{TypeMeta: metav1.TypeMeta{Kind: "Asn", APIVersion: "netbox.dev/v1"}}
+		Expect(isOwnedByClaim(ownedBy(o, controllerRef("netbox.dev/v1", "AsnClaim")), testScheme)).To(BeFalse())
+		Expect(isOwnedByClaim(ownedBy(o, controllerRef("netbox.dev/v1", "PrefixClaim")), testScheme)).To(BeTrue())
+	})
+
+	It("ignores the owner api version, matching on group only", func() {
+		Expect(isOwnedByClaim(ownedBy(&netboxv1.Asn{}, controllerRef("netbox.dev/v2", "AsnClaim")), testScheme)).To(BeTrue())
+	})
+
+	DescribeTable("pairs every managed object kind with its own claim",
+		func(o client.Object, claimKind string) {
+			Expect(isOwnedByClaim(ownedBy(o, controllerRef("netbox.dev/v1", claimKind)), testScheme)).To(BeTrue())
+		},
+		Entry("Asn", &netboxv1.Asn{}, "AsnClaim"),
+		Entry("IpAddress", &netboxv1.IpAddress{}, "IpAddressClaim"),
+		Entry("IpRange", &netboxv1.IpRange{}, "IpRangeClaim"),
+		Entry("L2VPN", &netboxv1.L2VPN{}, "L2VPNClaim"),
+		Entry("Prefix", &netboxv1.Prefix{}, "PrefixClaim"),
+	)
 })

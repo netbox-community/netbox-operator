@@ -75,7 +75,7 @@ func generateIpRangeRestorationHash(claim *netboxv1.IpRangeClaim) string {
 		Tenant:       claim.Spec.Tenant,
 		Size:         fmt.Sprintf("%d", claim.Spec.Size),
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant+rd.Size)))
+	return rd.ComputeHash()
 }
 
 type IpRangeClaimRestorationData struct {
@@ -85,6 +85,13 @@ type IpRangeClaimRestorationData struct {
 	ParentPrefix string
 	Tenant       string
 	Size         string
+}
+
+func (rd *IpRangeClaimRestorationData) ComputeHash() string {
+	if rd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant+rd.Size)))
 }
 
 // ipsInRange returns all IP addresses from startAddr to endAddr (inclusive).

@@ -69,7 +69,7 @@ func generateIpAddressRestorationHash(claim *netboxv1.IpAddressClaim) string {
 		ParentPrefix: claim.Spec.ParentPrefix,
 		Tenant:       claim.Spec.Tenant,
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant)))
+	return rd.ComputeHash()
 }
 
 type IpAddressClaimRestorationData struct {
@@ -78,4 +78,11 @@ type IpAddressClaimRestorationData struct {
 	Name         string
 	ParentPrefix string
 	Tenant       string
+}
+
+func (rd *IpAddressClaimRestorationData) ComputeHash() string {
+	if rd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant)))
 }

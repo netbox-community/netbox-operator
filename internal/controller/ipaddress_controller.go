@@ -68,7 +68,7 @@ type IpAddressReconciler struct {
 func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.IpAddress{}
 
@@ -77,8 +77,8 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (IpAddressId, conditions, etc.).
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -87,7 +87,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// cancelLock stops the lease renewal goroutine on early returns (lease expires naturally).
@@ -106,29 +106,20 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			}
 		}
 
-		logger.V(4).Info("removing the finalizer")
-		removed := controllerutil.RemoveFinalizer(o, IpAddressFinalizerName)
-		if !removed {
-			return ctrl.Result{}, errors.New("failed to remove the finalizer")
-		}
-
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpAddressFinalizerName)
 	}
 
-	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, IpAddressFinalizerName) {
-		logger.V(4).Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, IpAddressFinalizerName)
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
+	// the finalizer exists only to delete the ip address from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, IpAddressFinalizerName)
+	} else {
+		err = addFinalizer(ctx, r.Client, o, IpAddressFinalizerName)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// 1. try to lock lease of parent prefix if IpAddressUrl is not set in status
+	// 1. try to lock the lease of the parent prefix if IpAddressUrl is not set in status
 	// and IpAddress is owned by an IpAddressClaim
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
@@ -178,6 +169,9 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
 
 	ipAddressModel, err := generateNetboxIpAddressModelFromIpAddressSpec(&o.Spec, req, annotations[IPManagedCustomFieldsAnnotationName])
 	if err != nil {
@@ -186,7 +180,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ctx, ipAddressModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 && isOwnedByClaim(o, r.Scheme) {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
 			// delete the ip address so it can be recreated by the ip address claim controller
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
@@ -200,7 +194,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of parent prefix — allocation is done, lock no longer needed
+	// 3. unlock the lease of the parent prefix
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
@@ -211,18 +205,36 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// 4.1 update annotations
+	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
+	o.Status.IpAddressId = netboxIpAddressModel.ID
+	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
+	if netboxIpAddressModel.LastUpdated != nil {
+		o.Status.LastUpdated = metav1.NewTime(time.Time(*netboxIpAddressModel.LastUpdated))
+	}
+
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
+	// 6. update annotations
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
+
+	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[IPManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
-
-	// snapshot before annotation mutation for merge-patch
-	patch := client.MergeFrom(o.DeepCopy())
 
 	if err = accessor.SetAnnotations(o, annotations); err != nil {
 		return ctrl.Result{}, err
@@ -230,13 +242,6 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// 4. update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.IpAddressId = netboxIpAddressModel.ID
-	o.Status.IpAddressUrl = config.GetBaseUrl() + "/ipam/ip-addresses/" + strconv.FormatInt(netboxIpAddressModel.ID, 10)
-	if netboxIpAddressModel.LastUpdated != nil {
-		o.Status.LastUpdated = metav1.NewTime(time.Time(*netboxIpAddressModel.LastUpdated))
 	}
 
 	// check if created ip address contains entire description from spec
