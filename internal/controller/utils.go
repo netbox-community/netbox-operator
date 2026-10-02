@@ -21,19 +21,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
 
 // DomainError wraps an error that should update status conditions.
@@ -155,34 +155,24 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 // isOwnedByClaim reports whether the object is controlled by the claim of its own
 // kind, the only controller that will recreate it after deletion. The owner's API
 // version is intentionally not compared, only its group.
-func isOwnedByClaim(o client.Object) bool {
+func isOwnedByClaim(o client.Object, scheme *runtime.Scheme) bool {
 	owner := metav1.GetControllerOf(o)
 	if owner == nil {
 		return false
 	}
 
-	group, _, _ := strings.Cut(owner.APIVersion, "/")
-	if group != netboxv1.GroupVersion.Group {
+	// the typed client clears TypeMeta, so the kind comes from the scheme
+	gvk, err := apiutil.GVKForObject(o, scheme)
+	if err != nil {
 		return false
 	}
 
-	kind := kindOf(o)
-
-	return kind != "" && owner.Kind == kind+"Claim"
-}
-
-// kindOf derives the kind from the Go type, as the typed client clears TypeMeta.
-func kindOf(o client.Object) string {
-	t := reflect.TypeOf(o)
-	if t == nil {
-		return ""
+	ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
+	if err != nil {
+		return false
 	}
 
-	for t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-
-	return t.Name()
+	return ownerGV.Group == gvk.Group && owner.Kind == gvk.Kind+"Claim"
 }
 
 type EventStatusRecorder struct {

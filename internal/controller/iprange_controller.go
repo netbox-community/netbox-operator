@@ -175,7 +175,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	if err != nil {
 		overlapErr := &api.OverlapError{}
 		if (errors.Is(err, api.ErrRestorationHashMismatch) ||
-			errors.As(err, &overlapErr)) && o.Status.IpRangeId == 0 && isOwnedByClaim(o) {
+			errors.As(err, &overlapErr)) && o.Status.IpRangeId == 0 && isOwnedByClaim(o, r.Scheme) {
 			logger.Info("conflict in claimed ip range, deleting ip range custom resource", "ip-range-start",
 				o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress, "error", err)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {

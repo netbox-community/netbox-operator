@@ -180,7 +180,7 @@ func (r *IpAddressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	netboxIpAddressModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateIpAddress(ctx, ipAddressModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 && isOwnedByClaim(o) {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.IpAddressId == 0 && isOwnedByClaim(o, r.Scheme) {
 			// if there is a restoration hash mismatch and the IpAddressId status field is not set,
 			// delete the ip address so it can be recreated by the ip address claim controller
 			logger.Info("restoration hash mismatch, deleting ip address custom resource", "ipaddress", o.Spec.IpAddress)
