@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.73] - 2026-10-05
+
+<!-- Release notes generated using configuration in .github/release.yml at b50132e1a560c4a5daab2656d7d7f690247ea8f3 -->
+
+## What's Changed
+### Contributions
+* Add AsnClaim and Asn by @jstudler in https://github.com/netbox-community/netbox-operator/pull/606
+* Build(deps): bump the go-dependencies group with 9 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/643
+* Cross-controller cleanup by @jstudler in https://github.com/netbox-community/netbox-operator/pull/641
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.72...v0.2.73
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.73)
+
+---
+
 ## [v0.2.72] - 2026-09-28
 
 <!-- Release notes generated using configuration in .github/release.yml at c91a5df83b6d7fdd84cc22eadd61c5ee62394efe -->
