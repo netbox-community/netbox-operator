@@ -63,7 +63,7 @@ type AsnReconciler struct {
 func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.Asn{}
 
@@ -72,7 +72,8 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -81,7 +82,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// if being deleted
@@ -96,33 +97,27 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 			}
 		}
 
-		logger.V(4).Info("removing the finalizer")
-		removed := controllerutil.RemoveFinalizer(o, AsnFinalizerName)
-		if !removed {
-			return ctrl.Result{}, errors.New("failed to remove the finalizer")
-		}
-
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, AsnFinalizerName)
 	}
 
-	// if PreserveInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox && !controllerutil.ContainsFinalizer(o, AsnFinalizerName) {
-		logger.V(4).Info("adding the finalizer")
-		controllerutil.AddFinalizer(o, AsnFinalizerName)
-		if err = r.Update(ctx, o); err != nil {
-			return ctrl.Result{}, err
-		}
+	// the finalizer exists only to delete the ASN from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, AsnFinalizerName)
+	} else {
+		err = addFinalizer(ctx, r.Client, o, AsnFinalizerName)
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// 1. reserve or update ASN in netbox
+	// 2. reserve or update ASN in netbox
 	accessor := apismeta.NewAccessor()
 	annotations, err := accessor.Annotations(o)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
 	}
 
 	asnModel, err := generateNetboxAsnModelFromAsnSpec(&o.Spec, req, annotations[AsnManagedCustomFieldsAnnotationName])
@@ -132,7 +127,7 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 
 	netboxAsnModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateAsn(ctx, asnModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.AsnId == 0 {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.AsnId == 0 && isOwnedByClaim(o, r.Scheme) {
 			logger.Info("restoration hash mismatch, deleting ASN custom resource", "asn", o.Spec.Asn)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
 				return ctrl.Result{}, NewDomainError("failed to delete Asn CR with restoration hash mismatch: %w", deleteErr)
@@ -143,19 +138,36 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 2. if no change in spec generation and NetBox object, skip K8s status update
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 
-	// 2.1 update annotations
-	// the accessor returns the annotation map of o itself, so the merge-patch base has to be
-	// snapshotted before that map is mutated, otherwise the patch is empty and never applied
-	patch := client.MergeFrom(o.DeepCopy())
+	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
+	o.Status.AsnId = int64(netboxAsnModel.Id)
+	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
+	if netboxAsnModel.LastUpdated.Get() != nil {
+		o.Status.LastUpdated = metav1.NewTime(*netboxAsnModel.LastUpdated.Get())
+	}
 
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
+	// 6. update annotations
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
+
+	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[AsnManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
@@ -168,13 +180,6 @@ func (r *AsnReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconc
 
 	if err := r.Patch(ctx, o, patch); err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// 3. update status fields
-	o.Status.AsnId = int64(netboxAsnModel.Id)
-	o.Status.AsnUrl = config.GetBaseUrl() + "/ipam/asns/" + strconv.FormatInt(int64(netboxAsnModel.Id), 10)
-	if netboxAsnModel.LastUpdated.Get() != nil {
-		o.Status.LastUpdated = metav1.NewTime(*netboxAsnModel.LastUpdated.Get())
 	}
 
 	// check if created ASN contains entire description from spec

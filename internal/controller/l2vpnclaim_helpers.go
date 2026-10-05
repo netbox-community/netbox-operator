@@ -75,7 +75,7 @@ func generateL2VPNRestorationHash(claim *netboxv1.L2VPNClaim) string {
 		IdentifierRangeStart: fmt.Sprintf("%d", claim.Spec.IdentifierRangeStart),
 		IdentifierRangeEnd:   fmt.Sprintf("%d", claim.Spec.IdentifierRangeEnd),
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.Type+rd.Tenant+rd.IdentifierRangeStart+rd.IdentifierRangeEnd)))
+	return rd.ComputeHash()
 }
 
 type L2VPNClaimRestorationData struct {
@@ -86,6 +86,13 @@ type L2VPNClaimRestorationData struct {
 	Tenant               string
 	IdentifierRangeStart string
 	IdentifierRangeEnd   string
+}
+
+func (rd *L2VPNClaimRestorationData) ComputeHash() string {
+	if rd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.Type+rd.Tenant+rd.IdentifierRangeStart+rd.IdentifierRangeEnd)))
 }
 
 // l2vpnIdentifierLockName is the shared lease lock name serializing L2VPN

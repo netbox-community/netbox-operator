@@ -26,9 +26,12 @@ import (
 
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -147,6 +150,29 @@ func addFinalizer(ctx context.Context, c client.Client, o client.Object, finaliz
 	}
 
 	return nil
+}
+
+// isOwnedByClaim reports whether the object is controlled by the claim of its own
+// kind, the only controller that will recreate it after deletion. The owner's API
+// version is intentionally not compared, only its group.
+func isOwnedByClaim(o client.Object, scheme *runtime.Scheme) bool {
+	owner := metav1.GetControllerOf(o)
+	if owner == nil {
+		return false
+	}
+
+	// the typed client clears TypeMeta, so the kind comes from the scheme
+	gvk, err := apiutil.GVKForObject(o, scheme)
+	if err != nil {
+		return false
+	}
+
+	ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
+	if err != nil {
+		return false
+	}
+
+	return ownerGV.Group == gvk.Group && owner.Kind == gvk.Kind+"Claim"
 }
 
 type EventStatusRecorder struct {

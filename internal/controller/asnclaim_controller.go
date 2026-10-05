@@ -57,9 +57,9 @@ type AsnClaimReconciler struct {
 func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
-	/* 0. check if the matching AsnClaim object exists */
+	// 0. check if the matching AsnClaim object exists
 	o := &netboxv1.AsnClaim{}
 	if err := r.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -79,10 +79,10 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
-	// 1. check if matching Asn object already exists
+	// 2. check if the matching Asn object exists
 	asn := &netboxv1.Asn{}
 	asnName := o.Name
 	asnLookupKey := types.NamespacedName{
@@ -105,7 +105,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			return ctrl.Result{}, NewDomainError("failed to resolve RIR: %w", err)
 		}
 
-		// 2. try to reclaim ASN
+		// 5. try to reclaim ASN using restorationHash
 		h := generateAsnRestorationHash(o)
 		asnModel, err := r.NetboxClient.RestoreExistingAsnByHash(ctx, h)
 		if err != nil {
@@ -114,7 +114,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		if asnModel == nil {
 			// ASN cannot be restored from netbox
-			// 3.a assign new available ASN
+			// 6.a assign new available ASN
 			// NetBox creates the ASN as part of the available-asns request, so the
 			// restoration hash has to be part of that request. Otherwise a crash before
 			// the Asn resource is reconciled would leave an unidentifiable ASN behind.
@@ -138,11 +138,11 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			}
 			logger.V(4).Info("ASN is not reserved in netbox, assigned new ASN", "asn", asnModel.Asn)
 		} else {
-			// 3.b reassign reserved ASN from netbox
+			// 6.b reassign reserved ASN from netbox
 			logger.V(4).Info("reassign reserved ASN from netbox", "asn", asnModel.Asn)
 		}
 
-		// 4.a create the Asn object
+		// 7.a create the Asn object
 		asnResource := generateAsnFromAsnClaim(o, asnModel.Asn, rirName, logger)
 		if err := controllerutil.SetControllerReference(o, asnResource, r.Scheme); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
@@ -155,7 +155,7 @@ func (r *AsnClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		logger.V(4).Info("successfully created Asn resource")
 
 	} else {
-		// 4.b update fields of Asn object
+		// 7.b update fields of the Asn object
 		logger.V(4).Info("update asn resource")
 		rirName, err := r.resolveRir(ctx, o)
 		if err != nil {

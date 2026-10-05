@@ -70,7 +70,7 @@ func generateAsnRestorationHash(claim *netboxv1.AsnClaim) string {
 		ParentAsnRange: claim.Spec.ParentAsnRange,
 		Tenant:         claim.Spec.Tenant,
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentAsnRange+rd.Tenant)))
+	return rd.ComputeHash()
 }
 
 type AsnClaimRestorationData struct {
@@ -79,4 +79,11 @@ type AsnClaimRestorationData struct {
 	Name           string
 	ParentAsnRange string
 	Tenant         string
+}
+
+func (rd *AsnClaimRestorationData) ComputeHash() string {
+	if rd == nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentAsnRange+rd.Tenant)))
 }

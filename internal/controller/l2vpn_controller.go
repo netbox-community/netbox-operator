@@ -69,7 +69,7 @@ type L2VPNReconciler struct {
 func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.L2VPN{}
 	err := r.Get(ctx, req.NamespacedName, o)
@@ -77,8 +77,8 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (L2VPNId, conditions, etc.).
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -87,7 +87,7 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// if being deleted
@@ -105,15 +105,17 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, L2VPNFinalizerName)
 	}
 
-	// if PreserveInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox {
+	// the finalizer exists only to delete the L2VPN from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, L2VPNFinalizerName)
+	} else {
 		err = addFinalizer(ctx, r.Client, o, L2VPNFinalizerName)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// 1. try to lock the shared l2vpn identifier pool if L2VPN status condition
+	// 1. try to lock the lease of the shared l2vpn identifier pool if L2VPN status condition
 	// is not true, is owned by a L2VPNClaim, and hasn't been created in NetBox
 	// yet. This serializes against the same lock the L2VPNClaim controller
 	// held while assigning this L2VPN's identifier.
@@ -157,6 +159,9 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
 
 	l2vpnModel, err := r.generateNetboxL2VPNModelFromL2VPNSpec(o, req, annotations[L2VPNManagedCustomFieldsAnnotationName])
 	if err != nil {
@@ -165,7 +170,7 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 
 	netboxL2VPNModel, statusUpToDate, err := r.NetboxClient.ReserveOrUpdateL2VPN(ctx, l2vpnModel, o)
 	if err != nil {
-		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.L2VPNId == 0 {
+		if errors.Is(err, api.ErrRestorationHashMismatch) && o.Status.L2VPNId == 0 && isOwnedByClaim(o, r.Scheme) {
 			logger.Info("conflict in claimed l2vpn, deleting l2vpn custom resource", "identifier",
 				o.Spec.Identifier, "error", err)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
@@ -178,29 +183,48 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of the identifier range
+	// 3. unlock the lease of the shared l2vpn identifier pool
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change, then end loop
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 
-	// 4.1 update annotation
+	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
+	o.Status.L2VPNId = int64(netboxL2VPNModel.GetId())
+	o.Status.Slug = netboxL2VPNModel.GetSlug()
+	o.Status.L2VPNUrl = config.GetBaseUrl() + "/vpn/l2vpns/" + strconv.FormatInt(int64(netboxL2VPNModel.GetId()), 10)
+	if netboxL2VPNModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxL2VPNModel.LastUpdated.Get())
+	}
+
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
+	// 6. update annotations
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
+
+	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[L2VPNManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
-
-	// snapshot before annotation mutation for merge-patch
-	patch := client.MergeFrom(o.DeepCopy())
 
 	err = accessor.SetAnnotations(o, annotations)
 	if err != nil {
@@ -211,14 +235,6 @@ func (r *L2VPNReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	err = r.Patch(ctx, o, patch)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.L2VPNId = int64(netboxL2VPNModel.GetId())
-	o.Status.Slug = netboxL2VPNModel.GetSlug()
-	o.Status.L2VPNUrl = config.GetBaseUrl() + "/vpn/l2vpns/" + strconv.FormatInt(int64(netboxL2VPNModel.GetId()), 10)
-	if netboxL2VPNModel.LastUpdated.IsSet() {
-		o.Status.LastUpdated = metav1.NewTime(*netboxL2VPNModel.LastUpdated.Get())
 	}
 
 	return ctrl.Result{}, nil

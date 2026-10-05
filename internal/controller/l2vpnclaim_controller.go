@@ -62,7 +62,7 @@ type L2VPNClaimReconciler struct {
 func (r *L2VPNClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.L2VPNClaim{}
 	err := r.Get(ctx, req.NamespacedName, o)
@@ -104,9 +104,10 @@ func (r *L2VPNClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
+	// 2. check if the matching L2VPN object exists
 	err = r.Get(ctx, l2vpnLookupKey, l2vpn)
 	if err != nil {
 		// return error if not a notfound error
@@ -124,7 +125,7 @@ func (r *L2VPNClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return res, err
 		}
 
-		// create the L2VPN CR
+		// 7.a create the L2VPN object
 		l2vpnResource := generateL2VPNFromL2VPNClaim(ctx, o, *identifier)
 		err = controllerutil.SetControllerReference(o, l2vpnResource, r.Scheme)
 		if err != nil {
@@ -141,7 +142,7 @@ func (r *L2VPNClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, NewDomainError("failed to create L2VPN: %w", err)
 		}
 	} else {
-		// update spec of L2VPN object
+		// 7.b update fields of the L2VPN object
 		logger.V(4).Info("update l2vpn resource")
 		l2vpn.Spec = generateL2VPNSpec(o, l2vpn.Spec.Identifier, logger)
 		err = controllerutil.SetControllerReference(o, l2vpn, r.Scheme)
