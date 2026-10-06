@@ -29,6 +29,7 @@ import (
 	v3client "github.com/netbox-community/go-netbox/v3/netbox/client"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/time/rate"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/interfaces"
@@ -62,9 +63,19 @@ func (c *NetboxCompositeClient) VerifyNetboxConfiguration() error {
 
 type InstrumentedRoundTripper struct {
 	Transport http.RoundTripper
+	// Limiter applies a token-bucket rate limit to outbound NetBox requests.
+	// When nil, no throttling is performed.
+	Limiter *rate.Limiter
 }
 
 func (irt *InstrumentedRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if irt.Limiter != nil {
+		// Block until the bucket has a token (or the request context is cancelled).
+		if err := irt.Limiter.Wait(req.Context()); err != nil {
+			return nil, err
+		}
+	}
+
 	resp, err := irt.Transport.RoundTrip(req)
 	if err != nil {
 		return nil, err
@@ -72,6 +83,18 @@ func (irt *InstrumentedRoundTripper) RoundTrip(req *http.Request) (*http.Respons
 
 	metrics.RequestResult.Increment(context.TODO(), strconv.Itoa(resp.StatusCode), req.Method, req.Host)
 	return resp, nil
+}
+
+// newNetboxLimiter builds a token-bucket limiter from the operator config,
+// or returns nil when throttling is disabled (QPS <= 0).
+func newNetboxLimiter(qps float64, burst int) *rate.Limiter {
+	if qps <= 0 {
+		return nil
+	}
+	if burst < 1 {
+		burst = 1
+	}
+	return rate.NewLimiter(rate.Limit(qps), burst)
 }
 
 func GetNetboxClient() (*NetboxClientV3, error) {
@@ -101,13 +124,19 @@ func GetNetboxClient() (*NetboxClientV3, error) {
 		tlsConfig.RootCAs = caRootPool
 	}
 
-	httpClient := &http.Client{
-		Transport: &InstrumentedRoundTripper{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-			},
+	var baseTransport http.RoundTripper = &InstrumentedRoundTripper{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
 		},
-		Timeout: time.Second * time.Duration(RequestTimeout),
+		Limiter: newNetboxLimiter(
+			config.GetOperatorConfig().NetboxRateLimitQPS,
+			config.GetOperatorConfig().NetboxRateLimitBurst,
+		),
+	}
+
+	httpClient := &http.Client{
+		Transport: baseTransport,
+		Timeout:   time.Second * time.Duration(RequestTimeout),
 	}
 
 	transport := httptransport.NewWithClient(config.GetOperatorConfig().NetboxHost, v3client.DefaultBasePath, desiredRuntimeClientSchemes, httpClient)
