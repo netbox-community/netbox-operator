@@ -36,11 +36,11 @@ import (
 
 const VlanGroupId = int32(11)
 
-func TestSlugify(t *testing.T) {
-	assert.Equal(t, "my-vlan-group-1", slugify("my vlan group 1"))
-	assert.Equal(t, "leading-trailing", slugify("--leading-trailing--"))
-	assert.Equal(t, "vlangroup", slugify(""))
-	assert.Equal(t, "vlangroup", slugify("###"))
+func TestSlugifyVlanGroup(t *testing.T) {
+	assert.Equal(t, "my-vlan-group-1", slugify("my vlan group 1", "vlangroup"))
+	assert.Equal(t, "leading-trailing", slugify("--leading-trailing--", "vlangroup"))
+	assert.Equal(t, "vlangroup", slugify("", "vlangroup"))
+	assert.Equal(t, "vlangroup", slugify("###", "vlangroup"))
 }
 
 func TestVlanGroup(t *testing.T) {
@@ -61,7 +61,7 @@ func TestVlanGroup(t *testing.T) {
 		vlanGroup := v4client.VLANGroup{
 			Id:          VlanGroupId,
 			Name:        name,
-			Slug:        slugify(name),
+			Slug:        slugify(name, "vlangroup"),
 			Description: &description,
 			LastUpdated: *v4client.NewNullableTime(&lastUpdated),
 		}

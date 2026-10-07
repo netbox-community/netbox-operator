@@ -1,5 +1,5 @@
 /*
-Copyright 2024 The Kubernetes authors.
+Copyright 2026 The Kubernetes authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -72,6 +72,18 @@ var mockVlanGroupListRequest *mock_interfaces.MockIpamVlanGroupsListRequest
 var mockVlanGroupCreateRequest *mock_interfaces.MockIpamVlanGroupsCreateRequest
 var mockVlanGroupUpdateRequest *mock_interfaces.MockIpamVlanGroupsUpdateRequest
 var mockVlanGroupDestroyRequest *mock_interfaces.MockIpamVlanGroupsDestroyRequest
+
+// Separate MockVpnAPI instances per reconciler, mirroring the ipamMockIpAddress/
+// ipamMockIpAddressClaim split above: both L2VPNReconciler and L2VPNClaimReconciler
+// call VpnAPI.VpnL2vpnsList independently, so sharing one mock would make it
+// ambiguous which reconciler's call a given expectation belongs to.
+var mockVpnAPI *mock_interfaces.MockVpnAPI
+var mockVpnListRequest *mock_interfaces.MockVpnL2vpnsListRequest
+var mockVpnCreateRequest *mock_interfaces.MockVpnL2vpnsCreateRequest
+var mockVpnUpdateRequest *mock_interfaces.MockVpnL2vpnsUpdateRequest
+var mockVpnDestroyRequest *mock_interfaces.MockVpnL2vpnsDestroyRequest
+var mockVpnAPIClaim *mock_interfaces.MockVpnAPI
+var mockVpnClaimListRequest *mock_interfaces.MockVpnL2vpnsListRequest
 var ctx context.Context
 var cancel context.CancelFunc
 
@@ -142,6 +154,13 @@ var _ = BeforeSuite(func() {
 	mockVlanGroupCreateRequest = mock_interfaces.NewMockIpamVlanGroupsCreateRequest(mockCtrl)
 	mockVlanGroupUpdateRequest = mock_interfaces.NewMockIpamVlanGroupsUpdateRequest(mockCtrl)
 	mockVlanGroupDestroyRequest = mock_interfaces.NewMockIpamVlanGroupsDestroyRequest(mockCtrl)
+	mockVpnAPI = mock_interfaces.NewMockVpnAPI(mockCtrl)
+	mockVpnListRequest = mock_interfaces.NewMockVpnL2vpnsListRequest(mockCtrl)
+	mockVpnCreateRequest = mock_interfaces.NewMockVpnL2vpnsCreateRequest(mockCtrl)
+	mockVpnUpdateRequest = mock_interfaces.NewMockVpnL2vpnsUpdateRequest(mockCtrl)
+	mockVpnDestroyRequest = mock_interfaces.NewMockVpnL2vpnsDestroyRequest(mockCtrl)
+	mockVpnAPIClaim = mock_interfaces.NewMockVpnAPI(mockCtrl)
+	mockVpnClaimListRequest = mock_interfaces.NewMockVpnL2vpnsListRequest(mockCtrl)
 
 	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
 	Expect(k8sManager.GetConfig()).NotTo(BeNil())
@@ -223,6 +242,62 @@ var _ = BeforeSuite(func() {
 				Dcim:    dcimMock,
 			},
 			&api.NetboxClientV4{IpamAPI: mockVlanGroupIpamAPI},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&AsnReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("asn-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockIpAddress,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&AsnClaimReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("asn-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{
+				Ipam:    ipamMockIpAddressClaim,
+				Tenancy: tenancyMock,
+				Dcim:    dcimMock,
+			},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPI},
+		),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&L2VPNReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("l2vpn-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{},
+			&api.NetboxClientV4{VpnAPI: mockVpnAPI},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&L2VPNClaimReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("l2vpn-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{},
+			&api.NetboxClientV4{VpnAPI: mockVpnAPIClaim},
 		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),

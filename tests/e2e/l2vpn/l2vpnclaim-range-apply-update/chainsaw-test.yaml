@@ -1,0 +1,100 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: l2vpnclaim-range-apply-update
+  annotations:
+    description: Tests if creation and update is successful for a range-based claim
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-range-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "some description"
+                comments: "your comments"
+                type: "vxlan"
+                identifierRangeStart: 5200001
+                identifierRangeEnd: 5200010
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                identifier: 5200001
+                l2VPNName: l2vpnclaim-range-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                name: l2vpnclaim-range-apply-update
+                finalizers:
+                  - l2vpn.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: L2VPNClaim
+                    name: l2vpnclaim-range-apply-update
+              spec:
+                comments: your comments
+                description: some description
+                type: vxlan
+                identifier: 5200001
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim-update.yaml
+    - name: Check CR spec and status after update
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-range-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "new description"
+                comments: "new comments"
+                type: "vxlan"
+                identifierRangeStart: 5200001
+                identifierRangeEnd: 5200010
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                identifier: 5200001
+                l2VPNName: l2vpnclaim-range-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                name: l2vpnclaim-range-apply-update
+              spec:
+                comments: new comments
+                description: new description
+                identifier: 5200001
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same identifier range
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=l2vpnclaim-range-apply-update -n $NAMESPACE

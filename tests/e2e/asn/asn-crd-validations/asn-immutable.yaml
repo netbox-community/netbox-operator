@@ -1,0 +1,10 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asn-crd-validations-immutable
+spec:
+  asn: 65990
+  # non existing RIR on purpose, this resource must never reach NetBox
+  rir: "NON_EXISTING_RIR"
+  tenant: "MY_TENANT"

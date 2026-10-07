@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
-	"strings"
 	"time"
 
 	v4client "github.com/netbox-community/go-netbox/v4"
@@ -34,29 +32,13 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-var slugInvalidCharsRegex = regexp.MustCompile(`[^-a-zA-Z0-9_]+`)
-
-// slugify converts name into a value that satisfies NetBox's slug field
-// constraints (matches ^[-a-zA-Z0-9_]+$, max 100 characters).
-func slugify(name string) string {
-	slug := slugInvalidCharsRegex.ReplaceAllString(strings.TrimSpace(name), "-")
-	slug = strings.Trim(slug, "-")
-	if len(slug) > 100 {
-		slug = strings.Trim(slug[:100], "-")
-	}
-	if slug == "" {
-		slug = "vlangroup"
-	}
-	return slug
-}
-
 func (c *NetboxCompositeClient) ReserveOrUpdateVlanGroup(ctx context.Context, vlanGroup *models.VlanGroup, vlanGroupV1 *netboxv1.VlanGroup) (resp *v4client.VLANGroup, isUpToDate bool, err error) {
 	responseVlanGroupList, err := c.getVlanGroup(ctx, vlanGroup)
 	if err != nil {
 		return nil, false, err
 	}
 
-	desiredVlanGroup := v4client.NewVLANGroupRequest(vlanGroup.Name, slugify(vlanGroup.Name))
+	desiredVlanGroup := v4client.NewVLANGroupRequest(vlanGroup.Name, slugify(vlanGroup.Name, "vlangroup"))
 
 	if vlanGroup.VidRangeStart != 0 && vlanGroup.VidRangeEnd != 0 {
 		// The go-netbox v4 client types VidRanges as [][][]int32, but NetBox's

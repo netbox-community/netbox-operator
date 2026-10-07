@@ -1,0 +1,77 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: asn-apply-update
+  annotations:
+    description: Tests if creation, update and deletion of a standalone Asn (without an AsnClaim) is successful
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_asn.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asn-apply-update
+                finalizers:
+                  - asn.netbox.dev/finalizer
+                (ownerReferences == null): true
+              spec:
+                asn: 65900
+                rir: E2E Test RIR
+                tenant: MY_TENANT
+                description: some description
+                comments: your comments
+              status:
+                (id != null): true
+                (contains(url, '/ipam/asns/')): true
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                    reason: AsnReservedInNetbox
+                    observedGeneration: 1
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_asn-update.yaml
+    - name: Check updated CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asn-apply-update
+              spec:
+                asn: 65900
+                description: some updated description
+                comments: your updated comments
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                    reason: AsnReservedInNetbox
+                    observedGeneration: 2
+    - name: Delete CR
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              name: asn-apply-update
+        - error:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Asn
+              metadata:
+                name: asn-apply-update
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=asn-apply-update -n $NAMESPACE

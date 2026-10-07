@@ -70,7 +70,7 @@ type IpRangeReconciler struct {
 func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.IpRange{}
 	err := r.Get(ctx, req.NamespacedName, o)
@@ -78,8 +78,8 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot for status patch — taken before any status mutations so the
-	// merge-patch diff captures every change (IpRangeId, conditions, etc.).
+	// Base for the deferred status patch. Re-snapshotted after the status fields are
+	// persisted, so from that point on the deferred patch only carries conditions.
 	statusBase := o.DeepCopy()
 
 	// Defer status update to ensure it happens regardless of how we exit
@@ -88,7 +88,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// if being deleted
@@ -109,15 +109,17 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
 	}
 
-	// if PreserveIpInNetbox flag is false then register finalizer if not yet registered
-	if !o.Spec.PreserveInNetbox {
+	// the finalizer exists only to delete the ip range from NetBox, so it has to follow PreserveInNetbox
+	if o.Spec.PreserveInNetbox {
+		err = removeFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
+	} else {
 		err = addFinalizer(ctx, r.Client, o, IpRangeFinalizerName)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	}
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// 1. try to lock lease of parent prefix if IpRange status condition is not true
+	// 1. try to lock the lease of the parent prefix if IpRange status condition is not true
 	// and IpRange is owned by an IpRangeClaim
 	or := o.OwnerReferences
 	var ll *leaselocker.LeaseLocker
@@ -160,6 +162,9 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
 
 	ipRangeModel, err := r.generateNetboxIpRangeModelFromIpRangeSpec(o, req, annotations[IPRManagedCustomFieldsAnnotationName])
 	if err != nil {
@@ -170,7 +175,7 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	if err != nil {
 		overlapErr := &api.OverlapError{}
 		if (errors.Is(err, api.ErrRestorationHashMismatch) ||
-			errors.As(err, &overlapErr)) && o.Status.IpRangeId == 0 {
+			errors.As(err, &overlapErr)) && o.Status.IpRangeId == 0 && isOwnedByClaim(o, r.Scheme) {
 			logger.Info("conflict in claimed ip range, deleting ip range custom resource", "ip-range-start",
 				o.Spec.StartAddress, "ip-range-end", o.Spec.EndAddress, "error", err)
 			if deleteErr := r.Delete(ctx, o); deleteErr != nil {
@@ -183,29 +188,47 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 		return ctrl.Result{}, NewDomainError("%w", err)
 	}
 
-	// 3. unlock lease of parent prefix
+	// 3. unlock the lease of the parent prefix
 	if ll != nil {
 		cancelLock()
 		ll.UnlockWithRetry(ctx)
 	}
 
-	// 4. if no change, then end loop
+	// 4. if no change in spec generation and NetBox object, skip K8s status update
 	if statusUpToDate {
 		return ctrl.Result{}, nil
 	}
 
-	// 4.1 update annotation
+	// 5. update status fields
+	statusFieldsBase := o.DeepCopy()
+	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
+	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
+	if netboxIpRangeModel.LastUpdated.IsSet() {
+		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
+	}
+
+	// persist the status now so the annotation patch response cannot drop it
+	if err := r.Status().Patch(ctx, o, client.MergeFrom(statusFieldsBase)); err != nil {
+		return ctrl.Result{}, err
+	}
+	statusBase = o.DeepCopy()
+
+	// 6. update annotations
+	// the status patch response replaced o's annotation map, so re-read it
+	annotations, err = accessor.Annotations(o)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
+
+	patch := client.MergeFrom(o.DeepCopy())
 
 	annotations[IPRManagedCustomFieldsAnnotationName], err = generateManagedCustomFieldsAnnotation(o.Spec.CustomFields)
 	if err != nil {
 		return ctrl.Result{}, NewDomainError("failed to generate managed custom fields annotation: %w", err)
 	}
-
-	// snapshot before annotation mutation for merge-patch
-	patch := client.MergeFrom(o.DeepCopy())
 
 	err = accessor.SetAnnotations(o, annotations)
 	if err != nil {
@@ -216,13 +239,6 @@ func (r *IpRangeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (re
 	err = r.Patch(ctx, o, patch)
 	if err != nil {
 		return ctrl.Result{}, err
-	}
-
-	// update status fields (set after r.Patch to avoid being overwritten by API response)
-	o.Status.IpRangeId = int64(netboxIpRangeModel.GetId())
-	o.Status.IpRangeUrl = config.GetBaseUrl() + "/ipam/ip-ranges/" + strconv.FormatInt(int64(netboxIpRangeModel.GetId()), 10)
-	if netboxIpRangeModel.LastUpdated.IsSet() {
-		o.Status.LastUpdated = metav1.NewTime(*netboxIpRangeModel.LastUpdated.Get())
 	}
 
 	return ctrl.Result{}, nil

@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: Asn
+metadata:
+  name: asn-restoration-hash-mismatch
+spec:
+  asn: 65910
+  rir: "E2E Test RIR"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  customFields:
+    netboxOperatorRestorationHash: "0000000000000000000000000000000000000000"

@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: L2VPNClaim
+metadata:
+  name: l2vpnclaim-invalid-tenant
+spec:
+  tenant: "nonexistingtenant"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  type: "vxlan-evpn"
+  identifierRangeStart: 5600001
+  identifierRangeEnd: 5600010

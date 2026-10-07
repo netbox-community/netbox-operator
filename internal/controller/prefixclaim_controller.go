@@ -65,9 +65,9 @@ type PrefixClaimReconciler struct {
 func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
-	/* 0. check if the matching PrefixClaim object exists */
+	// 0. check if the matching PrefixClaim object exists
 	o := &netboxv1.PrefixClaim{}
 	if err := r.Get(ctx, req.NamespacedName, o); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -89,10 +89,10 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
-	/* 1. compute and assign the parent prefix if required */
+	// 1. compute and assign the parent prefix if required
 	// The current design will use prefixClaim.Status.ParentPrefix for storing the selected parent prefix,
 	// and as the source of truth for future parent prefix references
 	if o.Status.SelectedParentPrefix == "" /* parent prefix not yet selected/assigned */ {
@@ -180,7 +180,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	/* 2. check if the matching Prefix object exists */
+	// 2. check if the matching Prefix object exists
 	prefix := &netboxv1.Prefix{}
 	prefixName := o.Name
 	prefixLookupKey := types.NamespacedName{
@@ -197,7 +197,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if o.Status.SelectedParentPrefix != msgCanNotInferParentPrefix {
 			// we can't restore from the restoration hash
 
-			/* 3. check if the lease for parent prefix is available */
+			// 3. check if the lease for the parent prefix is available
 			leaseLockerNSN := types.NamespacedName{
 				Name:      convertCIDRToLeaseLockName(o.Status.SelectedParentPrefix),
 				Namespace: r.OperatorNamespace,
@@ -210,7 +210,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			lockCtx, cancel := context.WithTimeout(ctx, lockAcquireTimeout)
 			defer cancel()
 
-			/* 4. try to lock the lease for the parent prefix */
+			// 4. try to lock the lease for the parent prefix
 			locked := ll.TryLock(lockCtx)
 			if !locked {
 				// lock for parent prefix was not available, rescheduling
@@ -255,6 +255,14 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 					return ctrl.Result{}, NewDomainError("parent prefix exhausted, will restart the parent prefix selection process")
 				}
 
+				if errors.Is(err, api.ErrNoPrefixMatchsSizeCriteria) && len(o.Spec.ParentPrefixSelector) > 0 {
+					// The selected parent prefix no longer has an available child prefix matching the
+					// requested size (e.g. its free space was consumed by another claim between
+					// selection and allocation). Reset the selection so a new candidate is chosen.
+					o.Status.SelectedParentPrefix = ""
+					return ctrl.Result{}, NewDomainError("selected parent prefix no longer matches size criteria, will restart the parent prefix selection process")
+				}
+
 				return ctrl.Result{}, NewDomainError("%w", err)
 			}
 			logger.V(4).Info(fmt.Sprintf("prefix is not reserved in netbox, assigned new prefix: %s", prefixModel.Prefix))
@@ -265,7 +273,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			logger.V(4).Info(fmt.Sprintf("reassign reserved prefix from netbox, prefix: %s", prefixModel.Prefix))
 		}
 
-		/* 7.a create the Prefix object */
+		// 7.a create the Prefix object
 		prefixResource := generatePrefixFromPrefixClaim(o, prefixModel.Prefix, logger)
 		err = controllerutil.SetControllerReference(o, prefixResource, r.Scheme)
 		if err != nil {
@@ -276,7 +284,7 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, NewDomainError("failed to create prefix: %w", err)
 		}
 	} else { // Prefix object exists
-		/* 7.b update fields of the Prefix object */
+		// 7.b update fields of the Prefix object
 		logger.V(4).Info("update prefix resource")
 
 		updatedPrefixSpec := generatePrefixSpec(o, prefix.Spec.Prefix, logger)

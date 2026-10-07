@@ -14,10 +14,14 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - asnclaims
+  - asns
   - ipaddressclaims
   - ipaddresses
   - iprangeclaims
   - ipranges
+  - l2vpnclaims
+  - l2vpns
   - prefixclaims
   - prefixes
   - vlanclaims
@@ -34,10 +38,14 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - asnclaims/finalizers
+  - asns/finalizers
   - ipaddressclaims/finalizers
   - ipaddresses/finalizers
   - iprangeclaims/finalizers
   - ipranges/finalizers
+  - l2vpnclaims/finalizers
+  - l2vpns/finalizers
   - prefixclaims/finalizers
   - prefixes/finalizers
   - vlanclaims/finalizers
@@ -48,10 +56,14 @@ rules:
 - apiGroups:
   - netbox.dev
   resources:
+  - asnclaims/status
+  - asns/status
   - ipaddressclaims/status
   - ipaddresses/status
   - iprangeclaims/status
   - ipranges/status
+  - l2vpnclaims/status
+  - l2vpns/status
   - prefixclaims/status
   - prefixes/status
   - vlanclaims/status

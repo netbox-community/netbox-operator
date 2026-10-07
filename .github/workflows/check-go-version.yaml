@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Check Go version mismatch between go.mod toolchain and Dockerfile
+      - name: Check Dockerfile Go version is not older than go.mod toolchain
         run: |
           set -euo pipefail
 
@@ -31,9 +31,20 @@ jobs:
           echo "go.mod toolchain version: $TOOLCHAIN_VERSION"
           echo "Dockerfile Go version:    $DOCKERFILE_VERSION"
 
-          if [ "$TOOLCHAIN_VERSION" != "$DOCKERFILE_VERSION" ]; then
-            echo "ERROR: Go version mismatch! go.mod toolchain ($TOOLCHAIN_VERSION) != Dockerfile ($DOCKERFILE_VERSION)"
-            exit 1
+          # Normalize to major.minor.patch so that e.g. 1.27 and 1.27.0 compare equal
+          normalize() {
+            echo "$1" | awk -F. '{printf "%d.%d.%d\n", $1, $2, $3}'
+          }
+
+          TOOLCHAIN_NORM=$(normalize "$TOOLCHAIN_VERSION")
+          DOCKERFILE_NORM=$(normalize "$DOCKERFILE_VERSION")
+
+          if [ "$TOOLCHAIN_NORM" != "$DOCKERFILE_NORM" ]; then
+            OLDEST=$(printf '%s\n%s\n' "$TOOLCHAIN_NORM" "$DOCKERFILE_NORM" | sort -V | head -1)
+            if [ "$OLDEST" = "$DOCKERFILE_NORM" ]; then
+              echo "ERROR: Dockerfile Go version ($DOCKERFILE_VERSION) is older than go.mod toolchain ($TOOLCHAIN_VERSION)"
+              exit 1
+            fi
           fi
 
-          echo "OK: Go versions match."
+          echo "OK: Dockerfile Go version is greater than or equal to the go.mod toolchain version."

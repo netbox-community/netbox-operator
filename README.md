@@ -2,15 +2,15 @@
 
 **Disclaimer:** This project is currently under development and may change rapidly, including breaking changes. Use with caution in production environments.
 
-NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses and prefixes – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
+NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses, prefixes, L2VPNs and ASNs – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
 ## The Claim Model
 The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
-In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes and IP Addresses) based on claims submitted via custom resources.
+In this case, instead of disk storage, NetBox Operator dynamically allocates network resources (Prefixes, IP Addresses, and ASNs) based on claims submitted via custom resources.
 
 ### Purpose
-This model ensures a declarative management of IP addressing and subnet allocation, with full NetBox integration.
-The users will create claims (PrefixClaims & IPAddressClaims), and the NetBox Operator will resolve them into actual Prefixes and IPAddresses within a designated parent prefix.
+This model ensures a declarative management of IP addressing, subnet allocation, and ASN assignment, with full NetBox integration.
+The users will create claims (PrefixClaims, IPAddressClaims & AsnClaims), and the NetBox Operator will resolve them into actual Prefixes, IPAddresses and Asns within a designated parent resource.
 
 ![Figure 1: NetBox Operator High-Level Architecture](docs/netbox-operator-high-level-architecture.drawio.svg)
 
@@ -53,7 +53,7 @@ To optionally access the NetBox UI:
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, Vlan, VlanClaim, and VlanGroup resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, Vlan, VlanClaim, VlanGroup, L2VPN, L2VPNClaim, Asn, and AsnClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
@@ -73,6 +73,51 @@ for i in {001..100}; do
   name="ipc-${i}" yq e '.metadata.name=strenv(name)' config/samples/netbox_v1_ipaddressclaim.yaml | kubectl apply -f -
 done
 ```
+
+# ASN Management
+
+NetBox Operator supports managing [ASNs (Autonomous System Numbers)](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/asn.md) through two custom resources:
+
+- **Asn**: Represents a single ASN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific ASN value.
+- **AsnClaim**: Claims an available ASN from a NetBox ASN Range. Similar to IpAddressClaim, it creates a child Asn CR with the assigned value.
+
+## Example: Claiming an ASN
+
+1. Apply an AsnClaim: `kubectl apply -f config/samples/netbox_v1_asnclaim.yaml`
+2. Wait for ready condition: `kubectl wait asnclaim asnclaim-sample --for=condition=Ready`
+3. List AsnClaim and Asn resources: `kubectl get asnc,asn`
+
+The `parentAsnRange` field in the AsnClaim spec must match the **name** of an existing ASN Range in NetBox. The operator will claim an available ASN from that range.
+
+## RIR assignment
+
+NetBox requires every ASN to belong to a RIR (Regional Internet Registry).
+
+- On an **Asn**, `rir` is required and must match the **name** of an existing RIR in NetBox.
+- On an **AsnClaim**, `rir` is optional. When omitted, the RIR of the parent ASN Range is inherited and written to the generated Asn CR.
+
+`rir` is mutable on both resources and is not part of the restoration hash, so changing it never causes an ASN to be re-claimed. When the field changes, the operator updates the ASN in NetBox.
+
+Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the ASN is preserved in NetBox upon CR deletion and can be reclaimed when the AsnClaim is re-created.
+
+# L2VPN Management
+
+NetBox Operator supports managing [L2VPNs](https://github.com/netbox-community/netbox/blob/main/docs/models/vpn/l2vpn.md) (Layer 2 VPNs, e.g. to track VXLAN VNIs) through two custom resources:
+
+- **L2VPN**: Represents a single L2VPN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific L2VPN (`type`, `identifier`) using the CR's Kubernetes object name as the NetBox L2VPN name.
+- **L2VPNClaim**: Claims a VNI for an L2VPN from an `identifierRangeStart`/`identifierRangeEnd` range. Set both to the same value to claim an exact VNI. Similar to IpAddressClaim, it creates a child L2VPN CR with the assigned identifier.
+
+Only VXLAN-based L2VPN types (`vxlan`, `vxlan-evpn`) are supported, since those are the ones that carry a VNI (0-16777215) in their identifier.
+
+## Example: Claiming an L2VPN
+
+1. Apply an L2VPNClaim: `kubectl apply -f config/samples/netbox_v1_l2vpnclaim.yaml`
+2. Wait for ready condition: `kubectl wait l2vpnclaim l2vpnclaim-sample --for=condition=Ready`
+3. List L2VPNClaim and L2VPN resources: `kubectl get l2vc,l2v`
+
+`identifierRangeStart` and `identifierRangeEnd` are both required on `L2VPNClaim`; set them to the same value for an exact VNI, or a wider range to let the operator pick the next free VNI in NetBox from that range.
+
+Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the L2VPN is preserved in NetBox upon CR deletion and can be reclaimed when the L2VPNClaim is re-created.
 
 # Mixed usage of Prefixes
 
@@ -116,13 +161,13 @@ A **VlanGroup** resource manages a NetBox VLAN Group (a named container for orga
 
 In the case that the cluster containing the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
 
-- `IpAddressClaim`, `PrefixClaim`, and `VlanClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix/VLAN in NetBox when the Kubernetes Custom Resource is deleted
-- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix/VLAN based on data from the IpAddressClaim/PrefixClaim/VlanClaim resource
+- `IpAddressClaim`, `PrefixClaim`, `VlanClaim`, and `L2VPNClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix/VLAN/L2VPN in NetBox when the Kubernetes Custom Resource is deleted
+- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix/VLAN/L2VPN based on data from the IpAddressClaim/PrefixClaim/VlanClaim/L2VPNClaim resource
 
 Use Cases for this Restoration:
 
 - Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
-- Sticky IPs/VIDs: Some services do not handle changes to IPs or VLAN IDs well. This ensures the IP/Prefix/VID assigned to a Custom Resource is always the same.
+- Sticky IPs/VIDs/VNIs: Some services do not handle changes to IPs, VLAN IDs or VNIs well. This ensures the IP/Prefix/VID/VNI assigned to a Custom Resource is always the same.
 
 # `ParentPrefixSelector` in `PrefixClaim`
 
