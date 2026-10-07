@@ -5,6 +5,10 @@ set -e -u -o pipefail
 #  • a local kind cluster (preloading images)
 #  • a virtual cluster using vcluster: https://github.com/loft-sh/vcluster ( used for testing pipeline, loading of images not needed )
 
+log() {
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
+}
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Files generated during the run, removed on exit so a re-run always starts from a clean tree
@@ -52,7 +56,7 @@ else
     HELM="helm"
 fi
 
-# load remote images
+log "Resolving helm chart and demo data for NetBox ${VERSION}"
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v3.7.sql"
@@ -62,7 +66,7 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql"
 
 elif [[ "${VERSION}" == "4.1.10" ]] ;then
-  echo "Using default helm chart and demo data"
+  log "Using default helm chart and demo data"
 
 elif [[ "${VERSION}" == "4.4.9" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.26/netbox-7.2.26.tgz"
@@ -82,7 +86,7 @@ if [ -n "$POSTGRES_IMAGE_REGISTRY" ]; then
   REGISTRY_ARG="--set image.registry=$POSTGRES_IMAGE_REGISTRY"
 fi
 
-# Install Postgres Operator
+log "Installing the Postgres operator"
 # Allow override via environment variable, otherwise fallback to default
 POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
 ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
@@ -93,13 +97,19 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
     --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
     $REGISTRY_ARG
 
-# Deploy the database
 export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
-echo "spilo image is $SPILO_IMAGE"
+log "Deploying the database with spilo image $SPILO_IMAGE"
 envsubst < "$SCRIPT_DIR/netbox-db/netbox-db-patch.tmpl.yaml" > "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
 ${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
 
-echo "loading demo-data into NetBox…"
+# The operator creates the StatefulSet only some time after the CR is applied, and
+# gives it an OnDelete update strategy, which rules out `kubectl rollout status`.
+log "Waiting for the netbox-db statefulset to become ready"
+${KUBECTL} wait -n "$NAMESPACE" --for=create statefulset/netbox-db --timeout=300s
+${KUBECTL} wait -n "$NAMESPACE" --for=jsonpath='{.status.readyReplicas}'=1 \
+    statefulset/netbox-db --timeout=600s
+
+log "Creating the demo-data load job scripts ConfigMap"
 kubectl create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
@@ -112,10 +122,9 @@ SPILO_IMAGE="${SPILO_IMAGE_REGISTRY}/zalando/spilo-16:3.2-p3"
 JOB_DIR="$SCRIPT_DIR/job"
 cp "$JOB_DIR/kustomization.orig.yaml" "$JOB_DIR/kustomization.yaml"
 
-# Create a patch file to inject NETBOX_SQL_DUMP_URL (from env or default)
 NETBOX_SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql}"
 
-# Create patch
+log "Patching the load job with NETBOX_SQL_DUMP_URL=${NETBOX_SQL_DUMP_URL} and image ${SPILO_IMAGE}"
 cat > "$JOB_DIR/sql-env-patch.yaml" <<EOF
 apiVersion: batch/v1
 kind: Job
@@ -142,7 +151,7 @@ EOF
 # No NetBox pod may hold connections to it while that happens.
 NETBOX_SCALED_DOWN=false
 if ${KUBECTL} get deployment netbox -n "${NAMESPACE}" > /dev/null 2>&1; then
-    echo "scaling down NetBox while the database is reloaded"
+    log "Scaling down NetBox while the database is reloaded"
     ${KUBECTL} scale deployment netbox -n "${NAMESPACE}" --replicas=0
     ${KUBECTL} delete pods -n "${NAMESPACE}" -l app.kubernetes.io/component=netbox --wait=true
     NETBOX_SCALED_DOWN=true
@@ -151,12 +160,12 @@ fi
 # A completed Job cannot be updated in place, so replace it on every run
 ${KUBECTL} delete job netbox-demo-data-load-job -n "${NAMESPACE}" --ignore-not-found --wait=true
 
-# Apply the customized job
+log "Loading demo-data into NetBox"
 kustomize build "$JOB_DIR" | ${KUBECTL} apply -n "${NAMESPACE}" -f -
-
 ${KUBECTL} wait \
     -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
 
+log "Demo-data load job completed"
 ${KUBECTL} delete --ignore-not-found \
     -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
@@ -184,7 +193,7 @@ PROBE_ARGS=(
   --set startupProbe.failureThreshold=60
 )
 
-# Install NetBox
+log "Installing NetBox"
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
@@ -219,19 +228,21 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
     $REGISTRY_ARG
 
 if [[ "${NETBOX_SCALED_DOWN}" == "true" ]]; then
+    log "Scaling NetBox back up"
     ${KUBECTL} scale deployment netbox -n "${NAMESPACE}" --replicas=1
 fi
 
+# The helm charts for NetBox v4+ print the app version themselves, the v3.7.8 one does not
 if [[ "${VERSION}" == "3.7.8" ]] ;then
     # Print the app version of the NetBox helm release
     # For the helm charts for Netbox v4+ it is printed by the helm install command
     # but not for the helm chart for v3.7.8
-    echo "NetBox version of the installed helm release:"
+    log "NetBox version of the installed helm release:"
     ${HELM} list -n "${NAMESPACE}" -o json | jq -r '.[] | select(.name=="netbox") | .app_version'
 fi
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
-  echo "Creating nginx-unit ConfigMap and patching deployment"
+  log "Creating nginx-unit ConfigMap and patching deployment"
 
   ${KUBECTL} apply -f "$SCRIPT_DIR/nginx-unit-config.yaml" -n "$NAMESPACE"
 
@@ -267,11 +278,10 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   }'
 
   # Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors
+  log "Cleaning up outdated NetBox ReplicaSets"
   DEPLOYMENT_NAME="netbox"
-  # Get all ReplicaSets in JSON
   RS_JSON=$(${KUBECTL} get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json | sed '/^{/,$!d')
 
-  # Extract the latest one
   LATEST_RS=$(echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" '
     .items
     | map(select(.metadata.ownerReferences[]?.kind == "Deployment" and .metadata.ownerReferences[]?.name == $DEPLOYMENT))
@@ -280,7 +290,7 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
     | .metadata.name
   ')
 
-  echo "Current (latest) ReplicaSet is: $LATEST_RS"
+  log "Current (latest) ReplicaSet is: $LATEST_RS"
 
   # Delete older ones
   echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" --arg LATEST "$LATEST_RS" '
@@ -293,15 +303,17 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
     | .[].metadata.name
   ' | xargs -r -I{} ${KUBECTL} delete rs {} -n "$NAMESPACE"
 
-  echo "Forcing restart of netbox pod to reattach volume cleanly..."
+  log "Forcing restart of netbox pod to reattach volume cleanly"
   ${KUBECTL} delete pods -n "$NAMESPACE" -l app.kubernetes.io/component=netbox \
       --grace-period=0 --force
 fi
 
+log "Waiting for the NetBox deployment to roll out"
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
-# Create ConfigMap for the Python script
+log "Creating the ConfigMap for the local-data loader script"
 TMP_CONFIGMAP_YAML="$(mktemp)"
+
 GENERATED_FILES+=("$TMP_CONFIGMAP_YAML")
 kubectl create configmap netbox-loader-script \
   --namespace="${NAMESPACE}" \
@@ -310,19 +322,18 @@ kubectl create configmap netbox-loader-script \
 
 ${KUBECTL} apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
 
-# Prepare Job YAML with optional environment variable injection
+log "Preparing the local-data load job manifest"
 JOB_YAML="$SCRIPT_DIR/load-local-data-job/netbox-load-local-data-job.yaml"
 TMP_JOB_YAML="$(mktemp)"
 GENERATED_FILES+=("$TMP_JOB_YAML")
 cp "$JOB_YAML" "$TMP_JOB_YAML"
 
-# Define internal NetBox service endpoint (used in Kind)
+# Internal NetBox service endpoint (used in Kind)
 NETBOX_API_URL="http://netbox.${NAMESPACE}.svc.cluster.local"
 
 PATCHED_TMP_JOB_YAML="$(mktemp)"
 GENERATED_FILES+=("$PATCHED_TMP_JOB_YAML")
 
-# Convert YAML to JSON and inject variables if containers exist
 yq eval -o=json "$TMP_JOB_YAML" | jq \
   --arg netboxApi "$NETBOX_API_URL" \
   --arg pypiUrl "${PYPI_REPOSITORY_URL:-}" \
@@ -344,16 +355,12 @@ yq eval -o=json "$TMP_JOB_YAML" | jq \
 
 mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
 
-# Delete previous job if it exists
+# A completed Job cannot be updated in place, so replace it on every run
 ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
 
-# Apply patched job
+log "Loading local data into NetBox"
 ${KUBECTL} apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
-
-# Wait for job to complete
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
-# Load local data
-${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
-${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}" --ignore-not-found
+log "Done"
 

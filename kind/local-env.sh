@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e -u -o pipefail
 
+log() {
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
+}
+
 NAMESPACE=""
 VERSION="4.4.9" # default value
 CLUSTER="kind"  # name of the kind cluster
@@ -28,18 +32,17 @@ echo "Namespace   = ${NAMESPACE}"
 echo "Version     = ${VERSION}"
 echo "=============================="
 
-# aurgment check / init
 if [ -z "$NAMESPACE" ]; then
-    echo "Using default namespace"
     NAMESPACE="default"
+    log "Using default namespace"
 else
-    echo "Using namespace: $NAMESPACE"
+    log "Using namespace: $NAMESPACE"
 fi
 
-# create a kind cluster
 if kind get clusters 2> /dev/null | grep -qx "${CLUSTER}"; then
-    echo "kind cluster '${CLUSTER}' already exists, reusing it"
+    log "kind cluster '${CLUSTER}' already exists, reusing it"
 else
+    log "Creating kind cluster '${CLUSTER}'"
     kind create cluster --name "${CLUSTER}"
 fi
 
@@ -50,6 +53,7 @@ if ! kubectl config use-context "${KUBE_CONTEXT}" > /dev/null 2>&1; then
     exit 1
 fi
 
+log "Ensuring namespace ${NAMESPACE} is active"
 kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 kubectl wait --for=jsonpath='{.status.phase}'=Active --timeout=30s namespace/${NAMESPACE}
 
