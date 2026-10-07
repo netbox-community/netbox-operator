@@ -1,0 +1,15 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanGroup
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: vlangroup-sample
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  site: "DM-Akron"
+  description: "some description"
+  preserveInNetbox: true
+  vidRangeStart: 100
+  vidRangeEnd: 199
