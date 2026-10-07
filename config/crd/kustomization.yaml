@@ -10,6 +10,10 @@ resources:
 - bases/netbox.dev_ipranges.yaml
 - bases/netbox.dev_vlanclaims.yaml
 - bases/netbox.dev_vlans.yaml
+- bases/netbox.dev_asns.yaml
+- bases/netbox.dev_asnclaims.yaml
+- bases/netbox.dev_l2vpnclaims.yaml
+- bases/netbox.dev_l2vpns.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

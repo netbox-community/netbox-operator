@@ -1,5 +1,5 @@
 /*
-Copyright 2024 Swisscom (Schweiz) AG.
+Copyright 2026 Swisscom (Schweiz) AG.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,11 +28,18 @@ type Site struct {
 	Slug string `json:"slug,omitempty"`
 }
 
+type Rir struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
 type NetboxMetadata struct {
 	Comments    string            `json:"comments,omitempty"`
 	Custom      map[string]string `json:"customFields,omitempty"`
 	Description string            `json:"description,omitempty"`
 	Region      string            `json:"region,omitempty"`
+	Rir         string            `json:"rir,omitempty"`
 	Site        string            `json:"site,omitempty"`
 	Tenant      string            `json:"tenant,omitempty"`
 }
@@ -84,4 +91,15 @@ type VlanClaim struct {
 	VidRangeStart int32           `json:"vidRangeStart,omitempty"`
 	VidRangeEnd   int32           `json:"vidRangeEnd,omitempty"`
 	Metadata      *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type ASN struct {
+	Asn      int64           `json:"asn,omitempty"`
+	Id       int64           `json:"id,omitempty"`
+	Metadata *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type ASNClaim struct {
+	ParentAsnRange string          `json:"parentAsnRange,omitempty"`
+	Metadata       *NetboxMetadata `json:"metadata,omitempty"`
 }

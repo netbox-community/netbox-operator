@@ -1,0 +1,69 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: l2vpnclaim-invalid-customfieldnotexisting
+  annotations:
+    description: Tests if reservation in NetBox fails when a custom field is not registered
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_l2vpnclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPNClaim
+              metadata:
+                name: l2vpnclaim-invalid-customfieldnotexisting
+              spec:
+                customFields:
+                  justmade: "thisup"
+              status:
+                (conditions[?type == 'L2VPNAssigned']):
+                  - status: 'True'
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: L2VPN
+              metadata:
+                finalizers:
+                  - l2vpn.netbox.dev/finalizer
+                name: l2vpnclaim-invalid-customfieldnotexisting
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: L2VPNClaim
+                    name: l2vpnclaim-invalid-customfieldnotexisting
+              spec:
+                customFields:
+                  justmade: thisup
+                identifier: 5700001
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: FailedToReserveL2VPNInNetbox
+              source:
+                component: l2vpn-controller
+              message: "Failed to reserve L2VPN in NetBox: failed to reserve l2vpn: status 400, body: {\"__all__\":[\"Unknown field name 'justmade' in custom field data.\"]}, identifier: 5700001"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: L2VPN
+                name: l2vpnclaim-invalid-customfieldnotexisting
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same identifier range
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=l2vpnclaim-invalid-customfieldnotexisting -n $NAMESPACE

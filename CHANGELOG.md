@@ -5,6 +5,90 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.73] - 2026-10-05
+
+<!-- Release notes generated using configuration in .github/release.yml at b50132e1a560c4a5daab2656d7d7f690247ea8f3 -->
+
+## What's Changed
+### Contributions
+* Add AsnClaim and Asn by @jstudler in https://github.com/netbox-community/netbox-operator/pull/606
+* Build(deps): bump the go-dependencies group with 9 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/643
+* Cross-controller cleanup by @jstudler in https://github.com/netbox-community/netbox-operator/pull/641
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.72...v0.2.73
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.73)
+
+---
+
+## [v0.2.72] - 2026-09-28
+
+<!-- Release notes generated using configuration in .github/release.yml at c91a5df83b6d7fdd84cc22eadd61c5ee62394efe -->
+
+## What's Changed
+### Contributions
+* Add support for L2VPN by @flynn-nrg in https://github.com/netbox-community/netbox-operator/pull/607
+* Build(deps): bump the go-dependencies group with 12 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/639
+
+## New Contributors
+* @flynn-nrg made their first contribution in https://github.com/netbox-community/netbox-operator/pull/607
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.71...v0.2.72
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.72)
+
+---
+
+## [v0.2.71] - 2026-09-21
+
+<!-- Release notes generated using configuration in .github/release.yml at ac08b91b0253a5298419726b41f4cdad54dd735f -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 6 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/635
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.70...v0.2.71
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.71)
+
+---
+
+## [v0.2.70] - 2026-09-14
+
+<!-- Release notes generated using configuration in .github/release.yml at a7a297d95715ce4b93d1fe1d887baa8b7b57a473 -->
+
+## What's Changed
+### Contributions
+* Update kind and k8s versions in e2e and integration tests by @jstudler in https://github.com/netbox-community/netbox-operator/pull/631
+* Build(deps): bump the go-dependencies group with 28 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/633
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.69...v0.2.70
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.70)
+
+---
+
+## [v0.2.69] - 2026-09-07
+
+<!-- Release notes generated using configuration in .github/release.yml at 7f80ad054dad9b54e115dea0cb199d5a318bbb35 -->
+
+## What's Changed
+### Contributions
+* reset selected parentprefix if it does not meet size criteria by @bruelea in https://github.com/netbox-community/netbox-operator/pull/626
+* request less resources for netbox installation by @bruelea in https://github.com/netbox-community/netbox-operator/pull/627
+* Build(deps): bump golang from 1.27.0 to 1.27.1 in the docker group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/628
+* Build(deps): bump the go-dependencies group with 11 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/629
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.68...v0.2.69
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.69)
+
+---
+
 ## [v0.2.68] - 2026-08-31
 
 <!-- Release notes generated using configuration in .github/release.yml at f51581b5d74b824be12af12d984b209eeeadeef4 -->
