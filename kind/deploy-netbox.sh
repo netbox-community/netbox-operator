@@ -34,6 +34,9 @@ NAMESPACE=$3
 # Force IPv4-only config for environments lacking IPv6
 FORCE_NETBOX_NGINX_IPV4="${FORCE_NETBOX_NGINX_IPV4:-false}"
 
+# Set to DEBUG to also get request-level detail out of NetBox
+NETBOX_LOG_LEVEL="${NETBOX_LOG_LEVEL:-INFO}"
+
 # Treat the optional fourth argument "--vcluster" as a boolean flag
 IS_VCLUSTER=false
 if [[ "${4:-}" == "--vcluster" ]]; then
@@ -166,6 +169,11 @@ if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
   REGISTRY_ARG="--set global.imageRegistry=$NETBOX_IMAGE_REGISTRY --set global.security.allowInsecureImages=true"
 fi
 
+# Rendered verbatim into NetBox's configuration.py as the Django LOGGING dict.
+# Without it NetBox logs nothing but NGINX Unit access lines, so a crashing pod
+# leaves no trace of why it crashed. django.request is what reports HTTP 5xx.
+NETBOX_LOGGING_JSON="{\"version\":1,\"disable_existing_loggers\":false,\"formatters\":{\"verbose\":{\"format\":\"[%(asctime)s] %(levelname)s %(name)s %(message)s\"}},\"handlers\":{\"console\":{\"class\":\"logging.StreamHandler\",\"formatter\":\"verbose\"}},\"root\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\"},\"loggers\":{\"django\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\",\"propagate\":false},\"django.request\":{\"handlers\":[\"console\"],\"level\":\"DEBUG\",\"propagate\":false},\"netbox\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\",\"propagate\":false}}}"
+
 # Install NetBox
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
@@ -195,6 +203,8 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set valkey.replica.resources.requests.memory="64Mi" \
   --set global.security.allowInsecureImages=true \
   --set worker.enabled=false \
+  --set dbWaitDebug=true \
+  --set-json "logging=${NETBOX_LOGGING_JSON}" \
     $REGISTRY_ARG
 
 if [[ "${NETBOX_SCALED_DOWN}" == "true" ]]; then
