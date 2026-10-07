@@ -174,6 +174,16 @@ fi
 # leaves no trace of why it crashed. django.request is what reports HTTP 5xx.
 NETBOX_LOGGING_JSON="{\"version\":1,\"disable_existing_loggers\":false,\"formatters\":{\"verbose\":{\"format\":\"[%(asctime)s] %(levelname)s %(name)s %(message)s\"}},\"handlers\":{\"console\":{\"class\":\"logging.StreamHandler\",\"formatter\":\"verbose\"}},\"root\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\"},\"loggers\":{\"django\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\",\"propagate\":false},\"django.request\":{\"handlers\":[\"console\"],\"level\":\"DEBUG\",\"propagate\":false},\"netbox\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\",\"propagate\":false}}}"
 
+# The chart defaults SIGTERM a healthy but slow pod on kind, hence we fix here.
+PROBE_ARGS=(
+  --set livenessProbe.timeoutSeconds=5
+  --set livenessProbe.periodSeconds=15
+  --set livenessProbe.failureThreshold=10
+  --set readinessProbe.timeoutSeconds=5
+  --set startupProbe.timeoutSeconds=5
+  --set startupProbe.failureThreshold=60
+)
+
 # Install NetBox
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
@@ -205,6 +215,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set worker.enabled=false \
   --set dbWaitDebug=true \
   --set-json "logging=${NETBOX_LOGGING_JSON}" \
+  "${PROBE_ARGS[@]}" \
     $REGISTRY_ARG
 
 if [[ "${NETBOX_SCALED_DOWN}" == "true" ]]; then
