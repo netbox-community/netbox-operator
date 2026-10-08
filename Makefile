@@ -17,6 +17,11 @@ endif
 # tools. (i.e. podman)
 CONTAINER_TOOL ?= docker
 
+# Tool release archives are published per OS/arch, and the locally built manager
+# binary has to match the architecture of the kind node that runs it.
+HOST_OS := $(shell go env GOOS)
+HOST_ARCH := $(shell go env GOARCH)
+
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
@@ -48,16 +53,6 @@ install-$(GO_PACKAGE_NAME_GOLANGCI_LINT):
 		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.60.3 ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_GOLANGCI_LINT) is installed" ; \
-	fi
-
-# check if chainsaw is installed or not
-GO_PACKAGE_NAME_CHAINSAW := chainsaw
-install-$(GO_PACKAGE_NAME_CHAINSAW):
-	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_CHAINSAW)" ]; then \
-		echo "Installing $(GO_PACKAGE_NAME_CHAINSAW)..." ; \
-		GOTOOLCHAIN=go1.25.9 go install github.com/kyverno/chainsaw@v0.2.14 ; \
-	else \
-		echo "$(GO_PACKAGE_NAME_CHAINSAW) is installed" ; \
 	fi
 
 .PHONY: all
@@ -131,9 +126,13 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .
 
+# Compiling on the host instead of inside the builder image lets the local Go build
+# cache be reused, which is by far the slowest part of the kind workflow. Release
+# images are still built from the self-contained multi-stage Dockerfile.
 .PHONY: docker-build-local
 docker-build-local: ## Build docker image with the manager.
-	DOCKER_BUILDKIT=1 $(CONTAINER_TOOL) build -t ${LOCAL_IMG} -f Dockerfile .
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(HOST_ARCH) go build -o bin/manager cmd/main.go
+	DOCKER_BUILDKIT=1 $(CONTAINER_TOOL) build --platform linux/$(HOST_ARCH) -t ${LOCAL_IMG} -f Dockerfile.local .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -209,11 +208,35 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+CHAINSAW ?= $(LOCALBIN)/chainsaw
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.16.4
+CHAINSAW_VERSION ?= v0.2.14
+
+CHAINSAW_RELEASE_URL := https://github.com/kyverno/chainsaw/releases/download/$(CHAINSAW_VERSION)
+
+# Downloads a release tarball, verifies it against the checksums.txt published with
+# that release and installs a single binary out of it. Building these tools from
+# source instead costs several minutes per CI job.
+# $(1) tarball URL, $(2) checksums.txt URL, $(3) binary name inside the tarball, $(4) destination
+define install-release-tarball
+tmp=$$(mktemp -d); \
+trap 'rm -rf "$$tmp"' EXIT; \
+curl -fsSL -o "$$tmp/$(notdir $(1))" "$(1)"; \
+curl -fsSL -o "$$tmp/checksums.txt" "$(2)"; \
+if command -v sha256sum >/dev/null 2>&1; then sha256="sha256sum"; else sha256="shasum -a 256"; fi; \
+expected=$$(awk '$$2 == "$(notdir $(1))" { print $$1 }' "$$tmp/checksums.txt"); \
+actual=$$($$sha256 "$$tmp/$(notdir $(1))" | cut -d ' ' -f 1); \
+if [ -z "$$expected" ] || [ "$$expected" != "$$actual" ]; then \
+    echo "checksum verification failed for $(notdir $(1))" >&2; \
+    exit 1; \
+fi; \
+tar -xzf "$$tmp/$(notdir $(1))" -C "$$tmp" $(3); \
+install -m 0755 "$$tmp/$(3)" "$(4)"
+endef
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
@@ -223,6 +246,13 @@ $(KUSTOMIZE): $(LOCALBIN)
 		rm -rf $(LOCALBIN)/kustomize; \
 	fi
 	test -s $(LOCALBIN)/kustomize || GOBIN=$(LOCALBIN) GO111MODULE=on go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+
+.PHONY: chainsaw
+chainsaw: $(LOCALBIN) ## Download chainsaw locally if necessary. If wrong version is installed, it will be overwritten.
+	@# grep -q would close the pipe early and, with `-o pipefail`, SIGPIPE the tool.
+	@if test -x $(CHAINSAW) && $(CHAINSAW) version | grep -F "Version: $(CHAINSAW_VERSION:v%=%)" >/dev/null; then exit 0; fi; \
+	echo "Installing chainsaw $(CHAINSAW_VERSION)..."; \
+	$(call install-release-tarball,$(CHAINSAW_RELEASE_URL)/chainsaw_$(HOST_OS)_$(HOST_ARCH).tar.gz,$(CHAINSAW_RELEASE_URL)/checksums.txt,chainsaw,$(CHAINSAW))
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
@@ -243,8 +273,8 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
 
 .PHONY: test-e2e
-test-e2e: install-$(GO_PACKAGE_NAME_CHAINSAW) ## Run e2e tests against the cluster in the current kube context.
-	chainsaw test $(E2E_PARAM)
+test-e2e: chainsaw ## Run e2e tests against the cluster in the current kube context.
+	$(CHAINSAW) test $(E2E_PARAM)
 
 .PHONY: create-kind-3.7.8
 create-kind-3.7.8:
