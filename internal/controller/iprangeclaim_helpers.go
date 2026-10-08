@@ -60,6 +60,7 @@ func generateIpRangeSpec(claim *netboxv1.IpRangeClaim, startIp string, endIp str
 		StartAddress:     startIp,
 		EndAddress:       endIp,
 		Tenant:           claim.Spec.Tenant,
+		Vrf:              claim.Spec.Vrf,
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,
 		Comments:         claim.Spec.Comments,
@@ -73,6 +74,7 @@ func generateIpRangeRestorationHash(claim *netboxv1.IpRangeClaim) string {
 		Name:         claim.Name,
 		ParentPrefix: claim.Spec.ParentPrefix,
 		Tenant:       claim.Spec.Tenant,
+		Vrf:          claim.Spec.Vrf,
 		Size:         fmt.Sprintf("%d", claim.Spec.Size),
 	}
 	return rd.ComputeHash()
@@ -84,6 +86,7 @@ type IpRangeClaimRestorationData struct {
 	Name         string
 	ParentPrefix string
 	Tenant       string
+	Vrf          string
 	Size         string
 }
 

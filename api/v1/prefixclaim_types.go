@@ -61,6 +61,12 @@ type PrefixClaimSpec struct {
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'tenant' is immutable"
 	Tenant string `json:"tenant,omitempty"`
 
+	// The NetBox VRF to be assigned to this resource in NetBox. Use the `name` value instead of the `id` value
+	// Field is immutable, not required
+	// Example: "blue" or "red"
+	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'vrf' is immutable"
+	Vrf string `json:"vrf,omitempty"`
+
 	// Description that should be added to the resource in NetBox
 	// Field is mutable, not required
 	Description string `json:"description,omitempty"`
