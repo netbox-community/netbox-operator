@@ -56,6 +56,20 @@ else
     HELM="helm"
 fi
 
+# Warn early: the script only ever does `helm upgrade --install`, so a version change
+# reuses the existing release, PVCs and cache secrets.
+if ${KUBECTL} get deployment netbox -n "${NAMESPACE}" > /dev/null 2>&1; then
+    CURRENT_IMAGE="$(${KUBECTL} get deployment netbox -n "${NAMESPACE}" \
+        -o jsonpath='{.spec.template.spec.containers[0].image}')"
+    CURRENT_VERSION="${CURRENT_IMAGE##*:}"
+    CURRENT_VERSION="${CURRENT_VERSION#v}"
+    if [[ -n "${CURRENT_VERSION}" && "${CURRENT_VERSION}" != "${VERSION}" ]]; then
+        log "WARNING: NetBox ${CURRENT_VERSION} is already deployed in namespace ${NAMESPACE}."
+        log "WARNING: You are changing the version in place to ${VERSION}. This is not well tested and might not work."
+        log "WARNING: If it fails (e.g. a helm password error on upgrade), delete the cluster and start fresh."
+    fi
+fi
+
 log "Resolving helm chart and demo data for NetBox ${VERSION}"
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
