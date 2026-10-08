@@ -271,7 +271,7 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
 
 # e2e tests
-E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
+E2E_PARAM := --namespace e2e --parallel 15 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
 
 # Brings the cluster up while the operator image and the tooling are built; the two
 # share no inputs and only meet at `kind load`. Each branch runs in a subshell so that
