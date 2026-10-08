@@ -69,10 +69,9 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 
 	if ipRange.Metadata != nil {
 		desiredIpRange.SetComments(ipRange.Metadata.Comments + warningComment)
-		// Convert map[string]string to map[string]interface{}
-		customFields := make(map[string]interface{}, len(ipRange.Metadata.Custom))
-		for k, v := range ipRange.Metadata.Custom {
-			customFields[k] = v
+		customFields, err := c.convertCustomFields(ipRange.Metadata.Custom)
+		if err != nil {
+			return nil, false, err
 		}
 		desiredIpRange.SetCustomFields(customFields)
 		desiredIpRange.SetDescription(ipRange.Metadata.Description)
