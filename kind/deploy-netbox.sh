@@ -1,11 +1,26 @@
 #!/bin/bash
-set -e -o pipefail
+set -e -u -o pipefail
 
 # Deploy NetBox (with its PostgreSQL operator and demo data) into either:
 #  • a local kind cluster (preloading images)
 #  • a virtual cluster using vcluster: https://github.com/loft-sh/vcluster ( used for testing pipeline, loading of images not needed )
 
+log() {
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
+}
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Files generated during the run, removed on exit so a re-run always starts from a clean tree
+GENERATED_FILES=(
+    "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
+    "$SCRIPT_DIR/job/kustomization.yaml"
+    "$SCRIPT_DIR/job/sql-env-patch.yaml"
+)
+cleanup() {
+    rm -f "${GENERATED_FILES[@]}"
+}
+trap cleanup EXIT
 
 # Allow override via environment variable, otherwise fallback to default
 NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.9/netbox-5.0.9.tgz"
@@ -23,6 +38,9 @@ NAMESPACE=$3
 # Force IPv4-only config for environments lacking IPv6
 FORCE_NETBOX_NGINX_IPV4="${FORCE_NETBOX_NGINX_IPV4:-false}"
 
+# Set to DEBUG to also get request-level detail out of NetBox
+NETBOX_LOG_LEVEL="${NETBOX_LOG_LEVEL:-INFO}"
+
 # Treat the optional fourth argument "--vcluster" as a boolean flag
 IS_VCLUSTER=false
 if [[ "${4:-}" == "--vcluster" ]]; then
@@ -38,7 +56,21 @@ else
     HELM="helm"
 fi
 
-# load remote images
+# Warn early: the script only ever does `helm upgrade --install`, so a version change
+# reuses the existing release, PVCs and cache secrets.
+if ${KUBECTL} get deployment netbox -n "${NAMESPACE}" > /dev/null 2>&1; then
+    CURRENT_IMAGE="$(${KUBECTL} get deployment netbox -n "${NAMESPACE}" \
+        -o jsonpath='{.spec.template.spec.containers[0].image}')"
+    CURRENT_VERSION="${CURRENT_IMAGE##*:}"
+    CURRENT_VERSION="${CURRENT_VERSION#v}"
+    if [[ -n "${CURRENT_VERSION}" && "${CURRENT_VERSION}" != "${VERSION}" ]]; then
+        log "WARNING: NetBox ${CURRENT_VERSION} is already deployed in namespace ${NAMESPACE}."
+        log "WARNING: You are changing the version in place to ${VERSION}. This is not well tested and might not work."
+        log "WARNING: If it fails (e.g. a helm password error on upgrade), delete the cluster and start fresh."
+    fi
+fi
+
+log "Resolving helm chart and demo data for NetBox ${VERSION}"
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v3.7.sql"
@@ -48,7 +80,7 @@ elif [[ "${VERSION}" == "4.0.11" ]] ;then
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql"
 
 elif [[ "${VERSION}" == "4.1.10" ]] ;then
-  echo "Using default helm chart and demo data"
+  log "Using default helm chart and demo data"
 
 elif [[ "${VERSION}" == "4.4.9" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.26/netbox-7.2.26.tgz"
@@ -59,9 +91,6 @@ else
   exit 1
 fi
 
-# build image for loading local data via NetBox API
-cd "$SCRIPT_DIR/load-data-job"
-
 # Assign IMAGE_REGISTRY from env if set, else empty
 POSTGRES_IMAGE_REGISTRY="${IMAGE_REGISTRY:-}"
 
@@ -71,7 +100,7 @@ if [ -n "$POSTGRES_IMAGE_REGISTRY" ]; then
   REGISTRY_ARG="--set image.registry=$POSTGRES_IMAGE_REGISTRY"
 fi
 
-# Install Postgres Operator
+log "Installing the Postgres operator"
 # Allow override via environment variable, otherwise fallback to default
 POSTGRES_OPERATOR_HELM_CHART="${POSTGRES_OPERATOR_HELM_REPO:-https://opensource.zalando.com/postgres-operator/charts/postgres-operator}/postgres-operator-1.12.2.tgz"
 ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
@@ -82,15 +111,20 @@ ${HELM} upgrade --install postgres-operator "$POSTGRES_OPERATOR_HELM_CHART" \
     --set serviceAccount.name="postgres-operator-${NAMESPACE}" \
     $REGISTRY_ARG
 
-# Deploy the database
 export SPILO_IMAGE="${IMAGE_REGISTRY:-ghcr.io}/zalando/spilo-16:3.2-p3"
-echo "spilo image is $SPILO_IMAGE"
+log "Deploying the database with spilo image $SPILO_IMAGE"
 envsubst < "$SCRIPT_DIR/netbox-db/netbox-db-patch.tmpl.yaml" > "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
 ${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
-rm "$SCRIPT_DIR/netbox-db/netbox-db-patch.yaml"
 
-echo "loading demo-data into NetBox…"
-kubectl create configmap netbox-demo-data-load-job-scripts \
+# The operator creates the StatefulSet only some time after the CR is applied, and
+# gives it an OnDelete update strategy, which rules out `kubectl rollout status`.
+log "Waiting for the netbox-db statefulset to become ready"
+${KUBECTL} wait -n "$NAMESPACE" --for=create statefulset/netbox-db --timeout=300s
+${KUBECTL} wait -n "$NAMESPACE" --for=jsonpath='{.status.readyReplicas}'=1 \
+    statefulset/netbox-db --timeout=600s
+
+log "Creating the demo-data load job scripts ConfigMap"
+${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
 | ${KUBECTL} apply -n "${NAMESPACE}" -f -
@@ -100,15 +134,12 @@ SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
 SPILO_IMAGE="${SPILO_IMAGE_REGISTRY}/zalando/spilo-16:3.2-p3"
 
 JOB_DIR="$SCRIPT_DIR/job"
-cd "$JOB_DIR"
-cp kustomization.orig.yaml kustomization.yaml
-kustomize edit set image ghcr.io/zalando/spilo-16="$SPILO_IMAGE"
+cp "$JOB_DIR/kustomization.orig.yaml" "$JOB_DIR/kustomization.yaml"
 
-# Create a patch file to inject NETBOX_SQL_DUMP_URL (from env or default)
 NETBOX_SQL_DUMP_URL="${NETBOX_SQL_DUMP_URL:-https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.1.sql}"
 
-# Create patch
-cat > sql-env-patch.yaml <<EOF
+log "Patching the load job with NETBOX_SQL_DUMP_URL=${NETBOX_SQL_DUMP_URL} and image ${SPILO_IMAGE}"
+cat > "$JOB_DIR/sql-env-patch.yaml" <<EOF
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -123,20 +154,33 @@ spec:
               value: "${NETBOX_SQL_DUMP_URL}"
 EOF
 
-# Add the patch
-kustomize edit add patch --path sql-env-patch.yaml
+# kustomize edit only operates on the kustomization.yaml in the current directory
+(
+    cd "$JOB_DIR"
+    kustomize edit set image ghcr.io/zalando/spilo-16="$SPILO_IMAGE"
+    kustomize edit add patch --path sql-env-patch.yaml
+)
 
-# Apply the customized job
-kustomize build . | ${KUBECTL} apply -n "${NAMESPACE}" -f -
-# reset the kustomization to default value
-rm sql-env-patch.yaml
-kustomize edit set image ghcr.io/zalando/spilo-16="ghcr.io/zalando/spilo-16"
-cd ..
+# The demo data dump is a plain pg_dump, so the load job recreates the public schema.
+# No NetBox pod may hold connections to it while that happens.
+NETBOX_SCALED_DOWN=false
+if ${KUBECTL} get deployment netbox -n "${NAMESPACE}" > /dev/null 2>&1; then
+    log "Scaling down NetBox while the database is reloaded"
+    ${KUBECTL} scale deployment netbox -n "${NAMESPACE}" --replicas=0
+    ${KUBECTL} delete pods -n "${NAMESPACE}" -l app.kubernetes.io/component=netbox --wait=true
+    NETBOX_SCALED_DOWN=true
+fi
 
+# A completed Job cannot be updated in place, so replace it on every run
+${KUBECTL} delete job netbox-demo-data-load-job -n "${NAMESPACE}" --ignore-not-found --wait=true
+
+log "Loading demo-data into NetBox"
+kustomize build "$JOB_DIR" | ${KUBECTL} apply -n "${NAMESPACE}" -f -
 ${KUBECTL} wait \
     -n "${NAMESPACE}" --for=condition=complete --timeout=600s job/netbox-demo-data-load-job
 
-${KUBECTL} delete \
+log "Demo-data load job completed"
+${KUBECTL} delete --ignore-not-found \
     -n "${NAMESPACE}" configmap/netbox-demo-data-load-job-scripts
 
 # Assign IMAGE_REGISTRY from env if set, else empty
@@ -148,7 +192,22 @@ if [ -n "$NETBOX_IMAGE_REGISTRY" ]; then
   REGISTRY_ARG="--set global.imageRegistry=$NETBOX_IMAGE_REGISTRY --set global.security.allowInsecureImages=true"
 fi
 
-# Install NetBox
+# Rendered verbatim into NetBox's configuration.py as the Django LOGGING dict.
+# Without it NetBox logs nothing but NGINX Unit access lines, so a crashing pod
+# leaves no trace of why it crashed. django.request is what reports HTTP 5xx.
+NETBOX_LOGGING_JSON="{\"version\":1,\"disable_existing_loggers\":false,\"formatters\":{\"verbose\":{\"format\":\"[%(asctime)s] %(levelname)s %(name)s %(message)s\"}},\"handlers\":{\"console\":{\"class\":\"logging.StreamHandler\",\"formatter\":\"verbose\"}},\"root\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\"},\"loggers\":{\"django\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\",\"propagate\":false},\"django.request\":{\"handlers\":[\"console\"],\"level\":\"DEBUG\",\"propagate\":false},\"netbox\":{\"handlers\":[\"console\"],\"level\":\"${NETBOX_LOG_LEVEL}\",\"propagate\":false}}}"
+
+# The chart defaults SIGTERM a healthy but slow pod on kind, hence we fix here.
+PROBE_ARGS=(
+  --set livenessProbe.timeoutSeconds=5
+  --set livenessProbe.periodSeconds=15
+  --set livenessProbe.failureThreshold=10
+  --set readinessProbe.timeoutSeconds=5
+  --set startupProbe.timeoutSeconds=5
+  --set startupProbe.failureThreshold=60
+)
+
+log "Installing NetBox"
 ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --namespace="${NAMESPACE}" \
   --create-namespace \
@@ -165,61 +224,74 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set redis.master.resourcesPreset="none" \
   --set redis.master.resources.requests.cpu="50m" \
   --set redis.master.resources.requests.memory="64Mi" \
-  --set redis.replica.resourcesPreset="none" \
-  --set redis.replica.resources.requests.cpu="50m" \
-  --set redis.replica.resources.requests.memory="64Mi" \
+  --set redis.replica.replicaCount=0 \
   --set valkey.auth.password="password" \
   --set valkey.primary.resourcesPreset="none" \
   --set valkey.primary.resources.requests.cpu="50m" \
   --set valkey.primary.resources.requests.memory="64Mi" \
-  --set valkey.replica.resourcesPreset="none" \
-  --set valkey.replica.resources.requests.cpu="50m" \
-  --set valkey.replica.resources.requests.memory="64Mi" \
+  --set valkey.replica.replicaCount=0 \
   --set global.security.allowInsecureImages=true \
   --set worker.enabled=false \
+  --set dbWaitDebug=true \
+  --set-json "logging=${NETBOX_LOGGING_JSON}" \
+  "${PROBE_ARGS[@]}" \
     $REGISTRY_ARG
 
+if [[ "${NETBOX_SCALED_DOWN}" == "true" ]]; then
+    log "Scaling NetBox back up"
+    ${KUBECTL} scale deployment netbox -n "${NAMESPACE}" --replicas=1
+fi
+
+# The helm charts for NetBox v4+ print the app version themselves, the v3.7.8 one does not
 if [[ "${VERSION}" == "3.7.8" ]] ;then
     # Print the app version of the NetBox helm release
     # For the helm charts for Netbox v4+ it is printed by the helm install command
     # but not for the helm chart for v3.7.8
-    echo "NetBox version of the installed helm release:"
+    log "NetBox version of the installed helm release:"
     ${HELM} list -n "${NAMESPACE}" -o json | jq -r '.[] | select(.name=="netbox") | .app_version'
 fi
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
-  echo "Creating nginx-unit ConfigMap and patching deployment"
+  log "Creating nginx-unit ConfigMap and patching deployment"
 
   ${KUBECTL} apply -f "$SCRIPT_DIR/nginx-unit-config.yaml" -n "$NAMESPACE"
 
-  ${KUBECTL} patch deployment netbox -n "$NAMESPACE" --type=json -p='[
-    {
-      "op": "add",
-      "path": "/spec/template/spec/volumes/-",
-      "value": {
-        "name": "unit-config",
-        "configMap": {
-          "name": "nginx-unit-config"
+  # a strategic merge patch merges volumes/volumeMounts by name, so re-running does not duplicate them
+  NETBOX_CONTAINER="$(${KUBECTL} get deployment netbox -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].name}')"
+  ${KUBECTL} patch deployment netbox -n "$NAMESPACE" --type=strategic -p='{
+    "spec": {
+      "template": {
+        "spec": {
+          "volumes": [
+            {
+              "name": "unit-config",
+              "configMap": {
+                "name": "nginx-unit-config"
+              }
+            }
+          ],
+          "containers": [
+            {
+              "name": "'"${NETBOX_CONTAINER}"'",
+              "volumeMounts": [
+                {
+                  "mountPath": "/etc/unit/nginx-unit.json",
+                  "subPath": "nginx-unit.json",
+                  "name": "unit-config"
+                }
+              ]
+            }
+          ]
         }
       }
-    },
-    {
-      "op": "add",
-      "path": "/spec/template/spec/containers/0/volumeMounts/-",
-      "value": {
-        "mountPath": "/etc/unit/nginx-unit.json",
-        "subPath": "nginx-unit.json",
-        "name": "unit-config"
-      }
     }
-  ]'
+  }'
 
   # Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors
+  log "Cleaning up outdated NetBox ReplicaSets"
   DEPLOYMENT_NAME="netbox"
-  # Get all ReplicaSets in JSON
   RS_JSON=$(${KUBECTL} get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json | sed '/^{/,$!d')
 
-  # Extract the latest one
   LATEST_RS=$(echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" '
     .items
     | map(select(.metadata.ownerReferences[]?.kind == "Deployment" and .metadata.ownerReferences[]?.name == $DEPLOYMENT))
@@ -228,7 +300,7 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
     | .metadata.name
   ')
 
-  echo "Current (latest) ReplicaSet is: $LATEST_RS"
+  log "Current (latest) ReplicaSet is: $LATEST_RS"
 
   # Delete older ones
   echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" --arg LATEST "$LATEST_RS" '
@@ -241,34 +313,37 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
     | .[].metadata.name
   ' | xargs -r -I{} ${KUBECTL} delete rs {} -n "$NAMESPACE"
 
-  echo "Forcing restart of netbox pod to reattach volume cleanly..."
+  log "Forcing restart of netbox pod to reattach volume cleanly"
   ${KUBECTL} delete pods -n "$NAMESPACE" -l app.kubernetes.io/component=netbox \
       --grace-period=0 --force
 fi
 
+log "Waiting for the NetBox deployment to roll out"
 ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
 
-# Create ConfigMap for the Python script
+log "Creating the ConfigMap for the local-data loader script"
 TMP_CONFIGMAP_YAML="$(mktemp)"
-kubectl create configmap netbox-loader-script \
+
+GENERATED_FILES+=("$TMP_CONFIGMAP_YAML")
+${KUBECTL} create configmap netbox-loader-script \
   --namespace="${NAMESPACE}" \
   --from-file=main.py="$SCRIPT_DIR/load-local-data-job/main.py" \
   --dry-run=client -o yaml > "$TMP_CONFIGMAP_YAML"
 
 ${KUBECTL} apply -f "$TMP_CONFIGMAP_YAML" --namespace="${NAMESPACE}"
-rm "$TMP_CONFIGMAP_YAML"
 
-# Prepare Job YAML with optional environment variable injection
+log "Preparing the local-data load job manifest"
 JOB_YAML="$SCRIPT_DIR/load-local-data-job/netbox-load-local-data-job.yaml"
 TMP_JOB_YAML="$(mktemp)"
+GENERATED_FILES+=("$TMP_JOB_YAML")
 cp "$JOB_YAML" "$TMP_JOB_YAML"
 
-# Define internal NetBox service endpoint (used in Kind)
+# Internal NetBox service endpoint (used in Kind)
 NETBOX_API_URL="http://netbox.${NAMESPACE}.svc.cluster.local"
 
 PATCHED_TMP_JOB_YAML="$(mktemp)"
+GENERATED_FILES+=("$PATCHED_TMP_JOB_YAML")
 
-# Convert YAML to JSON and inject variables if containers exist
 yq eval -o=json "$TMP_JOB_YAML" | jq \
   --arg netboxApi "$NETBOX_API_URL" \
   --arg pypiUrl "${PYPI_REPOSITORY_URL:-}" \
@@ -290,19 +365,12 @@ yq eval -o=json "$TMP_JOB_YAML" | jq \
 
 mv "$PATCHED_TMP_JOB_YAML" "$TMP_JOB_YAML"
 
-# Delete previous job if it exists
+# A completed Job cannot be updated in place, so replace it on every run
 ${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}" --ignore-not-found
 
-# Apply patched job
+log "Loading local data into NetBox"
 ${KUBECTL} apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
-rm "$TMP_JOB_YAML"
-
-# Wait for job to complete
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
-# Load local data
-${KUBECTL} delete job netbox-load-local-data --namespace="${NAMESPACE}"
-${KUBECTL} delete configmap netbox-loader-script --namespace="${NAMESPACE}"
+log "Done"
 
-# clean up
-rm $SCRIPT_DIR/job/kustomization.yaml

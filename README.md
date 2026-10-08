@@ -74,6 +74,27 @@ for i in {001..100}; do
 done
 ```
 
+## Running the tests locally
+
+- Unit tests: `make test` runs the tests in `pkg/` with mocked NetBox interfaces. No cluster required.
+- Integration tests: `make integration-test` runs the controller tests in `internal/controller/` against envtest (a local API server, no NetBox).
+- End-to-end tests: `make test-e2e` runs the [chainsaw] tests in `tests/e2e/` against the cluster in your current kube context.
+
+[chainsaw]: https://kyverno.github.io/chainsaw/
+
+The e2e tests expect a Kubernetes cluster with NetBox and the NetBox Operator already deployed and wired up, and they rely on the test data loaded into NetBox at deployment time. `make test-e2e` only re-runs the tests against whatever is currently deployed, so it is the fast loop while writing tests, but it will fail if a previous run has already consumed resources in NetBox.
+
+To get a clean state, use one of the NetBox version matrix targets:
+
+```sh
+make test-e2e-3.7.8
+make test-e2e-4.0.11
+make test-e2e-4.1.10
+make test-e2e-4.4.9
+```
+
+Each of these reuses the existing kind cluster (or creates it if missing), reinstalls NetBox at the given version with fresh test data, redeploys the operator, and then runs the e2e tests.
+
 # ASN Management
 
 NetBox Operator supports managing [ASNs (Autonomous System Numbers)](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/asn.md) through two custom resources:
