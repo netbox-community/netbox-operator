@@ -124,7 +124,7 @@ ${KUBECTL} wait -n "$NAMESPACE" --for=jsonpath='{.status.readyReplicas}'=1 \
     statefulset/netbox-db --timeout=600s
 
 log "Creating the demo-data load job scripts ConfigMap"
-kubectl create configmap netbox-demo-data-load-job-scripts \
+${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
 | ${KUBECTL} apply -n "${NAMESPACE}" -f -
@@ -325,7 +325,7 @@ log "Creating the ConfigMap for the local-data loader script"
 TMP_CONFIGMAP_YAML="$(mktemp)"
 
 GENERATED_FILES+=("$TMP_CONFIGMAP_YAML")
-kubectl create configmap netbox-loader-script \
+${KUBECTL} create configmap netbox-loader-script \
   --namespace="${NAMESPACE}" \
   --from-file=main.py="$SCRIPT_DIR/load-local-data-job/main.py" \
   --dry-run=client -o yaml > "$TMP_CONFIGMAP_YAML"
