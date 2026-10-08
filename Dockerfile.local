@@ -1,8 +1,0 @@
-# Packages a manager binary that `make docker-build-local` already compiled on the host.
-# Release images are built from the multi-stage Dockerfile instead.
-FROM gcr.io/distroless/static:nonroot
-WORKDIR /
-COPY bin/manager .
-USER 65532:65532
-
-ENTRYPOINT ["/manager"]

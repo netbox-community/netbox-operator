@@ -17,8 +17,7 @@ endif
 # tools. (i.e. podman)
 CONTAINER_TOOL ?= docker
 
-# Tool release archives are published per OS/arch, and the locally built manager
-# binary has to match the architecture of the kind node that runs it.
+# Tool release archives are published per OS/arch.
 HOST_OS := $(shell go env GOOS)
 HOST_ARCH := $(shell go env GOARCH)
 
@@ -126,13 +125,9 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -t ${IMG} .
 
-# Compiling on the host instead of inside the builder image lets the local Go build
-# cache be reused, which is by far the slowest part of the kind workflow. Release
-# images are still built from the self-contained multi-stage Dockerfile.
 .PHONY: docker-build-local
 docker-build-local: ## Build docker image with the manager.
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(HOST_ARCH) go build -o bin/manager cmd/main.go
-	DOCKER_BUILDKIT=1 $(CONTAINER_TOOL) build --platform linux/$(HOST_ARCH) -t ${LOCAL_IMG} -f Dockerfile.local .
+	DOCKER_BUILDKIT=1 $(CONTAINER_TOOL) build -t ${LOCAL_IMG} -f Dockerfile .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -186,8 +181,14 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 create-kind:
 	./kind/local-env.sh
 
+.PHONY: build-artifacts
+build-artifacts: docker-build-local manifests kustomize chainsaw ## Build everything the e2e run needs that does not depend on a cluster.
+
 .PHONY: deploy-kind
-deploy-kind: docker-build-local manifests kustomize
+deploy-kind: build-artifacts load-kind
+
+.PHONY: load-kind
+load-kind: kustomize ## Load the already-built operator image into the running kind cluster and deploy it.
 	kind load docker-image ${LOCAL_IMG}
 	kind load docker-image ${LOCAL_IMG}  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 	$(KUSTOMIZE) build kind | $(KUBECTL) apply -f -
@@ -272,6 +273,21 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 # e2e tests
 E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
 
+# Brings the cluster up while the operator image and the tooling are built; the two
+# share no inputs and only meet at `kind load`. Each branch runs in a subshell so that
+# $$! is the subshell rather than the tail of its output pipe, which would hide failures.
+# $(1) netbox version
+define setup-e2e
+	@set -e; \
+	( $(MAKE) --no-print-directory create-kind-$(1) 2>&1 | sed 's/^/[cluster] /'; exit $${PIPESTATUS[0]} ) & cluster_pid=$$!; \
+	( $(MAKE) --no-print-directory build-artifacts   2>&1 | sed 's/^/[build]   /'; exit $${PIPESTATUS[0]} ) & build_pid=$$!; \
+	wait $$cluster_pid && cluster_rc=0 || cluster_rc=$$?; \
+	wait $$build_pid   && build_rc=0   || build_rc=$$?; \
+	if [ $$cluster_rc -ne 0 ]; then echo "cluster setup failed ($$cluster_rc)" >&2; fi; \
+	if [ $$build_rc -ne 0 ]; then echo "image/tool build failed ($$build_rc)" >&2; fi; \
+	[ $$cluster_rc -eq 0 ] && [ $$build_rc -eq 0 ]
+endef
+
 .PHONY: test-e2e
 test-e2e: chainsaw ## Run e2e tests against the cluster in the current kube context.
 	$(CHAINSAW) test $(E2E_PARAM)
@@ -280,22 +296,30 @@ test-e2e: chainsaw ## Run e2e tests against the cluster in the current kube cont
 create-kind-3.7.8:
 	./kind/local-env.sh --version 3.7.8
 .PHONY: test-e2e-3.7.8
-test-e2e-3.7.8: create-kind-3.7.8 deploy-kind test-e2e
+test-e2e-3.7.8:
+	$(call setup-e2e,3.7.8)
+	$(MAKE) load-kind test-e2e
 
 .PHONY: create-kind-4.0.11
 create-kind-4.0.11:
 	./kind/local-env.sh --version 4.0.11
 .PHONY: test-e2e-4.0.11
-test-e2e-4.0.11: create-kind-4.0.11 deploy-kind test-e2e
+test-e2e-4.0.11:
+	$(call setup-e2e,4.0.11)
+	$(MAKE) load-kind test-e2e
 
 .PHONY: create-kind-4.1.10
 create-kind-4.1.10:
 	./kind/local-env.sh --version 4.1.10
 .PHONY: test-e2e-4.1.10
-test-e2e-4.1.10: create-kind-4.1.10 deploy-kind test-e2e
+test-e2e-4.1.10:
+	$(call setup-e2e,4.1.10)
+	$(MAKE) load-kind test-e2e
 
 .PHONY: create-kind-4.4.9
 create-kind-4.4.9:
 	./kind/local-env.sh --version 4.4.9
 .PHONY: test-e2e-4.4.9
-test-e2e-4.4.9: create-kind-4.4.9 deploy-kind test-e2e
+test-e2e-4.4.9:
+	$(call setup-e2e,4.4.9)
+	$(MAKE) load-kind test-e2e
