@@ -1,0 +1,78 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: vlanclaim-update-ownerreference
+  annotations:
+    description: Tests if controller updates ownerReference if a non-Claim Vlan existed before (e.g. from a velero backup)
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_vlan_1.yaml
+    - name: Check non-claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlanclaim-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_vlanclaim_1.yaml
+    - name: Check claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: VlanClaim
+              metadata:
+                name: vlanclaim-update-ownerreference-1
+              spec:
+                comments: your comments
+                description: some description
+                vid: 170
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                vid: 170
+                vlanName: vlanclaim-update-ownerreference-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Vlan
+              metadata:
+                name: vlanclaim-update-ownerreference-1
+                finalizers:
+                  - vlan.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: VlanClaim
+                    name: vlanclaim-update-ownerreference-1
+              spec:
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: 1b99f714389786421d10a38c1ab2f66b51e30033
+                description: some description
+                vid: 170
+                site: MY_SITE
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=vlanclaim-update-ownerreference-1 -n $NAMESPACE

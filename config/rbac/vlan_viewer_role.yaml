@@ -1,0 +1,27 @@
+# permissions for end users to view vlans.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: vlan-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: netbox-operator
+    app.kubernetes.io/part-of: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: vlan-viewer-role
+rules:
+- apiGroups:
+  - netbox.dev
+  resources:
+  - vlans
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - netbox.dev
+  resources:
+  - vlans/status
+  verbs:
+  - get
