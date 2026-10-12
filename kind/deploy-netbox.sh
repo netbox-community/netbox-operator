@@ -120,8 +120,6 @@ ${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
 # gives it an OnDelete update strategy, which rules out `kubectl rollout status`.
 log "Waiting for the netbox-db statefulset to become ready"
 ${KUBECTL} wait -n "$NAMESPACE" --for=create statefulset/netbox-db --timeout=300s
-${KUBECTL} wait -n "$NAMESPACE" --for=jsonpath='{.status.readyReplicas}'=1 \
-    statefulset/netbox-db --timeout=600s
 
 log "Creating the demo-data load job scripts ConfigMap"
 ${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
@@ -373,4 +371,3 @@ ${KUBECTL} apply -n "${NAMESPACE}" -f "$TMP_JOB_YAML"
 ${KUBECTL} wait --namespace="${NAMESPACE}" --timeout=600s --for=condition=complete job/netbox-load-local-data
 
 log "Done"
-
