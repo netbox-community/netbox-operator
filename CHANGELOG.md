@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.74] - 2026-10-12
+
+<!-- Release notes generated using configuration in .github/release.yml at f0f11cd88cf055b277c6f1c0b360a521d842b1b1 -->
+
+## What's Changed
+### Contributions
+* Make the kind e2e environment idempotent and stop NetBox being killed during startup by @jstudler in https://github.com/netbox-community/netbox-operator/pull/632
+* De-flake the parentprefixselector-sorting e2e test by @jstudler in https://github.com/netbox-community/netbox-operator/pull/645
+* upgraded go toolchain by @ehsanmpd in https://github.com/netbox-community/netbox-operator/pull/649
+* Build(deps): bump the go-dependencies group across 1 directory with 18 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/650
+
+## New Contributors
+* @ehsanmpd made their first contribution in https://github.com/netbox-community/netbox-operator/pull/649
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.73...v0.2.74
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.74)
+
+---
+
 ## [v0.2.73] - 2026-10-05
 
 <!-- Release notes generated using configuration in .github/release.yml at b50132e1a560c4a5daab2656d7d7f690247ea8f3 -->
