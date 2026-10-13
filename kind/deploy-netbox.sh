@@ -202,7 +202,7 @@ PROBE_ARGS=(
   --set livenessProbe.failureThreshold=10
   --set readinessProbe.timeoutSeconds=5
   --set startupProbe.timeoutSeconds=5
-  --set startupProbe.failureThreshold=60
+  --set startupProbe.failureThreshold=10
 )
 
 log "Installing NetBox"
@@ -258,6 +258,9 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   NETBOX_CONTAINER="$(${KUBECTL} get deployment netbox -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].name}')"
   ${KUBECTL} patch deployment netbox -n "$NAMESPACE" --type=strategic -p='{
     "spec": {
+      "strategy": {
+        "type": "Recreate"
+      }
       "template": {
         "spec": {
           "volumes": [
