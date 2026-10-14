@@ -202,7 +202,7 @@ PROBE_ARGS=(
   --set livenessProbe.failureThreshold=10
   --set readinessProbe.timeoutSeconds=5
   --set startupProbe.timeoutSeconds=5
-  --set startupProbe.failureThreshold=60
+  --set startupProbe.failureThreshold=10
 )
 
 log "Installing NetBox"
@@ -258,6 +258,10 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   NETBOX_CONTAINER="$(${KUBECTL} get deployment netbox -n "$NAMESPACE" -o jsonpath='{.spec.template.spec.containers[0].name}')"
   ${KUBECTL} patch deployment netbox -n "$NAMESPACE" --type=strategic -p='{
     "spec": {
+      "strategy": {
+        "type": "Recreate",
+        "rollingUpdate": null
+      },
       "template": {
         "spec": {
           "volumes": [
@@ -284,36 +288,6 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
       }
     }
   }'
-
-  # Cleanup old ReplicaSets after NetBox deployment patch to prevent volume Multi-Attach errors
-  log "Cleaning up outdated NetBox ReplicaSets"
-  DEPLOYMENT_NAME="netbox"
-  RS_JSON=$(${KUBECTL} get rs -n $NAMESPACE -l app.kubernetes.io/component=netbox -o json | sed '/^{/,$!d')
-
-  LATEST_RS=$(echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" '
-    .items
-    | map(select(.metadata.ownerReferences[]?.kind == "Deployment" and .metadata.ownerReferences[]?.name == $DEPLOYMENT))
-    | sort_by(.metadata.creationTimestamp)
-    | last
-    | .metadata.name
-  ')
-
-  log "Current (latest) ReplicaSet is: $LATEST_RS"
-
-  # Delete older ones
-  echo "$RS_JSON" | jq -r --arg DEPLOYMENT "$DEPLOYMENT_NAME" --arg LATEST "$LATEST_RS" '
-    .items
-    | map(select(
-        .metadata.ownerReferences[]?.kind == "Deployment"
-        and .metadata.ownerReferences[]?.name == $DEPLOYMENT
-        and .metadata.name != $LATEST
-      ))
-    | .[].metadata.name
-  ' | xargs -r -I{} ${KUBECTL} delete rs {} -n "$NAMESPACE"
-
-  log "Forcing restart of netbox pod to reattach volume cleanly"
-  ${KUBECTL} delete pods -n "$NAMESPACE" -l app.kubernetes.io/component=netbox \
-      --grace-period=0 --force
 fi
 
 log "Waiting for the NetBox deployment to roll out"
