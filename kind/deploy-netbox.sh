@@ -122,6 +122,9 @@ ${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
 log "Waiting for the netbox-db statefulset to become ready"
 ${KUBECTL} wait -n "$NAMESPACE" --for=create statefulset/netbox-db --timeout=300s
 
+${KUBECTL} wait -n "$NAMESPACE" --for=jsonpath='{.status.readyReplicas}'=1 \
+    statefulset/netbox-db --timeout=600s
+
 log "Creating the demo-data load job scripts ConfigMap"
 ${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
