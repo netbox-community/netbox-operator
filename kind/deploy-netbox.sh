@@ -41,11 +41,6 @@ FORCE_NETBOX_NGINX_IPV4="${FORCE_NETBOX_NGINX_IPV4:-false}"
 # Set to DEBUG to also get request-level detail out of NetBox
 NETBOX_LOG_LEVEL="${NETBOX_LOG_LEVEL:-INFO}"
 
-# How long to wait for the NetBox deployment to roll out before giving up and
-# dumping diagnostics. Kept well below the Deployment's progressDeadlineSeconds
-# default (600s) so CI fails fast with useful logs instead of blocking silently.
-NETBOX_ROLLOUT_TIMEOUT="${NETBOX_ROLLOUT_TIMEOUT:-300s}"
-
 # Treat the optional fourth argument "--vcluster" as a boolean flag
 IS_VCLUSTER=false
 if [[ "${4:-}" == "--vcluster" ]]; then
@@ -129,7 +124,7 @@ log "Creating the demo-data load job scripts ConfigMap"
 ${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
   --from-file="$SCRIPT_DIR/load-data-job" \
   --dry-run=client -o yaml \
-  | ${KUBECTL} apply -n "${NAMESPACE}" -f -
+| ${KUBECTL} apply -n "${NAMESPACE}" -f -
 
 # Set the image of the kustomization.yaml to the one specified (from env or default)
 SPILO_IMAGE_REGISTRY="${IMAGE_REGISTRY:-ghcr.io}"
@@ -237,7 +232,7 @@ ${HELM} upgrade --install netbox ${NETBOX_HELM_CHART} \
   --set dbWaitDebug=true \
   --set-json "logging=${NETBOX_LOGGING_JSON}" \
   "${PROBE_ARGS[@]}" \
-  $REGISTRY_ARG
+    $REGISTRY_ARG
 
 if [[ "${NETBOX_SCALED_DOWN}" == "true" ]]; then
     log "Scaling NetBox back up"
@@ -320,6 +315,11 @@ dump_netbox_diagnostics() {
     log "Recent namespace events:"
     ${KUBECTL} get events -n "${NAMESPACE}" --sort-by=.lastTimestamp | tail -n 50 || true
 }
+
+# How long to wait for the NetBox deployment to roll out before giving up and
+# dumping diagnostics. Kept well below the Deployment's progressDeadlineSeconds
+# default (600s) so CI fails fast with useful logs instead of blocking silently.
+NETBOX_ROLLOUT_TIMEOUT="${NETBOX_ROLLOUT_TIMEOUT:-300s}"
 
 log "Waiting for the NetBox deployment to roll out"
 if ! ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox --timeout="${NETBOX_ROLLOUT_TIMEOUT}"; then
