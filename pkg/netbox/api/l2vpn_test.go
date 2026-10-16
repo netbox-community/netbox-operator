@@ -36,11 +36,11 @@ import (
 
 const L2VPNId = int32(7)
 
-func TestSlugify(t *testing.T) {
-	assert.Equal(t, "my-l2vpn-1", slugify("my l2vpn 1"))
-	assert.Equal(t, "leading-trailing", slugify("--leading-trailing--"))
-	assert.Equal(t, "l2vpn", slugify(""))
-	assert.Equal(t, "l2vpn", slugify("###"))
+func TestSlugifyL2VPN(t *testing.T) {
+	assert.Equal(t, "my-l2vpn-1", slugify("my l2vpn 1", "l2vpn"))
+	assert.Equal(t, "leading-trailing", slugify("--leading-trailing--", "l2vpn"))
+	assert.Equal(t, "l2vpn", slugify("", "l2vpn"))
+	assert.Equal(t, "l2vpn", slugify("###", "l2vpn"))
 }
 
 func TestL2VPN(t *testing.T) {
@@ -63,7 +63,7 @@ func TestL2VPN(t *testing.T) {
 		l2vpn := v4client.L2VPN{
 			Id:          L2VPNId,
 			Name:        name,
-			Slug:        slugify(name),
+			Slug:        slugify(name, "l2vpn"),
 			Comments:    &comments,
 			Description: &description,
 			Tenant:      *v4client.NewNullableBriefTenant(expectedTenant),
