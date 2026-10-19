@@ -24,5 +24,6 @@ var (
 	ErrWrongMatchingPrefixSubnetFormat = errors.New("wrong matchingPrefix subnet format")
 	ErrInvalidIpFamily                 = errors.New("invalid IP Family")
 	ErrRestorationHashMismatch         = errors.New("restoration hash mismatch")
+	ErrVlanRangeExhausted              = errors.New("vlan vid range exhausted")
 	ErrL2VPNRangeExhausted             = errors.New("l2vpn identifier range exhausted")
 )
