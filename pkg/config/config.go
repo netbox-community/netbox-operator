@@ -54,6 +54,14 @@ type OperatorConfig struct {
 	// format: duration, needs to be parseable by time.ParseDuration, e.g. "30s", "30m"
 	// defaults to 1 hour
 	ReconcileJitterRaw string `mapstructure:"RECONCILE_JITTER"`
+	// Maximum sustained outbound requests per second to the NetBox API.
+	// A value <= 0 disables client-side throttling.
+	// defaults to 10
+	NetboxRateLimitQPS float64 `mapstructure:"NETBOX_RATE_LIMIT_QPS"`
+	// Maximum burst of outbound requests to the NetBox API allowed above the
+	// sustained QPS. Only takes effect when NETBOX_RATE_LIMIT_QPS > 0.
+	// defaults to 20
+	NetboxRateLimitBurst int `mapstructure:"NETBOX_RATE_LIMIT_BURST"`
 
 	// Parsed fields (not from config file/env)
 	ReconcileSchedule       cron.Schedule
@@ -71,6 +79,8 @@ func (c *OperatorConfig) setDefaults() {
 	c.viper.SetDefault("RECONCILE_JITTER", "")
 	c.viper.SetDefault("RECONCILE_SCHEDULE", "")
 
+	c.viper.SetDefault("NETBOX_RATE_LIMIT_QPS", 10)
+	c.viper.SetDefault("NETBOX_RATE_LIMIT_BURST", 20)
 }
 
 func (c *OperatorConfig) LoadCaCert() (cert []byte, err error) {
