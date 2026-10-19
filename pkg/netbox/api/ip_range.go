@@ -86,6 +86,15 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 		}
 	}
 
+	if ipRange.Metadata != nil && ipRange.Metadata.Vrf != "" {
+		vrfDetails, err := c.GetVrfDetails(ipRange.Metadata.Vrf)
+		if err != nil {
+			return nil, false, err
+		}
+		vrfId := int32(vrfDetails.Id)
+		desiredIpRange.SetVrf(v4client.Int32AsIPAddressRequestVrf(&vrfId))
+	}
+
 	// create ip range since it doesn't exist
 	if len(responseIpRangeList.Results) == 0 {
 		resp, err := c.createIpRange(ctx, desiredIpRange)

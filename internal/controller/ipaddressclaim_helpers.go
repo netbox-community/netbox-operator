@@ -55,6 +55,7 @@ func generateIpAddressSpec(claim *netboxv1.IpAddressClaim, ip string, logger log
 	return netboxv1.IpAddressSpec{
 		IpAddress:        ip,
 		Tenant:           claim.Spec.Tenant,
+		Vrf:              claim.Spec.Vrf,
 		CustomFields:     customFields,
 		Description:      claim.Spec.Description,
 		Comments:         claim.Spec.Comments,
@@ -68,6 +69,7 @@ func generateIpAddressRestorationHash(claim *netboxv1.IpAddressClaim) string {
 		Name:         claim.Name,
 		ParentPrefix: claim.Spec.ParentPrefix,
 		Tenant:       claim.Spec.Tenant,
+		Vrf:          claim.Spec.Vrf,
 	}
 	return rd.ComputeHash()
 }
@@ -78,11 +80,12 @@ type IpAddressClaimRestorationData struct {
 	Name         string
 	ParentPrefix string
 	Tenant       string
+	Vrf          string
 }
 
 func (rd *IpAddressClaimRestorationData) ComputeHash() string {
 	if rd == nil {
 		return ""
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant+rd.Vrf)))
 }
