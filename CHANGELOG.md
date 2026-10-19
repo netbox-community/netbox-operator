@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.75] - 2026-10-19
+
+<!-- Release notes generated using configuration in .github/release.yml at 841474871a6ce8fba8eb70b167ccc9ba1b66a8e6 -->
+
+## What's Changed
+### Contributions
+* remove flaky condition by @bruelea in https://github.com/netbox-community/netbox-operator/pull/652
+* bugfix improve stability of forced ipv4 path by @bruelea in https://github.com/netbox-community/netbox-operator/pull/653
+* Build(deps): bump the go-dependencies group with 13 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/656
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.74...v0.2.75
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.75)
+
+---
+
 ## [v0.2.74] - 2026-10-12
 
 <!-- Release notes generated using configuration in .github/release.yml at f0f11cd88cf055b277c6f1c0b360a521d842b1b1 -->
