@@ -60,10 +60,9 @@ func (c *NetboxCompositeClient) writablePrefixRequestV4(prefix *models.Prefix) (
 
 	if prefix.Metadata != nil {
 		desiredPrefix.SetComments(prefix.Metadata.Comments + warningComment)
-		// Convert map[string]string to map[string]interface{}
-		customFields := make(map[string]interface{}, len(prefix.Metadata.Custom))
-		for k, v := range prefix.Metadata.Custom {
-			customFields[k] = v
+		customFields, err := c.convertCustomFields(prefix.Metadata.Custom)
+		if err != nil {
+			return nil, err
 		}
 		desiredPrefix.SetCustomFields(customFields)
 		desiredPrefix.SetDescription(TruncateDescription(prefix.Metadata.Description))
