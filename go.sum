@@ -60,8 +60,8 @@ github.com/go-openapi/runtime/server-middleware v0.33.3 h1:Td5UBla/J/KCjlsD0tmZY
 github.com/go-openapi/runtime/server-middleware v0.33.3/go.mod h1:dopwrwqIqXe4xWtovDZkkXJzYqKw+Ybmy7G/hIDUWKY=
 github.com/go-openapi/spec v1.0.1 h1:lj2vdGpNDcVgwRc6qXdw6qt/KQpCtSa9tnUH6vpDPDk=
 github.com/go-openapi/spec v1.0.1/go.mod h1:M//GWQGtDUAjnP37gE6fInLgaczB+FatoipV3H1fYw8=
-github.com/go-openapi/strfmt v0.27.3 h1:cyf4J5Wjpd6bFpAs44MF8PsbWF/mWXhn82Ck/hgQZgw=
-github.com/go-openapi/strfmt v0.27.3/go.mod h1:Bl+xadPLa3nhBiaCAxNND1vrQfzyEjF0vBrLx96n/4E=
+github.com/go-openapi/strfmt v0.27.4 h1:E1xsvHb8R9vsuYru4TP2PVVTv9AIgSFAUACUZrFQfCI=
+github.com/go-openapi/strfmt v0.27.4/go.mod h1:SCOff81PPhU26acBiW96jHaFycEbT2nkQRvojM+V2z0=
 github.com/go-openapi/swag v0.29.2 h1:9n8frkcsuQRA0INU31VbxNxt1zBaHxrHYGEf5BUjFi4=
 github.com/go-openapi/swag v0.29.2/go.mod h1:RkCiX1gCVXWgLOavDXE3ALJrQ/VO2ziiIzOUs3z10xo=
 github.com/go-openapi/swag/cmdutils v0.29.2 h1:cXEzX/nWCODon251f+1HgL75/R4XXML5IZxgLCWMoro=
@@ -92,8 +92,8 @@ github.com/go-openapi/testify/enable/yaml/v2 v2.8.0 h1:dvOQNZ2ovOdogn902NYq7i6jU
 github.com/go-openapi/testify/enable/yaml/v2 v2.8.0/go.mod h1:3VwZZUT6nWcAjhIr2RypXxlsxd3mPPtXh3T8z65aRlQ=
 github.com/go-openapi/testify/v2 v2.8.0 h1:19QDx5b57p8KjO2E4sgs/woL4Akp+FGLRlVm2xn0Rho=
 github.com/go-openapi/testify/v2 v2.8.0/go.mod h1:4gUN8jC+RqOE2qjW/vDmfyTvl5BCht4qL7oca0odrak=
-github.com/go-openapi/validate v1.0.0 h1:dFsYCLVUQUL6Vi2lQSexgwmCXDuHe7eWRDhQxkE+xYA=
-github.com/go-openapi/validate v1.0.0/go.mod h1:wwXGRqMQzOZ7PCqBcgNk+DD9+Cacnxv7we5T0M/eA3Y=
+github.com/go-openapi/validate v1.0.1 h1:Z337eNvBb5KhZiKtjBKfpk2ZHPI8otENKyp/I60XVos=
+github.com/go-openapi/validate v1.0.1/go.mod h1:2ZKOLz7jBYipFCn3IDGwppZwtbUHlQTMuKfSWTO7Nqk=
 github.com/go-task/slim-sprig/v3 v3.0.0 h1:sUs3vkvUymDpBKi3qH1YSqBQk9+9D/8M2mN1vB6EwHI=
 github.com/go-task/slim-sprig/v3 v3.0.0/go.mod h1:W848ghGpv3Qj3dhTPRyJypKRiqCdHZiAzKg9hl15HA8=
 github.com/go-test/deep v1.1.2 h1:JUuyv17rKrqYfLFnP9A4Yh6hw0635ugB93bMg2bwuDQ=
@@ -169,8 +169,8 @@ github.com/prometheus/client_model v0.6.3 h1:O0jaTVAYNxTHYInEPFJt5I3+sN8zqBtVMPT
 github.com/prometheus/client_model v0.6.3/go.mod h1:gpN5P9S7Rr6Yr92PiQ+Ixvhf6JZEkF1dnxsYL2aPBEM=
 github.com/prometheus/common v0.72.1 h1:ZAiQed/nk8IIcsdzb2TlJu23NEUDyDLQ9TXTN2WRK6Y=
 github.com/prometheus/common v0.72.1/go.mod h1:1IoBY4IRaJnhs2ESjNzjilP1cJ/P8pimGoomq7zRXrA=
-github.com/prometheus/procfs v0.22.0 h1:6q9+/JL9IKAPbCmBrv9n5O5Ty3NKnciV5X7YGw0oics=
-github.com/prometheus/procfs v0.22.0/go.mod h1:CvmFr/GVhIjIvWJZW3tgkODBQMRIf0EyWMQLHCHab58=
+github.com/prometheus/procfs v0.23.0 h1:ad+S6FTkzwaMgacKLM5h6bNKExS+DMH0YiUwXItH/o4=
+github.com/prometheus/procfs v0.23.0/go.mod h1:3AVXO0FqLafyYFU/V/IQRZlC8Rgqz8Dm/x6pKLK+RIk=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
 github.com/robfig/cron/v3 v3.0.1/go.mod h1:eQICP3HwyT7UooqI/z+Ov+PtYAWygg1TEWWzGIFLtro=
 github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
@@ -199,8 +199,8 @@ github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWD
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
-github.com/swisscom/leaselocker v0.4.35 h1:z9NgKZ0JcgicAC5aikQw2GfiPGRz8A99O4lboAcVPmc=
-github.com/swisscom/leaselocker v0.4.35/go.mod h1:hS7/jV+U/nDnuCRlnlVCyt2aJKR/+KoNUW3B/5bpHJk=
+github.com/swisscom/leaselocker v0.4.36 h1:quytO6NZ9ZE0jlssQ1AC82FqIso+lzazwZ+Smnqh54E=
+github.com/swisscom/leaselocker v0.4.36/go.mod h1:0SFnXxrxSmbtvtkHHRDxgnkv5ZORi+s/3LfD8Qwi238=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
