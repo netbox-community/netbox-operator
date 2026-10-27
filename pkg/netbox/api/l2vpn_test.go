@@ -121,6 +121,43 @@ func TestL2VPN(t *testing.T) {
 		assert.Equal(t, name, actual.Name)
 	})
 
+	t.Run("reserve new l2vpn with non-text custom field", func(t *testing.T) {
+		mockVpnAPI := mock_interfaces.NewMockVpnAPI(ctrl)
+		mockCreateRequest := mock_interfaces.NewMockVpnL2vpnsCreateRequest(ctrl)
+		mockListRequest := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)
+
+		mockVpnAPI.EXPECT().VpnL2vpnsList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockListRequest)
+		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{Results: []v4client.L2VPN{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		var customFields map[string]interface{}
+		mockVpnAPI.EXPECT().VpnL2vpnsCreate(gomock.Any()).Return(mockCreateRequest)
+		mockCreateRequest.EXPECT().
+			WritableL2VPNRequest(gomock.Any()).
+			Do(func(req v4client.WritableL2VPNRequest) { customFields = req.GetCustomFields() }).
+			Return(mockCreateRequest)
+		expectedResp := expectedL2VPN()
+		mockCreateRequest.EXPECT().Execute().Return(&expectedResp, &http.Response{StatusCode: 201, Body: http.NoBody}, nil)
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{VpnAPI: mockVpnAPI},
+			clientV3: &NetboxClientV3{Extras: mockCustomFieldTypes(ctrl, map[string]string{"json": "json"})},
+		}
+
+		_, _, err := compositeClient.ReserveOrUpdateL2VPN(context.TODO(),
+			&models.L2VPN{
+				Name:       name,
+				Type:       l2vpnType,
+				Identifier: identifier,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{"json": `{"key": "value"}`},
+				},
+			}, &netboxv1.L2VPN{})
+
+		AssertNil(t, err)
+		assert.Equal(t, map[string]interface{}{"json": map[string]interface{}{"key": "value"}}, customFields)
+	})
+
 	t.Run("restoration hash mismatch", func(t *testing.T) {
 		mockVpnAPI := mock_interfaces.NewMockVpnAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockVpnL2vpnsListRequest(ctrl)

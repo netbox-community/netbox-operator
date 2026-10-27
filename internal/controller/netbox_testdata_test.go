@@ -250,7 +250,7 @@ var int64TenantId = int64(tenantId)
 var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
 	Comments: comments + warningComment,
-	CustomFields: map[string]string{
+	CustomFields: map[string]interface{}{
 		"example_field": "example value",
 	},
 	Description: nsn + description + warningComment,
@@ -261,7 +261,7 @@ var expectedIpToUpdate = &netboxModels.WritableIPAddress{
 var expectedIpToUpdateWithHash = &netboxModels.WritableIPAddress{
 	Address:  &ipAddress,
 	Comments: comments + warningComment,
-	CustomFields: map[string]string{
+	CustomFields: map[string]interface{}{
 		"example_field":                 "example value",
 		"netboxOperatorRestorationHash": restorationHash,
 	},
