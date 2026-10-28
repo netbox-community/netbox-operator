@@ -57,13 +57,21 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 		tlsConfig.RootCAs = caRootPool
 	}
 
-	httpClient := &http.Client{
-		Transport: &InstrumentedRoundTripper{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-			},
+	var httpTransport http.RoundTripper = &InstrumentedRoundTripper{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
 		},
-		Timeout: time.Second * time.Duration(RequestTimeout),
+	}
+	if file := config.GetOperatorConfig().AuthTokenFile; file != "" {
+		httpTransport = &TokenFileRoundTripper{
+			TokenFile: file,
+			Transport: httpTransport,
+		}
+	}
+
+	httpClient := &http.Client{
+		Transport: httpTransport,
+		Timeout:   time.Second * time.Duration(RequestTimeout),
 	}
 
 	desiredRuntimeClientScheme := "http"
@@ -74,7 +82,9 @@ func GetNetboxClientV4() (*NetboxClientV4, error) {
 	cfg := v4client.NewConfiguration()
 	cfg.Scheme = desiredRuntimeClientScheme
 	cfg.Host = config.GetOperatorConfig().NetboxHost
-	cfg.DefaultHeader["Authorization"] = fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken)
+	if config.GetOperatorConfig().AuthTokenFile == "" {
+		cfg.DefaultHeader["Authorization"] = fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken)
+	}
 	cfg.HTTPClient = httpClient
 	client := v4client.NewAPIClient(cfg)
 

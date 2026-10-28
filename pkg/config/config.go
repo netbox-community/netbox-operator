@@ -38,6 +38,7 @@ type OperatorConfig struct {
 	CaCert                         string `mapstructure:"CA_CERT"`
 	NetboxHost                     string `mapstructure:"NETBOX_HOST"`
 	AuthToken                      string `mapstructure:"AUTH_TOKEN"`
+	AuthTokenFile                  string `mapstructure:"AUTH_TOKEN_FILE"`
 	HttpsEnable                    bool   `mapstructure:"HTTPS_ENABLE"`
 	DebugEnable                    bool   `mapstructure:"DEBUG_ENABLE"`
 	NetboxRestorationHashFieldName string `mapstructure:"NETBOX_RESTORATION_HASH_FIELD_NAME"`
