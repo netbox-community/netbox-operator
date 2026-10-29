@@ -107,10 +107,8 @@ func GetNetboxClient() (*NetboxClientV3, error) {
 		},
 	}
 	if file := config.GetOperatorConfig().AuthTokenFile; file != "" {
-		httpTransport = &TokenFileRoundTripper{
-			TokenFile: file,
-			Transport: httpTransport,
-		}
+		logger.WithField("path", file).Info("Using token file for auth")
+		httpTransport = NewTokenFileRoundTripper(httpTransport, file, logger)
 	}
 
 	httpClient := &http.Client{
