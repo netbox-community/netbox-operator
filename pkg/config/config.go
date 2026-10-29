@@ -38,6 +38,7 @@ type OperatorConfig struct {
 	CaCert                         string `mapstructure:"CA_CERT"`
 	NetboxHost                     string `mapstructure:"NETBOX_HOST"`
 	AuthToken                      string `mapstructure:"AUTH_TOKEN"`
+	AuthTokenFile                  string `mapstructure:"AUTH_TOKEN_FILE"`
 	HttpsEnable                    bool   `mapstructure:"HTTPS_ENABLE"`
 	DebugEnable                    bool   `mapstructure:"DEBUG_ENABLE"`
 	NetboxRestorationHashFieldName string `mapstructure:"NETBOX_RESTORATION_HASH_FIELD_NAME"`
@@ -64,6 +65,7 @@ func (c *OperatorConfig) setDefaults() {
 	c.viper.SetDefault("CA_CERT", "")
 	c.viper.SetDefault("NETBOX_HOST", "")
 	c.viper.SetDefault("AUTH_TOKEN", "")
+	c.viper.SetDefault("AUTH_TOKEN_FILE", "")
 	c.viper.SetDefault("HTTPS_ENABLE", true)
 	c.viper.SetDefault("DEBUG_ENABLE", false)
 	c.viper.SetDefault("NETBOX_RESTORATION_HASH_FIELD_NAME", "netboxOperatorRestorationHash")

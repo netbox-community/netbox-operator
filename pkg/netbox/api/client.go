@@ -101,19 +101,27 @@ func GetNetboxClient() (*NetboxClientV3, error) {
 		tlsConfig.RootCAs = caRootPool
 	}
 
-	httpClient := &http.Client{
-		Transport: &InstrumentedRoundTripper{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-			},
+	var httpTransport http.RoundTripper = &InstrumentedRoundTripper{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
 		},
-		Timeout: time.Second * time.Duration(RequestTimeout),
+	}
+	if file := config.GetOperatorConfig().AuthTokenFile; file != "" {
+		logger.WithField("path", file).Info("Using token file for auth")
+		httpTransport = NewTokenFileRoundTripper(httpTransport, file, logger)
+	}
+
+	httpClient := &http.Client{
+		Transport: httpTransport,
+		Timeout:   time.Second * time.Duration(RequestTimeout),
 	}
 
 	transport := httptransport.NewWithClient(config.GetOperatorConfig().NetboxHost, v3client.DefaultBasePath, desiredRuntimeClientSchemes, httpClient)
-	transport.DefaultAuthentication = httptransport.APIKeyAuth("Authorization",
-		"header",
-		fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken))
+	if config.GetOperatorConfig().AuthTokenFile == "" {
+		transport.DefaultAuthentication = httptransport.APIKeyAuth("Authorization",
+			"header",
+			fmt.Sprintf("Token %v", config.GetOperatorConfig().AuthToken))
+	}
 	transport.SetLogger(log.StandardLogger())
 
 	auxNetboxClient := v3client.New(transport, nil)
