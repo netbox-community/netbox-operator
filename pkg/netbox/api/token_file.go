@@ -29,15 +29,15 @@ type TokenFileRoundTripper struct {
 
 	tokenCache *atomic.Pointer[tokenCache]
 	watcher    *fsnotify.Watcher
-	logger     *log.Logger
+	logger     log.FieldLogger
 }
 
-func NewTokenFileRoundTripper(transport http.RoundTripper, file string, logger *log.Logger) *TokenFileRoundTripper {
+func NewTokenFileRoundTripper(transport http.RoundTripper, file string, logger log.FieldLogger) *TokenFileRoundTripper {
 	tfr := &TokenFileRoundTripper{
 		TokenFile:  file,
 		Transport:  transport,
 		tokenCache: new(atomic.Pointer[tokenCache]),
-		logger:     logger,
+		logger:     logger.WithField("path", file),
 	}
 
 	watcher, err := fsnotify.NewWatcher()
@@ -53,12 +53,12 @@ func NewTokenFileRoundTripper(transport http.RoundTripper, file string, logger *
 				select {
 				case <-ctx.Done():
 					return
-				case <-watcher.Events:
+				case ev := <-watcher.Events:
 					_, err := tfr.reloadFile()
 					if err != nil {
-						logger.Warnf("unable to reload auth token file at %s: %v", file, err)
+						logger.WithError(err).Warn("unable to reload auth token file")
 					} else {
-						logger.Debug("reloaded auth token file based on FS event")
+						logger.WithField("event", ev.Op).Debug("reloaded auth token file based on FS event")
 					}
 				}
 			}
@@ -89,6 +89,7 @@ func (tfr *TokenFileRoundTripper) reloadFile() (*tokenCache, error) {
 		return nil, errors.New("auth token file is empty")
 	}
 	tfr.tokenCache.Store(cacheItem)
+	tfr.logger.Debug("reloaded auth token file")
 	return cacheItem, nil
 }
 
