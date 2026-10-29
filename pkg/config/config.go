@@ -65,6 +65,7 @@ func (c *OperatorConfig) setDefaults() {
 	c.viper.SetDefault("CA_CERT", "")
 	c.viper.SetDefault("NETBOX_HOST", "")
 	c.viper.SetDefault("AUTH_TOKEN", "")
+	c.viper.SetDefault("AUTH_TOKEN_FILE", "")
 	c.viper.SetDefault("HTTPS_ENABLE", true)
 	c.viper.SetDefault("DEBUG_ENABLE", false)
 	c.viper.SetDefault("NETBOX_RESTORATION_HASH_FIELD_NAME", "netboxOperatorRestorationHash")
