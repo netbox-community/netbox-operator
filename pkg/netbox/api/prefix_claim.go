@@ -227,18 +227,18 @@ func (c *NetboxCompositeClient) isParentPrefixCandidate(ctx context.Context, pre
 	return nil
 }
 
-// GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
-func (c *NetboxCompositeClient) GetAvailablePrefixByClaim(ctx context.Context, prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
+// resolveParentPrefix validates the claim and returns the NetBox ID of its parent prefix
+func (c *NetboxCompositeClient) resolveParentPrefix(ctx context.Context, prefixClaim *models.PrefixClaim) (int32, error) {
 	_, err := c.getTenantDetails(prefixClaim.Metadata.Tenant)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	// Don't assign an prefix if the requested site doesn't exist in netbox
 	if prefixClaim.Metadata.Site != "" {
 		_, err := c.getSiteDetails(prefixClaim.Metadata.Site)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 	}
 
@@ -249,17 +249,86 @@ func (c *NetboxCompositeClient) GetAvailablePrefixByClaim(ctx context.Context, p
 			Metadata: prefixClaim.Metadata,
 		})
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	if len(responseParentPrefix.Results) == 0 {
-		return nil, ErrParentPrefixNotFound
+		return 0, ErrParentPrefixNotFound
 	}
 
 	if err := validatePrefixLengthOrError(prefixClaim, int64(*responseParentPrefix.Results[0].Family.Value)); err != nil {
+		return 0, err
+	}
+
+	return responseParentPrefix.Results[0].Id, nil
+}
+
+// AllocatePrefixByClaim atomically allocates a Prefix of the requested length from the parent prefix
+// using NetBox's available-prefixes endpoint, which avoids races with other NetBox clients.
+// NetBox picks the prefix (first-fit) and creates it with the metadata of the claim.
+func (c *NetboxCompositeClient) AllocatePrefixByClaim(ctx context.Context, prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
+	parentPrefixId, err := c.resolveParentPrefix(ctx, prefixClaim)
+	if err != nil {
 		return nil, err
 	}
 
-	parentPrefixId := responseParentPrefix.Results[0].Id
+	prefixLength, err := strconv.Atoi(strings.TrimPrefix(prefixClaim.PrefixLength, "/"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid prefix length %q: %w", prefixClaim.PrefixLength, err)
+	}
+
+	isLegacy, err := c.clientV4.isLegacyNetBox(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	body := map[string]any{
+		"prefix_length": prefixLength,
+		"status":        "active",
+	}
+	if m := prefixClaim.Metadata; m != nil {
+		body["comments"] = m.Comments + warningComment
+		body["description"] = TruncateDescription(m.Description)
+		customFields := make(map[string]any, len(m.Custom))
+		for k, v := range m.Custom {
+			customFields[k] = v
+		}
+		body["custom_fields"] = customFields
+
+		if m.Tenant != "" {
+			tenantDetails, err := c.getTenantDetails(m.Tenant)
+			if err != nil {
+				return nil, err
+			}
+			body["tenant"] = tenantDetails.Id
+		}
+		if m.Site != "" {
+			siteDetails, err := c.getSiteDetails(m.Site)
+			if err != nil {
+				return nil, err
+			}
+			if isLegacy {
+				body["site"] = siteDetails.Id
+			} else {
+				body["scope_type"] = "dcim.site"
+				body["scope_id"] = siteDetails.Id
+			}
+		}
+	}
+
+	prefix, err := c.clientV4.allocatePrefix(ctx, parentPrefixId, body)
+	if err != nil {
+		return nil, err
+	}
+	return &models.Prefix{Prefix: prefix}, nil
+}
+
+// GetAvailablePrefixByClaim searches an available Prefix in Netbox matching PrefixClaim requirements
+// without allocating it. Use AllocatePrefixByClaim to reserve a prefix.
+func (c *NetboxCompositeClient) GetAvailablePrefixByClaim(ctx context.Context, prefixClaim *models.PrefixClaim) (*models.Prefix, error) {
+	parentPrefixId, err := c.resolveParentPrefix(ctx, prefixClaim)
+	if err != nil {
+		return nil, err
+	}
 
 	/* Notes regarding the available prefix returned by netbox
 
