@@ -48,9 +48,9 @@ The map contains a set of query conditions for selecting a set of prefixes that 
 The query conditions will be chained by the AND operator, and exact match of the keys and values will be performed.
 
 The fields that can be used as query conditions in the `parentPrefixSelector` are:
-- `tenant`, `site`, and `family` (in lowercase characters)
+- `tenant`, `site`, `role`, and `family` (in lowercase characters)
     - these fields are built-in fields from NetBox, so you do *not* need to create custom fields for them
-    - please provide the *name*, not the *slug* value for `tenant` and `site`
+    - please provide the *name*, not the *slug* value for `tenant`, `site` and `role`
     - if the entry for `tenant` and `site` fields is missing, it will *not* inherit from the Spec
 - custom fields
     - the data types tested and supported so far are `string`, `integer`, and `boolean`
