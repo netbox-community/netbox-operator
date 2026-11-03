@@ -17,6 +17,10 @@ endif
 # tools. (i.e. podman)
 CONTAINER_TOOL ?= docker
 
+# Tool release archives are published per OS/arch.
+HOST_OS := $(shell go env GOOS)
+HOST_ARCH := $(shell go env GOARCH)
+
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
@@ -48,16 +52,6 @@ install-$(GO_PACKAGE_NAME_GOLANGCI_LINT):
 		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.60.3 ; \
 	else \
 		echo "$(GO_PACKAGE_NAME_GOLANGCI_LINT) is installed" ; \
-	fi
-
-# check if chainsaw is installed or not
-GO_PACKAGE_NAME_CHAINSAW := chainsaw
-install-$(GO_PACKAGE_NAME_CHAINSAW):
-	@if [ ! -x "$(GOBIN)/$(GO_PACKAGE_NAME_CHAINSAW)" ]; then \
-		echo "Installing $(GO_PACKAGE_NAME_CHAINSAW)..." ; \
-		GOTOOLCHAIN=go1.25.9 go install github.com/kyverno/chainsaw@v0.2.14 ; \
-	else \
-		echo "$(GO_PACKAGE_NAME_CHAINSAW) is installed" ; \
 	fi
 
 .PHONY: all
@@ -187,8 +181,14 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 create-kind:
 	./kind/local-env.sh
 
+.PHONY: build-artifacts
+build-artifacts: docker-build-local manifests kustomize chainsaw ## Build everything the e2e run needs that does not depend on a cluster.
+
 .PHONY: deploy-kind
-deploy-kind: docker-build-local manifests kustomize
+deploy-kind: build-artifacts load-kind
+
+.PHONY: load-kind
+load-kind: kustomize ## Load the already-built operator image into the running kind cluster and deploy it.
 	kind load docker-image ${LOCAL_IMG}
 	kind load docker-image ${LOCAL_IMG}  # fixes an issue with podman where the image is not correctly tagged after the first kind load docker-image
 	$(KUSTOMIZE) build kind | $(KUBECTL) apply -f -
@@ -209,11 +209,35 @@ KUBECTL ?= kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+CHAINSAW ?= $(LOCALBIN)/chainsaw
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.16.4
+CHAINSAW_VERSION ?= v0.2.14
+
+CHAINSAW_RELEASE_URL := https://github.com/kyverno/chainsaw/releases/download/$(CHAINSAW_VERSION)
+
+# Downloads a release tarball, verifies it against the checksums.txt published with
+# that release and installs a single binary out of it. Building these tools from
+# source instead costs several minutes per CI job.
+# $(1) tarball URL, $(2) checksums.txt URL, $(3) binary name inside the tarball, $(4) destination
+define install-release-tarball
+tmp=$$(mktemp -d); \
+trap 'rm -rf "$$tmp"' EXIT; \
+curl -fsSL -o "$$tmp/$(notdir $(1))" "$(1)"; \
+curl -fsSL -o "$$tmp/checksums.txt" "$(2)"; \
+if command -v sha256sum >/dev/null 2>&1; then sha256="sha256sum"; else sha256="shasum -a 256"; fi; \
+expected=$$(awk '$$2 == "$(notdir $(1))" { print $$1 }' "$$tmp/checksums.txt"); \
+actual=$$($$sha256 "$$tmp/$(notdir $(1))" | cut -d ' ' -f 1); \
+if [ -z "$$expected" ] || [ "$$expected" != "$$actual" ]; then \
+    echo "checksum verification failed for $(notdir $(1))" >&2; \
+    exit 1; \
+fi; \
+tar -xzf "$$tmp/$(notdir $(1))" -C "$$tmp" $(3); \
+install -m 0755 "$$tmp/$(3)" "$(4)"
+endef
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.
@@ -223,6 +247,13 @@ $(KUSTOMIZE): $(LOCALBIN)
 		rm -rf $(LOCALBIN)/kustomize; \
 	fi
 	test -s $(LOCALBIN)/kustomize || GOBIN=$(LOCALBIN) GO111MODULE=on go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
+
+.PHONY: chainsaw
+chainsaw: $(LOCALBIN) ## Download chainsaw locally if necessary. If wrong version is installed, it will be overwritten.
+	@# grep -q would close the pipe early and, with `-o pipefail`, SIGPIPE the tool.
+	@if test -x $(CHAINSAW) && $(CHAINSAW) version | grep -F "Version: $(CHAINSAW_VERSION:v%=%)" >/dev/null; then exit 0; fi; \
+	echo "Installing chainsaw $(CHAINSAW_VERSION)..."; \
+	$(call install-release-tarball,$(CHAINSAW_RELEASE_URL)/chainsaw_$(HOST_OS)_$(HOST_ARCH).tar.gz,$(CHAINSAW_RELEASE_URL)/checksums.txt,chainsaw,$(CHAINSAW))
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
@@ -240,32 +271,55 @@ generate_mocks: ## TODO: auto install go install go.uber.org/mock/mockgen@latest
 	mockgen -destination ${GEN_DIR}/${NETBOX_MOCKS_OUTPUT_FILE} -source=${INTERFACE_DEFITIONS_DIR}
 
 # e2e tests
-E2E_PARAM := --namespace e2e --parallel 3 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
+E2E_PARAM := --namespace e2e --parallel 15 --apply-timeout 3m --assert-timeout 3m --delete-timeout 3m --error-timeout 3m --exec-timeout 3m --cleanup-timeout 3m # --skip-delete (add this argument for local debugging)
+
+# Brings the cluster up while the operator image and the tooling are built; the two
+# share no inputs and only meet at `kind load`. Each branch runs in a subshell so that
+# $$! is the subshell rather than the tail of its output pipe, which would hide failures.
+# $(1) netbox version
+define setup-e2e
+	@set -e; \
+	( $(MAKE) --no-print-directory create-kind-$(1) 2>&1 | sed 's/^/[cluster] /'; exit $${PIPESTATUS[0]} ) & cluster_pid=$$!; \
+	( $(MAKE) --no-print-directory build-artifacts   2>&1 | sed 's/^/[build]   /'; exit $${PIPESTATUS[0]} ) & build_pid=$$!; \
+	wait $$cluster_pid && cluster_rc=0 || cluster_rc=$$?; \
+	wait $$build_pid   && build_rc=0   || build_rc=$$?; \
+	if [ $$cluster_rc -ne 0 ]; then echo "cluster setup failed ($$cluster_rc)" >&2; fi; \
+	if [ $$build_rc -ne 0 ]; then echo "image/tool build failed ($$build_rc)" >&2; fi; \
+	[ $$cluster_rc -eq 0 ] && [ $$build_rc -eq 0 ]
+endef
 
 .PHONY: test-e2e
-test-e2e: install-$(GO_PACKAGE_NAME_CHAINSAW) ## Run e2e tests against the cluster in the current kube context.
-	chainsaw test $(E2E_PARAM)
+test-e2e: chainsaw ## Run e2e tests against the cluster in the current kube context.
+	$(CHAINSAW) test $(E2E_PARAM)
 
 .PHONY: create-kind-3.7.8
 create-kind-3.7.8:
 	./kind/local-env.sh --version 3.7.8
 .PHONY: test-e2e-3.7.8
-test-e2e-3.7.8: create-kind-3.7.8 deploy-kind test-e2e
+test-e2e-3.7.8:
+	$(call setup-e2e,3.7.8)
+	$(MAKE) load-kind test-e2e
 
 .PHONY: create-kind-4.0.11
 create-kind-4.0.11:
 	./kind/local-env.sh --version 4.0.11
 .PHONY: test-e2e-4.0.11
-test-e2e-4.0.11: create-kind-4.0.11 deploy-kind test-e2e
+test-e2e-4.0.11:
+	$(call setup-e2e,4.0.11)
+	$(MAKE) load-kind test-e2e
 
 .PHONY: create-kind-4.1.10
 create-kind-4.1.10:
 	./kind/local-env.sh --version 4.1.10
 .PHONY: test-e2e-4.1.10
-test-e2e-4.1.10: create-kind-4.1.10 deploy-kind test-e2e
+test-e2e-4.1.10:
+	$(call setup-e2e,4.1.10)
+	$(MAKE) load-kind test-e2e
 
 .PHONY: create-kind-4.4.9
 create-kind-4.4.9:
 	./kind/local-env.sh --version 4.4.9
 .PHONY: test-e2e-4.4.9
-test-e2e-4.4.9: create-kind-4.4.9 deploy-kind test-e2e
+test-e2e-4.4.9:
+	$(call setup-e2e,4.4.9)
+	$(MAKE) load-kind test-e2e
