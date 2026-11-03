@@ -16,6 +16,8 @@ limitations under the License.
 
 package api
 
+import "sync"
+
 // NetboxCompositeClient holds both the v3 and v4 clients,
 // presenting a single unified interface to callers (controllers).
 // The v4 client was introduced because of braking changes in the
@@ -24,6 +26,9 @@ package api
 type NetboxCompositeClient struct {
 	clientV3 *NetboxClientV3
 	clientV4 *NetboxClientV4
+
+	// custom field name -> type
+	customFieldTypes sync.Map
 }
 
 // NewNetboxCompositeClient creates a new composite client wrapping both v3 and v4 clients.
