@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanClaim
+metadata:
+  name: vlanclaim-range-restore-1
+spec:
+  tenant: "MY_TENANT"
+  site: "MY_SITE"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  vidRangeStart: 140
+  vidRangeEnd: 149
