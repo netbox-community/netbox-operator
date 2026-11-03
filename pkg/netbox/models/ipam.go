@@ -79,6 +79,20 @@ type IpRangeClaim struct {
 	Metadata     *NetboxMetadata `json:"metadata,omitempty"`
 }
 
+type Vlan struct {
+	Name     string          `json:"name,omitempty"`
+	Vid      int32           `json:"vid,omitempty"`
+	Status   string          `json:"status,omitempty"`
+	Id       int64           `json:"id,omitempty"`
+	Metadata *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type VlanClaim struct {
+	VidRangeStart int32           `json:"vidRangeStart,omitempty"`
+	VidRangeEnd   int32           `json:"vidRangeEnd,omitempty"`
+	Metadata      *NetboxMetadata `json:"metadata,omitempty"`
+}
+
 type ASN struct {
 	Asn      int64           `json:"asn,omitempty"`
 	Id       int64           `json:"id,omitempty"`
