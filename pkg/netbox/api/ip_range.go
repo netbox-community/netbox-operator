@@ -87,7 +87,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpRange(ctx context.Context, ipRa
 	}
 
 	if ipRange.Metadata != nil && ipRange.Metadata.Vrf != "" {
-		vrfDetails, err := c.GetVrfDetails(ipRange.Metadata.Vrf)
+		vrfDetails, err := c.getVrfDetails(ipRange.Metadata.Vrf)
 		if err != nil {
 			return nil, false, err
 		}

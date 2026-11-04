@@ -94,7 +94,7 @@ func (rd *IpRangeClaimRestorationData) ComputeHash() string {
 	if rd == nil {
 		return ""
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant+rd.Size)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.ParentPrefix+rd.Tenant+rd.Size+rd.Vrf)))
 }
 
 // ipsInRange returns all IP addresses from startAddr to endAddr (inclusive).

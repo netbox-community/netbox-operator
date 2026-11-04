@@ -87,7 +87,7 @@ func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Pref
 		}
 
 		if prefix.Metadata.Vrf != "" {
-			vrfDetails, err := c.GetVrfDetails(prefix.Metadata.Vrf)
+			vrfDetails, err := c.getVrfDetails(prefix.Metadata.Vrf)
 			if err != nil {
 				return nil, err
 			}

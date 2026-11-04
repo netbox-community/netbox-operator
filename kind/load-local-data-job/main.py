@@ -108,6 +108,10 @@ vrfs = [
         name="MY_VRF",
         rd="65000:1000",
     ),
+    Vrf(
+        name="MY_OTHER_VRF",
+        rd="65000:1001",
+    ),
 ]
 
 for vrf in vrfs:

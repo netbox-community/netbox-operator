@@ -77,7 +77,7 @@ func (c *NetboxCompositeClient) writablePrefixRequestV4(prefix *models.Prefix) (
 			desiredPrefix.SetTenant(v4client.Int32AsASNRangeRequestTenant(&tenantId))
 		}
 		if prefix.Metadata.Vrf != "" {
-			vrfDetails, err := c.GetVrfDetails(prefix.Metadata.Vrf)
+			vrfDetails, err := c.getVrfDetails(prefix.Metadata.Vrf)
 			if err != nil {
 				return nil, err
 			}

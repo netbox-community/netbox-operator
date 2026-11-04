@@ -23,7 +23,7 @@ import (
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
-func (c *NetboxCompositeClient) GetVrfDetails(name string) (*models.Vrf, error) {
+func (c *NetboxCompositeClient) getVrfDetails(name string) (*models.Vrf, error) {
 	request := ipam.NewIpamVrfsListParams().WithName(&name)
 	response, err := c.clientV3.Ipam.IpamVrfsList(request, nil)
 	if err != nil {

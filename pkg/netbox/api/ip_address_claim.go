@@ -81,7 +81,7 @@ func (c *NetboxCompositeClient) GetAvailableIpAddressByClaim(ctx context.Context
 
 	// Don't assign an IP if the requested VRF doesn't exist in netbox
 	if ipAddressClaim.Metadata.Vrf != "" {
-		_, err := c.GetVrfDetails(ipAddressClaim.Metadata.Vrf)
+		_, err := c.getVrfDetails(ipAddressClaim.Metadata.Vrf)
 		if err != nil {
 			return nil, err
 		}

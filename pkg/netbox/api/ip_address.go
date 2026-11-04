@@ -58,7 +58,7 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ctx context.Context, ip
 	}
 
 	if ipAddress.Metadata != nil && ipAddress.Metadata.Vrf != "" {
-		vrfDetails, err := c.GetVrfDetails(ipAddress.Metadata.Vrf)
+		vrfDetails, err := c.getVrfDetails(ipAddress.Metadata.Vrf)
 		if err != nil {
 			return nil, false, err
 		}

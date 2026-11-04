@@ -128,7 +128,7 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 	}
 
 	if vrf, ok := prefixClaimSpec.ParentPrefixSelector["vrf"]; ok {
-		details, err := c.GetVrfDetails(vrf)
+		details, err := c.getVrfDetails(vrf)
 		if err != nil {
 			return nil, err
 		}
@@ -254,7 +254,7 @@ func (c *NetboxCompositeClient) GetAvailablePrefixByClaim(ctx context.Context, p
 
 	// Don't assign a prefix if the requested VRF doesn't exist in netbox
 	if prefixClaim.Metadata.Vrf != "" {
-		_, err := c.GetVrfDetails(prefixClaim.Metadata.Vrf)
+		_, err := c.getVrfDetails(prefixClaim.Metadata.Vrf)
 		if err != nil {
 			return nil, err
 		}

@@ -55,7 +55,7 @@ func TestVrf_GetVrfDetails(t *testing.T) {
 		clientV3: clientV3,
 	}
 
-	actual, err := compositeClient.GetVrfDetails(vrf)
+	actual, err := compositeClient.getVrfDetails(vrf)
 	assert.NoError(t, err)
 	assert.Equal(t, vrf, actual.Name)
 	assert.Equal(t, vrfOutputId, actual.Id)
@@ -82,7 +82,7 @@ func TestVrf_GetEmptyResult(t *testing.T) {
 		clientV3: clientV3,
 	}
 
-	actual, err := compositeClient.GetVrfDetails(vrf)
+	actual, err := compositeClient.getVrfDetails(vrf)
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "failed to fetch vrf 'myVrf': not found")
 }
@@ -104,7 +104,7 @@ func TestVrf_GetError(t *testing.T) {
 		clientV3: clientV3,
 	}
 
-	actual, err := compositeClient.GetVrfDetails(vrf)
+	actual, err := compositeClient.getVrfDetails(vrf)
 	assert.Nil(t, actual)
 	assert.EqualError(t, err, "failed to fetch VRF details: "+expectedErr)
 }
