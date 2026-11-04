@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: IpAddressClaim
+metadata:
+  name: ipaddressclaim-ipv4-vrf-apply-update
+spec:
+  tenant: "MY_TENANT"
+  vrf: "MY_VRF"
+  description: "new description"
+  comments: "new comments"
+  preserveInNetbox: false
+  parentPrefix: "4.0.0.0/24"
