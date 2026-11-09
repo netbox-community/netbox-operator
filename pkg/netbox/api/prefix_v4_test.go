@@ -17,12 +17,18 @@ limitations under the License.
 package api
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
+	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/gen/mock_interfaces"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 	"github.com/stretchr/testify/assert"
@@ -260,4 +266,57 @@ func TestWritablePrefixRequestV4_SiteError(t *testing.T) {
 
 	assert.Nil(t, result)
 	assert.Error(t, err)
+}
+
+func newAllocateTestClient(t *testing.T, handler http.HandlerFunc) *NetboxClientV4 {
+	t.Helper()
+	srv := httptest.NewServer(handler)
+	t.Cleanup(srv.Close)
+
+	cfg := v4client.NewConfiguration()
+	cfg.Scheme = "http"
+	cfg.Host = strings.TrimPrefix(srv.URL, "http://")
+	cfg.DefaultHeader["Authorization"] = "Token test"
+	cfg.HTTPClient = srv.Client()
+	return &NetboxClientV4{client: v4client.NewAPIClient(cfg)}
+}
+
+func TestAllocatePrefix_Success(t *testing.T) {
+	var gotBody map[string]any
+	c := newAllocateTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/ipam/prefixes/42/available-prefixes/", r.URL.Path)
+		assert.Equal(t, "Token test", r.Header.Get("Authorization"))
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"id": 1, "prefix": "10.0.0.16/28"}`))
+	})
+
+	prefix, err := c.allocatePrefix(context.Background(), 42, map[string]any{"prefix_length": 28})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "10.0.0.16/28", prefix)
+	assert.EqualValues(t, 28, gotBody["prefix_length"])
+}
+
+func TestAllocatePrefix_NoSpace(t *testing.T) {
+	c := newAllocateTestClient(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"detail": "Insufficient space"}`))
+	})
+
+	_, err := c.allocatePrefix(context.Background(), 42, map[string]any{"prefix_length": 28})
+
+	assert.ErrorIs(t, err, ErrNoPrefixMatchsSizeCriteria)
+}
+
+func TestAllocatePrefix_OtherError(t *testing.T) {
+	c := newAllocateTestClient(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	})
+
+	_, err := c.allocatePrefix(context.Background(), 42, map[string]any{"prefix_length": 28})
+
+	assert.Error(t, err)
+	assert.NotErrorIs(t, err, ErrNoPrefixMatchsSizeCriteria)
 }
