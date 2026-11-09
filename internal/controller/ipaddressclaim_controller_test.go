@@ -213,6 +213,30 @@ var _ = Describe("IpAddressClaim Controller", Ordered, func() {
 				mockTenancyTenancyTenantsList,
 			},
 			true, true, ExpectedIpAddressClaimStatus, false),
+		Entry("Create IpAddressClaim CR with VRF, reserve new ip address in NetBox",
+			defaultIpAddressClaimCRWithVrf(), defaultIpAddressCreatedByClaimWithVrf(false), ExpectedIpAddressStatus,
+			[]func(*mock_interfaces.MockIpamAPI, chan error){
+				mockPrefixesList,
+			},
+			[]func(*mock_interfaces.MockIpamPrefixesListRequest, chan error){
+				mockPrefixesListRequestSetPrefix,
+				mockPrefixesListRequestExecute,
+			},
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithHashFilterEmptyResult,
+				mockPrefixesAvailableIpsList,
+				mockIpamVrfsList,
+			},
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockIpAddressListWithIpAddressFilterEmptyResult,
+				mockIpamIPAddressesCreateWithHashAndVrf,
+				mockIpAddressesDelete,
+				mockIpamVrfsList,
+			},
+			[]func(*mock_interfaces.MockTenancyInterface, chan error){
+				mockTenancyTenancyTenantsList,
+			},
+			true, true, ExpectedIpAddressClaimStatus, false),
 		Entry("Create IpAddressClaim CR, prefix locked by other resource",
 			defaultIpAddressClaimCR(), defaultIpAddressCreatedByClaim(false), nil,
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},

@@ -19,7 +19,51 @@ package controller
 import (
 	"testing"
 	"time"
+
+	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 )
+
+func testIpRangeClaimHash(t *testing.T, ipRangeClaim *netboxv1.IpRangeClaim, expectedHash string) {
+	generatedHash := generateIpRangeRestorationHash(ipRangeClaim)
+
+	if generatedHash != expectedHash {
+		t.Errorf("hash mismatch: expected %#v, got %#v from %#v", expectedHash, generatedHash, ipRangeClaim)
+	}
+}
+
+func TestBackwardCompatibilityOfGenerateIpRangeRestorationHash(t *testing.T) {
+	{
+		// pre-VRF hash, computed from the formula before vrf was added
+		// concatenated string = "defaultiprangeclaim-sample10.0.0.0/24Dunder-Mifflin, Inc.10"
+		ipRangeClaim := &netboxv1.IpRangeClaim{
+			Spec: netboxv1.IpRangeClaimSpec{
+				ParentPrefix: "10.0.0.0/24",
+				Tenant:       "Dunder-Mifflin, Inc.",
+				Size:         10,
+			},
+		}
+		ipRangeClaim.Namespace = "default"
+		ipRangeClaim.Name = "iprangeclaim-sample"
+
+		testIpRangeClaimHash(t, ipRangeClaim, "0c3cf71703d1403f5669efc24d80562931ad9096")
+	}
+	{
+		// same claim with spec.vrf set, must produce a different hash
+		// concatenated string = "defaultiprangeclaim-sample10.0.0.0/24Dunder-Mifflin, Inc.10red"
+		ipRangeClaim := &netboxv1.IpRangeClaim{
+			Spec: netboxv1.IpRangeClaimSpec{
+				ParentPrefix: "10.0.0.0/24",
+				Tenant:       "Dunder-Mifflin, Inc.",
+				Vrf:          "red",
+				Size:         10,
+			},
+		}
+		ipRangeClaim.Namespace = "default"
+		ipRangeClaim.Name = "iprangeclaim-sample"
+
+		testIpRangeClaimHash(t, ipRangeClaim, "ad58f3195aa7f778154bc09a8bb860a54f94b9df")
+	}
+}
 
 func TestIpsInRange_SingleIPv4(t *testing.T) {
 	ips, err := ipsInRange("10.0.0.1", "10.0.0.1")

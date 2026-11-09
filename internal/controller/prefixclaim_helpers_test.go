@@ -51,4 +51,37 @@ func TestBackwardCompatibilityOfGeneratePrefixRestorationHash(t *testing.T) {
 
 		testPrefixClaimHash(t, prefixClaim, "a0601ac7e6d196a82c0e61f9be17313113c3043f")
 	}
+	{
+		// pre-VRF hash for a claim with a parentPrefixSelector, computed from the formula before vrf was added
+		// concatenated string = "defaultprefixclaim-sample2.0.0.0/16/28Dunder-Mifflin, Inc.site_dc1"
+		prefixClaim := &netboxv1.PrefixClaim{
+			Spec: netboxv1.PrefixClaimSpec{
+				ParentPrefix:         "2.0.0.0/16",
+				PrefixLength:         "/28",
+				Tenant:               "Dunder-Mifflin, Inc.",
+				ParentPrefixSelector: map[string]string{"site": "dc1"},
+			},
+		}
+		prefixClaim.Namespace = "default"
+		prefixClaim.Name = "prefixclaim-sample"
+
+		testPrefixClaimHash(t, prefixClaim, "1f2ab0eb1f97f2e33d13e187b263e2584d0293d5")
+	}
+	{
+		// same claim with spec.vrf set, must produce a different hash
+		// concatenated string = "defaultprefixclaim-sample2.0.0.0/16/28Dunder-Mifflin, Inc.redsite_dc1"
+		prefixClaim := &netboxv1.PrefixClaim{
+			Spec: netboxv1.PrefixClaimSpec{
+				ParentPrefix:         "2.0.0.0/16",
+				PrefixLength:         "/28",
+				Tenant:               "Dunder-Mifflin, Inc.",
+				Vrf:                  "red",
+				ParentPrefixSelector: map[string]string{"site": "dc1"},
+			},
+		}
+		prefixClaim.Namespace = "default"
+		prefixClaim.Name = "prefixclaim-sample"
+
+		testPrefixClaimHash(t, prefixClaim, "2dd1bb767337bbac9035818140448392c68e47fd")
+	}
 }

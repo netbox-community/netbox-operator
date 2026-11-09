@@ -57,5 +57,23 @@ var _ = Describe("IpRangeClaim Controller", func() {
 				},
 			}))
 		})
+
+		It("should propagate vrf into the spec and restoration hash", func() {
+			ctx := context.TODO()
+
+			claim := &netboxv1.IpRangeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-claim",
+					Namespace: "default",
+				},
+				Spec: netboxv1.IpRangeClaimSpec{
+					ParentPrefix: "1.0.0.1/28",
+					Vrf:          "red",
+				}}
+
+			ipRange := generateIpRangeFromIpRangeClaim(ctx, claim, "1.0.0.1/32", "1.0.0.3/32")
+			Expect(ipRange.Spec.Vrf).To(Equal("red"))
+			Expect(ipRange.Spec.CustomFields).To(HaveKeyWithValue(config.GetOperatorConfig().NetboxRestorationHashFieldName, "742e35aeaee4ab1bdbdbff2e07b44c74afce75fe"))
+		})
 	})
 })

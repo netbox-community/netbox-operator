@@ -1,0 +1,45 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: iprangeclaim-ipv4-invalid-vrf
+  annotations:
+    description: Tests if creation fails with invalid VRF
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_iprangeclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: IpRangeClaim
+              metadata:
+                name: iprangeclaim-ipv4-invalid-vrf
+              spec:
+                vrf: "nonexistingvrf"
+              status:
+                (conditions[?type == 'IPRangeAssigned']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: IPRangeCRNotCreated
+              source:
+                component: ip-range-claim-controller
+              message: "Failed to fetch new IP Range from NetBox: failed to fetch vrf 'nonexistingvrf': not found"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: IpRangeClaim
+                name: iprangeclaim-ipv4-invalid-vrf
+    - name: Cleanup events and leases
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource and lease cleanup for preventing delays when using the same prefixes (e.g. with "invalid" tests)
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=iprangeclaim-ipv4-invalid-vrf -n $NAMESPACE

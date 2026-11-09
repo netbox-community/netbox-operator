@@ -338,6 +338,7 @@ func generateNetboxIpAddressModelFromIpAddressSpec(spec *netboxv1.IpAddressSpec,
 			Custom:      netboxCustomFields,
 			Description: req.String() + " // " + spec.Description,
 			Tenant:      spec.Tenant,
+			Vrf:         spec.Vrf,
 		},
 	}, nil
 }
