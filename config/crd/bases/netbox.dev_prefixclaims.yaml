@@ -97,7 +97,12 @@ spec:
                 additionalProperties:
                   type: string
                 description: |-
-                  The `parentPrefixSelector` is a key-value map, where all the entries are of data type `<string-string>` The map contains a set of query conditions for selecting a set of prefixes that can be used as the parent prefix The query conditions will be chained by the AND operator, and exact match of the keys and values will be performed The built-in fields `tenant`, `site`, and `family`, along with custom fields, can be used. Note that since the key value pairs in this map are used to generate the URL for the query in NetBox, this also supports non-Text Custom Field types. For more information, please see ParentPrefixSelectorGuide.md
+                  The `parentPrefixSelector` is a key-value map, where all the entries are of data type `<string-string>`
+                  The map contains a set of query conditions for selecting a set of prefixes that can be used as the parent prefix
+                  The query conditions will be chained by the AND operator, and exact match of the keys and values will be performed
+                  The built-in fields `tenant`, `site`, `role`, and `family`, along with custom fields, can be used.
+                  Note that since the key value pairs in this map are used to generate the URL for the query in NetBox, this also supports non-Text Custom Field types.
+                  For more information, please see ParentPrefixSelectorGuide.md
                   Field is immutable, required (`parentPrefix` and `parentPrefixSelector` are mutually exclusive)
                   Example:
                     customfield1: "Production"
