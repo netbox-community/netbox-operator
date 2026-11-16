@@ -88,7 +88,7 @@ func (r *VlanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (recon
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// if being deleted
