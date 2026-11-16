@@ -164,7 +164,7 @@ The same applies if you use parentPrefixSelector with PrefixClaims. The above ex
 NetBox Operator supports managing [VLANs](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md) through two custom resources:
 
 - **Vlan**: Represents a single VLAN in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific VLAN (`vid`, `site`, `tenant`, `status`) using the CR's Kubernetes object name as the NetBox VLAN name.
-- **VlanClaim**: Claims a VID for a VLAN, either an exact `vid` or the next free one from a `vidRangeStart`/`vidRangeEnd` range. Similar to IpAddressClaim, it creates a child Vlan CR with the assigned VID. VID allocation is scoped to `.spec.site` since VLAN IDs are commonly only unique within a site.
+- **VlanClaim**: Claims the next free VID for a VLAN from a `vidRangeStart`/`vidRangeEnd` range. Similar to IpAddressClaim, it creates a child Vlan CR with the assigned VID. VID allocation is scoped to `.spec.site` since VLAN IDs are commonly only unique within a site.
 
 ## Example: Claiming a VLAN
 
@@ -172,7 +172,7 @@ NetBox Operator supports managing [VLANs](https://github.com/netbox-community/ne
 2. Wait for ready condition: `kubectl wait vlanclaim vlanclaim-sample --for=condition=Ready`
 3. List VlanClaim and Vlan resources: `kubectl get vlnc,vln`
 
-`vid` and `vidRangeStart`/`vidRangeEnd` are mutually exclusive on `VlanClaim` — set exactly one form. When a range is used, the operator picks the next free VID in NetBox from that range.
+The operator picks the next free VID in NetBox from the `vidRangeStart`/`vidRangeEnd` range. To claim a specific VID, set both bounds to the same value.
 
 Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the VLAN is preserved in NetBox upon CR deletion and can be reclaimed when the VlanClaim is re-created.
 

@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/tenancy"
 	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
@@ -35,87 +36,55 @@ func vlanWithVid(vid int32) v4client.VLAN {
 	return v4client.VLAN{Vid: vid}
 }
 
+// vlanRestorationClient returns a composite client whose v3 VLAN list returns
+// the given results. The custom field filter is passed as an opaque function
+// that gomock cannot compare, hence gomock.Any() for the params and options.
+func vlanRestorationClient(ctrl *gomock.Controller, results []*netboxModels.VLAN) *NetboxCompositeClient {
+	mockIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockIpam.EXPECT().IpamVlansList(gomock.Any(), nil, gomock.Any()).Return(&ipam.IpamVlansListOK{
+		Payload: &ipam.IpamVlansListOKBody{Results: results},
+	}, nil)
+	return &NetboxCompositeClient{clientV3: &NetboxClientV3{Ipam: mockIpam}}
+}
+
 func TestRestoreExistingVlanByHash(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	t.Run("found", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
-
-		match := vlanWithVid(100)
-		match.Name = "vlanclaim-sample"
-		match.CustomFields = map[string]interface{}{"netboxOperatorRestorationHash": "matching-hash"}
-
-		other := vlanWithVid(101)
-		other.CustomFields = map[string]interface{}{"netboxOperatorRestorationHash": "other-hash"}
-
-		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
-		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
-		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
-			Count:   2,
-			Results: []v4client.VLAN{other, match},
-		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+		name := "vlanclaim-sample"
+		vid := int64(100)
+		compositeClient := vlanRestorationClient(ctrl, []*netboxModels.VLAN{
+			{ID: 7, Name: &name, Vid: &vid},
+		})
 
 		result, err := compositeClient.RestoreExistingVlanByHash(context.TODO(), "matching-hash")
 		AssertNil(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, int32(100), result.Vid)
 		assert.Equal(t, "vlanclaim-sample", result.Name)
+		assert.Equal(t, int64(7), result.Id)
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
-
-		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
-		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
-		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
-		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
-			Count:   0,
-			Results: []v4client.VLAN{},
-		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+		compositeClient := vlanRestorationClient(ctrl, nil)
 
 		result, err := compositeClient.RestoreExistingVlanByHash(context.TODO(), "no-such-hash")
 		AssertNil(t, err)
 		assert.Nil(t, result)
 	})
 
-	t.Run("paginates across multiple pages", func(t *testing.T) {
-		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
-		mockListRequestPage1 := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
-		mockListRequestPage2 := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
+	t.Run("multiple results", func(t *testing.T) {
+		name := "vlanclaim-sample"
+		vid1, vid2 := int64(100), int64(101)
+		compositeClient := vlanRestorationClient(ctrl, []*netboxModels.VLAN{
+			{ID: 7, Name: &name, Vid: &vid1},
+			{ID: 8, Name: &name, Vid: &vid2},
+		})
 
-		match := vlanWithVid(999)
-		match.CustomFields = map[string]interface{}{"netboxOperatorRestorationHash": "page2-hash"}
-
-		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequestPage1)
-		mockListRequestPage1.EXPECT().Limit(vlanListPageSize).Return(mockListRequestPage1)
-		mockListRequestPage1.EXPECT().Offset(int32(0)).Return(mockListRequestPage1)
-		mockListRequestPage1.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
-			Count:   2,
-			Results: []v4client.VLAN{vlanWithVid(1)},
-		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-
-		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequestPage2)
-		mockListRequestPage2.EXPECT().Limit(vlanListPageSize).Return(mockListRequestPage2)
-		mockListRequestPage2.EXPECT().Offset(int32(1)).Return(mockListRequestPage2)
-		mockListRequestPage2.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
-			Count:   2,
-			Results: []v4client.VLAN{match},
-		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
-
-		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
-
-		result, err := compositeClient.RestoreExistingVlanByHash(context.TODO(), "page2-hash")
-		AssertNil(t, err)
-		assert.NotNil(t, result)
-		assert.Equal(t, int32(999), result.Vid)
+		result, err := compositeClient.RestoreExistingVlanByHash(context.TODO(), "duplicate-hash")
+		AssertError(t, err, "incorrect number of restoration results, number of results: 2")
+		assert.Nil(t, result)
 	})
 }
 
@@ -128,6 +97,8 @@ func TestGetAvailableVlanByClaim(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidGte(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidLte(gomock.Any()).Return(mockListRequest)
 		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
 		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
@@ -150,6 +121,8 @@ func TestGetAvailableVlanByClaim(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidGte(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidLte(gomock.Any()).Return(mockListRequest)
 		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
 		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
@@ -171,18 +144,18 @@ func TestGetAvailableVlanByClaim(t *testing.T) {
 		assert.Equal(t, int32(203), result.Vid)
 	})
 
-	t.Run("ignores vids outside the requested range", func(t *testing.T) {
+	t.Run("only lists vids within the requested range", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidGte([]int32{200}).Return(mockListRequest)
+		mockListRequest.EXPECT().VidLte([]int32{201}).Return(mockListRequest)
 		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
 		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
-			Count: 1,
-			Results: []v4client.VLAN{
-				vlanWithVid(3000),
-			},
+			Count:   1,
+			Results: []v4client.VLAN{vlanWithVid(200)},
 		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
 		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
@@ -192,7 +165,42 @@ func TestGetAvailableVlanByClaim(t *testing.T) {
 			VidRangeEnd:   201,
 		})
 		AssertNil(t, err)
-		assert.Equal(t, int32(200), result.Vid)
+		assert.Equal(t, int32(201), result.Vid)
+	})
+
+	t.Run("paginates across multiple pages", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockListRequestPage1 := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
+		mockListRequestPage2 := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
+
+		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequestPage1)
+		mockListRequestPage1.EXPECT().VidGte(gomock.Any()).Return(mockListRequestPage1)
+		mockListRequestPage1.EXPECT().VidLte(gomock.Any()).Return(mockListRequestPage1)
+		mockListRequestPage1.EXPECT().Limit(vlanListPageSize).Return(mockListRequestPage1)
+		mockListRequestPage1.EXPECT().Offset(int32(0)).Return(mockListRequestPage1)
+		mockListRequestPage1.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
+			Count:   2,
+			Results: []v4client.VLAN{vlanWithVid(200)},
+		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequestPage2)
+		mockListRequestPage2.EXPECT().VidGte(gomock.Any()).Return(mockListRequestPage2)
+		mockListRequestPage2.EXPECT().VidLte(gomock.Any()).Return(mockListRequestPage2)
+		mockListRequestPage2.EXPECT().Limit(vlanListPageSize).Return(mockListRequestPage2)
+		mockListRequestPage2.EXPECT().Offset(int32(1)).Return(mockListRequestPage2)
+		mockListRequestPage2.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
+			Count:   2,
+			Results: []v4client.VLAN{vlanWithVid(201)},
+		}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		compositeClient := &NetboxCompositeClient{clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI}}
+
+		result, err := compositeClient.GetAvailableVlanByClaim(context.TODO(), &models.VlanClaim{
+			VidRangeStart: 200,
+			VidRangeEnd:   299,
+		})
+		AssertNil(t, err)
+		assert.Equal(t, int32(202), result.Vid)
 	})
 
 	t.Run("returns exhausted error when range is full", func(t *testing.T) {
@@ -200,6 +208,8 @@ func TestGetAvailableVlanByClaim(t *testing.T) {
 		mockListRequest := mock_interfaces.NewMockIpamVlansListRequest(ctrl)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidGte(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidLte(gomock.Any()).Return(mockListRequest)
 		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
 		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedVLANList{
@@ -238,6 +248,8 @@ func TestGetAvailableVlanByClaim(t *testing.T) {
 		mockDcim.EXPECT().DcimSitesList(dcimListInput, nil).Return(dcimListOutput, nil)
 
 		mockIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidGte(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().VidLte(gomock.Any()).Return(mockListRequest)
 		mockListRequest.EXPECT().Site([]string{siteName}).Return(mockListRequest)
 		mockListRequest.EXPECT().Limit(vlanListPageSize).Return(mockListRequest)
 		mockListRequest.EXPECT().Offset(int32(0)).Return(mockListRequest)

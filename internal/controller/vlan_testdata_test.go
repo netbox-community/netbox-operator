@@ -19,6 +19,8 @@ package controller
 import (
 	"time"
 
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
+	netboxModels "github.com/netbox-community/go-netbox/v3/netbox/models"
 	v4client "github.com/netbox-community/go-netbox/v4"
 	netboxv1 "github.com/netbox-community/netbox-operator/api/v1"
 	"github.com/netbox-community/netbox-operator/pkg/config"
@@ -91,14 +93,17 @@ func defaultVlanCreatedByClaim(preserveInNetbox bool) *netboxv1.Vlan {
 	}
 }
 
-func defaultVlanClaimCRWithVid() *netboxv1.VlanClaim {
+// defaultVlanClaimCRWithExactVid claims exactly vlanVid by using a range
+// containing a single VID.
+func defaultVlanClaimCRWithExactVid() *netboxv1.VlanClaim {
 	return &netboxv1.VlanClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vlanClaimName,
 			Namespace: vlanNamespace,
 		},
 		Spec: netboxv1.VlanClaimSpec{
-			Vid:              vlanVid,
+			VidRangeStart:    vlanVid,
+			VidRangeEnd:      vlanVid,
 			CustomFields:     vlanCustomFields,
 			Comments:         vlanComments,
 			Description:      vlanDescription,
@@ -181,18 +186,18 @@ func mockedVlanListExisting(customFields map[string]interface{}) *v4client.Pagin
 	return &v4client.PaginatedVLANList{Count: 1, Results: []v4client.VLAN{existing}}
 }
 
-// mockedVlanListWithHash returns a single-page listing (as scanned by
-// forEachVlan) containing one Vlan carrying the given restoration hash, as
-// used by RestoreExistingVlanByHash.
-func mockedVlanListWithHash(hash string, vid int32) *v4client.PaginatedVLANList {
-	vlan := v4client.VLAN{
-		Name: vlanName,
-		Vid:  vid,
-		CustomFields: map[string]interface{}{
-			config.GetOperatorConfig().NetboxRestorationHashFieldName: hash,
-		},
+// mockedVlanRestoreList returns the v3 listing RestoreExistingVlanByHash
+// gets back from its restoration hash custom field query.
+func mockedVlanRestoreList(results []*netboxModels.VLAN) *ipam.IpamVlansListOK {
+	return &ipam.IpamVlansListOK{
+		Payload: &ipam.IpamVlansListOKBody{Results: results},
 	}
-	return &v4client.PaginatedVLANList{Count: 1, Results: []v4client.VLAN{vlan}}
+}
+
+func mockedVlanRestoreListWithMatch(vid int32) *ipam.IpamVlansListOK {
+	name := vlanName
+	vid64 := int64(vid)
+	return mockedVlanRestoreList([]*netboxModels.VLAN{{ID: int64(vlanId), Name: &name, Vid: &vid64}})
 }
 
 var ExpectedVlanStatus = netboxv1.VlanStatus{

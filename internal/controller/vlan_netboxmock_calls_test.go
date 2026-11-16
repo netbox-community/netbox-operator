@@ -144,9 +144,27 @@ func mockVlanDestroyRequestExecuteNotFound(reqMock *mock_interfaces.MockIpamVlan
 }
 
 // -----------------------------
+// Ipam (v3) mock functions (VlanClaimReconciler side: mockVlanClaimIpam).
+// Only exercises IpamVlansList for the restoration hash custom field query.
+// -----------------------------
+
+func mockVlanClaimIpamRestoreNotFound(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamVlansList(gomock.Any(), nil, gomock.Any()).
+		Return(mockedVlanRestoreList(nil), nil).
+		MinTimes(1)
+}
+
+func mockVlanClaimIpamRestoreFound(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamVlansList(gomock.Any(), nil, gomock.Any()).
+		Return(mockedVlanRestoreListWithMatch(vlanRestoredVid), nil).
+		MinTimes(1)
+}
+
+// -----------------------------
 // IpamAPI mock functions (VlanClaimReconciler side: mockVlanClaimIpamAPI/
 // mockVlanClaimListRequest). Only ever exercises IpamVlansList via
-// forEachVlan (Limit/Offset paging), never Vid/Create/Update/Destroy.
+// listUsedVids (VID range filter and Limit/Offset paging), never
+// Vid/Create/Update/Destroy.
 // -----------------------------
 
 func mockVlanIpamAPIClaimList(ipamAPIMock *mock_interfaces.MockIpamAPI, catchUnexpectedParams chan error) {
@@ -154,6 +172,8 @@ func mockVlanIpamAPIClaimList(ipamAPIMock *mock_interfaces.MockIpamAPI, catchUne
 }
 
 func mockVlanClaimListRequestPaging(reqMock *mock_interfaces.MockIpamVlansListRequest, catchUnexpectedParams chan error) {
+	reqMock.EXPECT().VidGte(gomock.Any()).Return(mockVlanClaimListRequest).MinTimes(1)
+	reqMock.EXPECT().VidLte(gomock.Any()).Return(mockVlanClaimListRequest).MinTimes(1)
 	reqMock.EXPECT().Limit(gomock.Any()).Return(mockVlanClaimListRequest).MinTimes(1)
 	reqMock.EXPECT().Offset(gomock.Any()).Return(mockVlanClaimListRequest).MinTimes(1)
 }
@@ -161,13 +181,6 @@ func mockVlanClaimListRequestPaging(reqMock *mock_interfaces.MockIpamVlansListRe
 func mockVlanClaimListRequestExecuteEmpty(reqMock *mock_interfaces.MockIpamVlansListRequest, catchUnexpectedParams chan error) {
 	reqMock.EXPECT().Execute().
 		Return(mockedVlanListEmpty(), &http.Response{StatusCode: 200, Body: http.NoBody}, nil).
-		MinTimes(1)
-}
-
-func mockVlanClaimListRequestExecuteWithMatchingHash(reqMock *mock_interfaces.MockIpamVlansListRequest, catchUnexpectedParams chan error) {
-	hash := generateVlanRestorationHash(defaultVlanClaimCRWithRange())
-	reqMock.EXPECT().Execute().
-		Return(mockedVlanListWithHash(hash, vlanRestoredVid), &http.Response{StatusCode: 200, Body: http.NoBody}, nil).
 		MinTimes(1)
 }
 
@@ -191,8 +204,11 @@ func resetVlanMockFunctions() {
 	mockVlanUpdateRequest.EXPECT().Execute().Times(0)
 	mockVlanDestroyRequest.EXPECT().Execute().Times(0)
 
+	mockVlanClaimIpam.EXPECT().IpamVlansList(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	mockVlanClaimIpamAPI.EXPECT().IpamVlansList(gomock.Any()).Times(0)
 	mockVlanClaimListRequest.EXPECT().Site(gomock.Any()).Times(0)
+	mockVlanClaimListRequest.EXPECT().VidGte(gomock.Any()).Times(0)
+	mockVlanClaimListRequest.EXPECT().VidLte(gomock.Any()).Times(0)
 	mockVlanClaimListRequest.EXPECT().Limit(gomock.Any()).Times(0)
 	mockVlanClaimListRequest.EXPECT().Offset(gomock.Any()).Times(0)
 	mockVlanClaimListRequest.EXPECT().Execute().Times(0)

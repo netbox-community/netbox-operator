@@ -190,6 +190,16 @@ func (a *ipamVlansListRequestAdapter) Vid(vid []int32) interfaces.IpamVlansListR
 	return a
 }
 
+func (a *ipamVlansListRequestAdapter) VidGte(vidGte []int32) interfaces.IpamVlansListRequest {
+	a.req = a.req.VidGte(vidGte)
+	return a
+}
+
+func (a *ipamVlansListRequestAdapter) VidLte(vidLte []int32) interfaces.IpamVlansListRequest {
+	a.req = a.req.VidLte(vidLte)
+	return a
+}
+
 func (a *ipamVlansListRequestAdapter) Limit(limit int32) interfaces.IpamVlansListRequest {
 	a.req = a.req.Limit(limit)
 	return a

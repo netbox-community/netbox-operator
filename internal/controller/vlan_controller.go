@@ -70,7 +70,7 @@ type VlanReconciler struct {
 func (r *VlanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.Vlan{}
 	err := r.Get(ctx, req.NamespacedName, o)
@@ -88,7 +88,7 @@ func (r *VlanReconciler) Reconcile(ctx context.Context, req ctrl.Request) (recon
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	// if being deleted

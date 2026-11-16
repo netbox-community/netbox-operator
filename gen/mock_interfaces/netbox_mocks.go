@@ -368,6 +368,26 @@ func (mr *MockIpamInterfaceMockRecorder) IpamPrefixesUpdate(params, authInfo any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamInterface)(nil).IpamPrefixesUpdate), varargs...)
 }
 
+// IpamVlansList mocks base method.
+func (m *MockIpamInterface) IpamVlansList(params *ipam.IpamVlansListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansListOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamVlansList", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamVlansListOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamVlansList indicates an expected call of IpamVlansList.
+func (mr *MockIpamInterfaceMockRecorder) IpamVlansList(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamVlansList", reflect.TypeOf((*MockIpamInterface)(nil).IpamVlansList), varargs...)
+}
+
 // MockTenancyInterface is a mock of TenancyInterface interface.
 type MockTenancyInterface struct {
 	ctrl     *gomock.Controller
@@ -1024,6 +1044,34 @@ func (m *MockIpamVlansListRequest) Vid(vid []int32) interfaces.IpamVlansListRequ
 func (mr *MockIpamVlansListRequestMockRecorder) Vid(vid any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Vid", reflect.TypeOf((*MockIpamVlansListRequest)(nil).Vid), vid)
+}
+
+// VidGte mocks base method.
+func (m *MockIpamVlansListRequest) VidGte(vidGte []int32) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VidGte", vidGte)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// VidGte indicates an expected call of VidGte.
+func (mr *MockIpamVlansListRequestMockRecorder) VidGte(vidGte any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VidGte", reflect.TypeOf((*MockIpamVlansListRequest)(nil).VidGte), vidGte)
+}
+
+// VidLte mocks base method.
+func (m *MockIpamVlansListRequest) VidLte(vidLte []int32) interfaces.IpamVlansListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VidLte", vidLte)
+	ret0, _ := ret[0].(interfaces.IpamVlansListRequest)
+	return ret0
+}
+
+// VidLte indicates an expected call of VidLte.
+func (mr *MockIpamVlansListRequestMockRecorder) VidLte(vidLte any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VidLte", reflect.TypeOf((*MockIpamVlansListRequest)(nil).VidLte), vidLte)
 }
 
 // MockIpamVlansCreateRequest is a mock of IpamVlansCreateRequest interface.

@@ -62,7 +62,7 @@ type VlanClaimReconciler struct {
 func (r *VlanClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.VlanClaim{}
 	err := r.Get(ctx, req.NamespacedName, o)
@@ -104,7 +104,7 @@ func (r *VlanClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if reconcileErr == nil && reconcileResult.IsZero() {
 			reconcileResult, reconcileErr = scheduler.CalculateNextReconcile(ctx)
 		}
-		logger.Info("reconcile loop finished")
+		logger.V(4).Info("reconcile loop finished")
 	}()
 
 	err = r.Get(ctx, vlanLookupKey, vlan)
@@ -280,8 +280,8 @@ func (r *VlanClaimReconciler) tryLockVlanVid(ctx context.Context, o *netboxv1.Vl
 // describeVlanClaimIdentifier renders the claim's requested VID(s) for
 // log/event messages.
 func describeVlanClaimIdentifier(o *netboxv1.VlanClaim) string {
-	if o.Spec.VidRangeStart == 0 && o.Spec.VidRangeEnd == 0 {
-		return fmt.Sprintf("%s:%d", o.Spec.Site, o.Spec.Vid)
+	if o.Spec.VidRangeStart == o.Spec.VidRangeEnd {
+		return fmt.Sprintf("%s:%d", o.Spec.Site, o.Spec.VidRangeStart)
 	}
 	return fmt.Sprintf("%s:%d-%d", o.Spec.Site, o.Spec.VidRangeStart, o.Spec.VidRangeEnd)
 }
@@ -305,21 +305,15 @@ func (r *VlanClaimReconciler) restoreOrAssignVlanAndSetCondition(ctx context.Con
 		return &vlanModel.Vid, cancelLock, ctrl.Result{}, nil
 	}
 
-	// vlan cannot be restored from netbox. We need to resolve the VID range
-	// to check for availability. An explicit vid is treated as a range of one,
-	//  so it goes through the same free/used scan as a range claim.
-	// GetAvailableVlanByClaim errors with ErrVlanRangeExhausted if that single VID
-	// is already taken.
-	vidRangeStart, vidRangeEnd := o.Spec.VidRangeStart, o.Spec.VidRangeEnd
-	if o.Spec.Vid != 0 {
-		vidRangeStart, vidRangeEnd = o.Spec.Vid, o.Spec.Vid
-	}
-
+	// vlan cannot be restored from netbox. Look for a free VID in the
+	// requested range. An exact VID is claimed with a range of one, for
+	// which GetAvailableVlanByClaim errors with ErrVlanRangeExhausted if that
+	// VID is already taken.
 	vlanModel, err = r.NetboxClient.GetAvailableVlanByClaim(
 		ctx,
 		&models.VlanClaim{
-			VidRangeStart: vidRangeStart,
-			VidRangeEnd:   vidRangeEnd,
+			VidRangeStart: o.Spec.VidRangeStart,
+			VidRangeEnd:   o.Spec.VidRangeEnd,
 			Metadata: &models.NetboxMetadata{
 				Site:   o.Spec.Site,
 				Tenant: o.Spec.Tenant,

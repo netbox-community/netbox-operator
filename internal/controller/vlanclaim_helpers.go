@@ -75,11 +75,10 @@ func generateVlanRestorationHash(claim *netboxv1.VlanClaim) string {
 		Name:          claim.Name,
 		Site:          claim.Spec.Site,
 		Tenant:        claim.Spec.Tenant,
-		Vid:           fmt.Sprintf("%d", claim.Spec.Vid),
 		VidRangeStart: fmt.Sprintf("%d", claim.Spec.VidRangeStart),
 		VidRangeEnd:   fmt.Sprintf("%d", claim.Spec.VidRangeEnd),
 	}
-	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.Site+rd.Tenant+rd.Vid+rd.VidRangeStart+rd.VidRangeEnd)))
+	return fmt.Sprintf("%x", sha1.Sum([]byte(rd.Namespace+rd.Name+rd.Site+rd.Tenant+rd.VidRangeStart+rd.VidRangeEnd)))
 }
 
 type VlanClaimRestorationData struct {
@@ -88,7 +87,6 @@ type VlanClaimRestorationData struct {
 	Name          string
 	Site          string
 	Tenant        string
-	Vid           string
 	VidRangeStart string
 	VidRangeEnd   string
 }

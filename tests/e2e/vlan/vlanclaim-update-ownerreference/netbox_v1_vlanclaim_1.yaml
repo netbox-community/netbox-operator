@@ -6,7 +6,8 @@ metadata:
 spec:
   comments: your comments
   description: some description
-  vid: 170
+  vidRangeStart: 170
+  vidRangeEnd: 170
   site: MY_SITE
   preserveInNetbox: false
   tenant: MY_TENANT

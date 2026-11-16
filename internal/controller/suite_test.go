@@ -67,6 +67,7 @@ var mockVlanUpdateRequest *mock_interfaces.MockIpamVlansUpdateRequest
 var mockVlanDestroyRequest *mock_interfaces.MockIpamVlansDestroyRequest
 var mockVlanClaimIpamAPI *mock_interfaces.MockIpamAPI
 var mockVlanClaimListRequest *mock_interfaces.MockIpamVlansListRequest
+var mockVlanClaimIpam *mock_interfaces.MockIpamInterface
 
 // Separate MockVpnAPI instances per reconciler, mirroring the ipamMockIpAddress/
 // ipamMockIpAddressClaim split above: both L2VPNReconciler and L2VPNClaimReconciler
@@ -143,6 +144,7 @@ var _ = BeforeSuite(func() {
 	mockVlanDestroyRequest = mock_interfaces.NewMockIpamVlansDestroyRequest(mockCtrl)
 	mockVlanClaimIpamAPI = mock_interfaces.NewMockIpamAPI(mockCtrl)
 	mockVlanClaimListRequest = mock_interfaces.NewMockIpamVlansListRequest(mockCtrl)
+	mockVlanClaimIpam = mock_interfaces.NewMockIpamInterface(mockCtrl)
 	mockVpnAPI = mock_interfaces.NewMockVpnAPI(mockCtrl)
 	mockVpnListRequest = mock_interfaces.NewMockVpnL2vpnsListRequest(mockCtrl)
 	mockVpnCreateRequest = mock_interfaces.NewMockVpnL2vpnsCreateRequest(mockCtrl)
@@ -211,6 +213,7 @@ var _ = BeforeSuite(func() {
 		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("vlan-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
 		NetboxClient: api.NewNetboxCompositeClient(
 			&api.NetboxClientV3{
+				Ipam:    mockVlanClaimIpam,
 				Tenancy: tenancyMock,
 				Dcim:    dcimMock,
 			},

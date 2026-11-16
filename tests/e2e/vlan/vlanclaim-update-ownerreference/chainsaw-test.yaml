@@ -37,7 +37,8 @@ spec:
               spec:
                 comments: your comments
                 description: some description
-                vid: 170
+                vidRangeStart: 170
+                vidRangeEnd: 170
                 site: MY_SITE
                 tenant: MY_TENANT
               status:
@@ -62,7 +63,7 @@ spec:
               spec:
                 comments: your comments
                 customFields:
-                  netboxOperatorRestorationHash: 1b99f714389786421d10a38c1ab2f66b51e30033
+                  netboxOperatorRestorationHash: 8532d6f7b8910804379c629baf278265c344ef45
                 description: some description
                 vid: 170
                 site: MY_SITE

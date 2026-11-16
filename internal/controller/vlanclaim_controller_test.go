@@ -55,6 +55,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 	DescribeTable("Reconciler (vlan claim CR)", func(
 		cr *netboxv1.VlanClaim, // our CR as typed object
 		expectedVlanSpec netboxv1.VlanSpec, // spec expected on the Vlan CR created by the claim controller
+		IpamClaimMocks []func(*mock_interfaces.MockIpamInterface, chan error),
 		IpamAPIClaimMocks []func(*mock_interfaces.MockIpamAPI, chan error),
 		IpamClaimListRequestMocks []func(*mock_interfaces.MockIpamVlansListRequest, chan error),
 		IpamAPIMocks []func(*mock_interfaces.MockIpamAPI, chan error),
@@ -68,6 +69,9 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 		identifierLockedByOtherOwner bool, // If the shared vlan vid lock is held by another owner when the claim CR is created
 	) {
 		By("Setting up mocks")
+		for _, mock := range IpamClaimMocks {
+			mock(mockVlanClaimIpam, unexpectedCallCh)
+		}
 		for _, mock := range IpamAPIClaimMocks {
 			mock(mockVlanClaimIpamAPI, unexpectedCallCh)
 		}
@@ -178,6 +182,9 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 	},
 		Entry("Create VlanClaim CR, assign new vid from range",
 			defaultVlanClaimCRWithRange(), expectedVlanSpecFromClaim(defaultVlanClaimCRWithRange(), vlanRangeStart),
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockVlanClaimIpamRestoreNotFound,
+			},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){
 				mockVlanIpamAPIClaimList,
 			},
@@ -207,13 +214,11 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			false),
 		Entry("Create VlanClaim CR, restore existing vid from NetBox",
 			defaultVlanClaimCRWithRange(), expectedVlanSpecFromClaim(defaultVlanClaimCRWithRange(), vlanRestoredVid),
-			[]func(*mock_interfaces.MockIpamAPI, chan error){
-				mockVlanIpamAPIClaimList,
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockVlanClaimIpamRestoreFound,
 			},
-			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){
-				mockVlanClaimListRequestPaging,
-				mockVlanClaimListRequestExecuteWithMatchingHash,
-			},
+			[]func(*mock_interfaces.MockIpamAPI, chan error){},
+			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){
 				mockVlanIpamAPIList,
 				mockVlanIpamAPIUpdate,
@@ -235,7 +240,10 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			netboxv1.VlanClaimStatus{Vid: vlanRestoredVid, VlanName: vlanClaimName},
 			false),
 		Entry("Create VlanClaim CR, explicit vid",
-			defaultVlanClaimCRWithVid(), expectedVlanSpecFromClaim(defaultVlanClaimCRWithVid(), vlanVid),
+			defaultVlanClaimCRWithExactVid(), expectedVlanSpecFromClaim(defaultVlanClaimCRWithExactVid(), vlanVid),
+			[]func(*mock_interfaces.MockIpamInterface, chan error){
+				mockVlanClaimIpamRestoreNotFound,
+			},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){
 				mockVlanIpamAPIClaimList,
 			},
@@ -265,6 +273,7 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			false),
 		Entry("Create VlanClaim CR, range-based claim blocked by identifier lock held by other resource",
 			defaultVlanClaimCRWithRange(), netboxv1.VlanSpec{},
+			[]func(*mock_interfaces.MockIpamInterface, chan error){},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},
@@ -276,7 +285,8 @@ var _ = Describe("VlanClaim Controller", Ordered, func() {
 			netboxv1.VlanClaimStatus{},
 			true),
 		Entry("Create VlanClaim CR, explicit-vid claim blocked by identifier lock held by other resource",
-			defaultVlanClaimCRWithVid(), netboxv1.VlanSpec{},
+			defaultVlanClaimCRWithExactVid(), netboxv1.VlanSpec{},
+			[]func(*mock_interfaces.MockIpamInterface, chan error){},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},
 			[]func(*mock_interfaces.MockIpamVlansListRequest, chan error){},
 			[]func(*mock_interfaces.MockIpamAPI, chan error){},

@@ -9,6 +9,7 @@ spec:
   description: "some description"
   comments: "your comments"
   preserveInNetbox: false
-  vid: 160
+  vidRangeStart: 160
+  vidRangeEnd: 160
   customFields:
     justmade: "thisup"

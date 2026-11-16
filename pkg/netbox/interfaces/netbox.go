@@ -48,6 +48,8 @@ type IpamInterface interface {
 	IpamIPRangesAvailableIpsList(params *ipam.IpamIPRangesAvailableIpsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesAvailableIpsListOK, error)
 
 	IpamAsnsList(params *ipam.IpamAsnsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamAsnsListOK, error)
+
+	IpamVlansList(params *ipam.IpamVlansListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansListOK, error)
 }
 
 type TenancyInterface interface {
@@ -107,6 +109,8 @@ type IpamVlansListRequest interface {
 	Name(name []string) IpamVlansListRequest
 	Site(site []string) IpamVlansListRequest
 	Vid(vid []int32) IpamVlansListRequest
+	VidGte(vidGte []int32) IpamVlansListRequest
+	VidLte(vidLte []int32) IpamVlansListRequest
 	Limit(limit int32) IpamVlansListRequest
 	Offset(offset int32) IpamVlansListRequest
 	Execute() (*v4client.PaginatedVLANList, *http.Response, error)

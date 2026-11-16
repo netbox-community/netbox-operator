@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"slices"
 
-	v4client "github.com/netbox-community/go-netbox/v4"
+	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
 	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 )
@@ -33,12 +33,18 @@ import (
 // VLAN list endpoint.
 const vlanListPageSize = int32(100)
 
-// forEachVlan pages through NetBox's VLAN list, scoped to siteSlug when
-// non-empty, and invokes visit for every result.
-func (c *NetboxCompositeClient) forEachVlan(ctx context.Context, siteSlug string, visit func(vlan *v4client.VLAN) bool) error {
+// listUsedVids pages through NetBox's VLAN list, filtered to VIDs within
+// [vidRangeStart, vidRangeEnd] and scoped to siteSlug when non-empty, and
+// returns the VIDs found.
+func (c *NetboxCompositeClient) listUsedVids(ctx context.Context, siteSlug string, vidRangeStart, vidRangeEnd int32) ([]int32, error) {
+	var used []int32
 	var offset int32
 	for {
-		req := c.clientV4.IpamAPI.IpamVlansList(ctx).Limit(vlanListPageSize).Offset(offset)
+		req := c.clientV4.IpamAPI.IpamVlansList(ctx).
+			VidGte([]int32{vidRangeStart}).
+			VidLte([]int32{vidRangeEnd}).
+			Limit(vlanListPageSize).
+			Offset(offset)
 		if siteSlug != "" {
 			req = req.Site([]string{siteSlug})
 		}
@@ -52,57 +58,62 @@ func (c *NetboxCompositeClient) forEachVlan(ctx context.Context, siteSlug string
 			err = errors.Join(err, closeErr, readErr)
 		}
 		if httpResp == nil {
-			return fmt.Errorf("failed to list vlans: %w", err)
+			return nil, fmt.Errorf("failed to list vlans: %w", err)
 		}
 		if httpResp.StatusCode != http.StatusOK {
-			return fmt.Errorf("failed to list vlans: status %d, body: %s", httpResp.StatusCode, string(body))
+			return nil, fmt.Errorf("failed to list vlans: status %d, body: %s", httpResp.StatusCode, string(body))
 		}
 		if err != nil {
-			return fmt.Errorf("failed to list vlans: %w", err)
+			return nil, fmt.Errorf("failed to list vlans: %w", err)
 		}
 
 		for i := range resp.Results {
-			if !visit(&resp.Results[i]) {
-				return nil
-			}
+			used = append(used, resp.Results[i].GetVid())
 		}
 
 		offset += int32(len(resp.Results))
 		if offset >= resp.Count || len(resp.Results) == 0 {
-			return nil
+			return used, nil
 		}
 	}
 }
 
 // RestoreExistingVlanByHash searches for an existing NetBox VLAN whose
 // restoration hash custom field matches hash. Returns nil if none is found.
-// The restoration hash is globally unique, so this scans all VLANs regardless
-// of site.
+// The go-netbox v4 client does not support custom field filters, so the v3
+// client is used for this request.
 func (c *NetboxCompositeClient) RestoreExistingVlanByHash(ctx context.Context, hash string) (*models.Vlan, error) {
-	hashKey := config.GetOperatorConfig().NetboxRestorationHashFieldName
-
-	var found *v4client.VLAN
-	err := c.forEachVlan(ctx, "", func(vlan *v4client.VLAN) bool {
-		if vlan.CustomFields == nil {
-			return true
-		}
-		if v, ok := vlan.CustomFields[hashKey]; ok && v == hash {
-			found = vlan
-			return false
-		}
-		return true
+	customVlanSearch := newQueryFilterOperation(nil, []CustomFieldEntry{
+		{
+			key:   config.GetOperatorConfig().NetboxRestorationHashFieldName,
+			value: hash,
+		},
 	})
+	list, err := c.clientV3.Ipam.IpamVlansList(ipam.NewIpamVlansListParams().WithContext(ctx), nil, customVlanSearch)
 	if err != nil {
 		return nil, err
 	}
-	if found == nil {
+
+	if len(list.Payload.Results) == 0 {
 		return nil, nil
 	}
 
+	// We should not have more than 1 result...
+	if len(list.Payload.Results) != 1 {
+		return nil, fmt.Errorf("incorrect number of restoration results, number of results: %v", len(list.Payload.Results))
+	}
+	res := list.Payload.Results[0]
+	if res.Vid == nil {
+		return nil, errors.New("vlan vid in netbox is nil")
+	}
+	if res.Name == nil {
+		return nil, errors.New("vlan name in netbox is nil")
+	}
+
 	return &models.Vlan{
-		Name: found.Name,
-		Vid:  found.Vid,
-		Id:   int64(found.Id),
+		Name: *res.Name,
+		Vid:  int32(*res.Vid),
+		Id:   res.ID,
 	}, nil
 }
 
@@ -129,14 +140,7 @@ func (c *NetboxCompositeClient) GetAvailableVlanByClaim(ctx context.Context, cla
 		siteSlug = siteDetails.Slug
 	}
 
-	var used []int32
-	err := c.forEachVlan(ctx, siteSlug, func(vlan *v4client.VLAN) bool {
-		vid := vlan.GetVid()
-		if vid >= claim.VidRangeStart && vid <= claim.VidRangeEnd {
-			used = append(used, vid)
-		}
-		return true
-	})
+	used, err := c.listUsedVids(ctx, siteSlug, claim.VidRangeStart, claim.VidRangeEnd)
 	if err != nil {
 		return nil, err
 	}

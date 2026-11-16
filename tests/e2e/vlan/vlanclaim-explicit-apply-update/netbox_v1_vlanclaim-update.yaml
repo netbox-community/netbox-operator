@@ -9,4 +9,5 @@ spec:
   description: "new description"
   comments: "new comments"
   preserveInNetbox: false
-  vid: 100
+  vidRangeStart: 100
+  vidRangeEnd: 100

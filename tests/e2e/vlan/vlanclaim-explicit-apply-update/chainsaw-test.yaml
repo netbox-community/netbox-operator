@@ -24,7 +24,8 @@ spec:
                 site: "MY_SITE"
                 description: "some description"
                 comments: "your comments"
-                vid: 100
+                vidRangeStart: 100
+                vidRangeEnd: 100
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'
@@ -70,7 +71,8 @@ spec:
                 site: "MY_SITE"
                 description: "new description"
                 comments: "new comments"
-                vid: 100
+                vidRangeStart: 100
+                vidRangeEnd: 100
               status:
                 (conditions[?type == 'Ready']):
                   - status: 'True'

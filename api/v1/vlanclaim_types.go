@@ -21,28 +21,25 @@ import (
 )
 
 // VlanClaimSpec defines the desired state of VlanClaim
-// +kubebuilder:validation:XValidation:rule="(has(self.vid) && !has(self.vidRangeStart) && !has(self.vidRangeEnd)) || (!has(self.vid) && has(self.vidRangeStart) && has(self.vidRangeEnd))",message="Exactly one of 'vid' or ('vidRangeStart' and 'vidRangeEnd') must be set"
+// +kubebuilder:validation:XValidation:rule="self.vidRangeStart <= self.vidRangeEnd",message="'vidRangeStart' must be less than or equal to 'vidRangeEnd'"
 type VlanClaimSpec struct {
-	// The exact VID to claim. Mutually exclusive with vidRangeStart/vidRangeEnd.
-	// Field is immutable, not required, range from 1-4094
+	// The lower bound (inclusive) of the range to pick a free VID from. Set
+	// both this and vidRangeEnd to the same value to claim an exact VID.
+	// Field is immutable, required, range from 1-4094
+	//+kubebuilder:validation:Required
 	//+kubebuilder:validation:Minimum=1
 	//+kubebuilder:validation:Maximum=4094
-	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'vid' is immutable"
-	Vid int32 `json:"vid,omitempty"`
-
-	// The lower bound (inclusive) of the range to pick a free VID from.
-	// Mutually exclusive with vid, required together with vidRangeEnd.
-	// Field is immutable
-	//+kubebuilder:validation:Minimum=1
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'vidRangeStart' is immutable"
-	VidRangeStart int32 `json:"vidRangeStart,omitempty"`
+	VidRangeStart int32 `json:"vidRangeStart"`
 
-	// The upper bound (inclusive) of the range to pick a free VID from.
-	// Mutually exclusive with vid, required together with vidRangeStart.
-	// Field is immutable
+	// The upper bound (inclusive) of the range to pick a free VID from. Set
+	// both this and vidRangeStart to the same value to claim an exact VID.
+	// Field is immutable, required, range from 1-4094
+	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Minimum=1
 	//+kubebuilder:validation:Maximum=4094
 	//+kubebuilder:validation:XValidation:rule="self == oldSelf",message="Field 'vidRangeEnd' is immutable"
-	VidRangeEnd int32 `json:"vidRangeEnd,omitempty"`
+	VidRangeEnd int32 `json:"vidRangeEnd"`
 
 	// The NetBox Site to be assigned to this resource in NetBox. Use the `name` value instead of the `slug` value.
 	// Also scopes VID allocation: a free VID is looked up among VLANs assigned to this Site.
@@ -114,9 +111,10 @@ type VlanClaimStatus struct {
 //+kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 //+kubebuilder:resource:shortName=vlnc
 
-// VlanClaim allows to claim a VID for a NetBox VLAN, either an exact one or
-// the next free one in a range. The VlanClaim Controller will try to assign
-// an available VID and if successful it will create the Vlan CR.
+// VlanClaim allows to claim a VID for a NetBox VLAN: the next free one in a
+// range, or an exact one by using a range containing a single VID. The
+// VlanClaim Controller will try to assign an available VID and if successful
+// it will create the Vlan CR.
 // More info about NetBox VLANs: https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/vlan.md
 type VlanClaim struct {
 	metav1.TypeMeta   `json:",inline"`
