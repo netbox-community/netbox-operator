@@ -1,0 +1,9 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanGroup
+metadata:
+  name: vlangroup-invalid-tenant
+spec:
+  tenant: "nonexistingtenant"
+  description: "some description"
+  preserveInNetbox: false
