@@ -62,7 +62,7 @@ type VlanClaimReconciler struct {
 func (r *VlanClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcileResult ctrl.Result, reconcileErr error) {
 	logger := log.FromContext(ctx)
 
-	logger.Info("reconcile loop started")
+	logger.V(4).Info("reconcile loop started")
 
 	o := &netboxv1.VlanClaim{}
 	err := r.Get(ctx, req.NamespacedName, o)
