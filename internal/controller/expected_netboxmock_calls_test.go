@@ -266,6 +266,36 @@ func mockIpamIPAddressesCreateWithHash(ipamMock *mock_interfaces.MockIpamInterfa
 		}).MinTimes(1)
 }
 
+func mockIpamIPAddressesCreateWithHashAndVrf(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).
+		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamIPAddressesCreateCreated, error) {
+			got := params.(*ipam.IpamIPAddressesCreateParams)
+			diff := deep.Equal(got, ExpectedIpAddressesCreateWithHashAndVrfParams)
+			if len(diff) > 0 {
+				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamIPAddressesCreate (with hash and vrf), diff to expected params diff: %+v", diff)
+				catchUnexpectedParams <- err
+				return &ipam.IpamIPAddressesCreateCreated{}, err
+			}
+			fmt.Printf("NETBOXMOCK\t ipam.IpamIPAddressesCreate (with hash and vrf) was called with expected input\n")
+			return &ipam.IpamIPAddressesCreateCreated{Payload: mockedResponseIPAddress()}, nil
+		}).MinTimes(1)
+}
+
+func mockIpamVrfsList(ipamMock *mock_interfaces.MockIpamInterface, catchUnexpectedParams chan error) {
+	ipamMock.EXPECT().IpamVrfsList(gomock.Any(), nil).
+		DoAndReturn(func(params interface{}, authInfo interface{}, opts ...interface{}) (*ipam.IpamVrfsListOK, error) {
+			got := params.(*ipam.IpamVrfsListParams)
+			diff := deep.Equal(got, ExpectedVrfsListParams)
+			if len(diff) > 0 {
+				err := fmt.Errorf("netboxmock: unexpected call to ipam.IpamVrfsList, diff to expected params diff: %+v", diff)
+				catchUnexpectedParams <- err
+				return &ipam.IpamVrfsListOK{}, err
+			}
+			fmt.Printf("NETBOXMOCK\t ipam.IpamVrfsList was called with expected input\n")
+			return &ipam.IpamVrfsListOK{Payload: mockedResponseVrfList()}, nil
+		}).MinTimes(1)
+}
+
 // -----------------------------
 // Tenancy Mock Functions
 // -----------------------------
@@ -304,5 +334,7 @@ func resetMockFunctions(ipamMockA *mock_interfaces.MockIpamInterface, ipamMockB 
 	ipamMockB.EXPECT().IpamIPAddressesDelete(gomock.Any(), nil).Times(0)
 	ipamMockB.EXPECT().IpamIPAddressesUpdate(gomock.Any(), nil).Times(0)
 	ipamMockB.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).Times(0)
+	ipamMockA.EXPECT().IpamVrfsList(gomock.Any(), nil).Times(0)
+	ipamMockB.EXPECT().IpamVrfsList(gomock.Any(), nil).Times(0)
 	tenancyMock.EXPECT().TenancyTenantsList(gomock.Any(), nil).Times(0)
 }

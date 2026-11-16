@@ -63,6 +63,11 @@ var customFieldsWithHashCR = map[string]string{"example_field": "example value",
 var customFieldsWithHash = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": restorationHash}
 var customFieldsWithHashMismatch = map[string]interface{}{"example_field": "example value", "netboxOperatorRestorationHash": "different hash"}
 
+var vrf = "red"
+var vrfId = int64(2)
+var restorationHashWithVrf = "08f9c7c5c1f43d7e232a16fa5d0063d26b430d8e"
+var customFieldsWithHashWithVrfCR = map[string]string{"example_field": "example value", "netboxOperatorRestorationHash": restorationHashWithVrf}
+
 var netboxLabel = "Status"
 var value = "active"
 
@@ -119,6 +124,19 @@ func defaultIpAddressClaimCR() *netboxv1.IpAddressClaim {
 			PreserveInNetbox: false,
 		},
 	}
+}
+
+func defaultIpAddressClaimCRWithVrf() *netboxv1.IpAddressClaim {
+	cr := defaultIpAddressClaimCR()
+	cr.Spec.Vrf = vrf
+	return cr
+}
+
+func defaultIpAddressCreatedByClaimWithVrf(preserveInNetbox bool) *netboxv1.IpAddress {
+	cr := defaultIpAddressCreatedByClaim(preserveInNetbox)
+	cr.Spec.Vrf = vrf
+	cr.Spec.CustomFields = customFieldsWithHashWithVrfCR
+	return cr
 }
 
 // -----------------------------
@@ -217,6 +235,17 @@ func mockedResponseIPAddressList() *ipam.IpamIPAddressesListOKBody {
 	}
 }
 
+func mockedResponseVrfList() *ipam.IpamVrfsListOKBody {
+	return &ipam.IpamVrfsListOKBody{
+		Results: []*netboxModels.VRF{
+			{
+				ID:   vrfId,
+				Name: &vrf,
+			},
+		},
+	}
+}
+
 func mockedResponseEmptyIPAddressList() *ipam.IpamIPAddressesListOKBody {
 	count := int64(0)
 	return &ipam.IpamIPAddressesListOKBody{
@@ -294,6 +323,24 @@ var ExpectedIpAddressListParams = ipam.NewIpamIPAddressesListParams()
 var ExpectedIpAddressesCreateParams = ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(expectedIpToUpdate)
 
 var ExpectedIpAddressesCreateWithHashParams = ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(expectedIpToUpdateWithHash)
+
+var expectedIpToCreateWithHashAndVrf = &netboxModels.WritableIPAddress{
+	Address:  &ipAddress,
+	Comments: comments + warningComment,
+	CustomFields: map[string]string{
+		"example_field":                 "example value",
+		"netboxOperatorRestorationHash": restorationHashWithVrf,
+	},
+	Description: nsn + description + warningComment,
+	Status:      "active",
+	Tenant:      &int64TenantId,
+	Vrf:         &vrfId,
+}
+
+var ExpectedIpAddressesCreateWithHashAndVrfParams = ipam.NewIpamIPAddressesCreateParams().WithDefaults().WithData(expectedIpToCreateWithHashAndVrf)
+
+// expected inputs for ipam.IpamVrfsList method
+var ExpectedVrfsListParams = ipam.NewIpamVrfsListParams().WithName(&vrf)
 
 // expected inputs for ipam.IpamIPAddressesDelete method
 var ExpectedDeleteParams = ipam.NewIpamIPAddressesDeleteParams().WithID(expectedIpAddressID)

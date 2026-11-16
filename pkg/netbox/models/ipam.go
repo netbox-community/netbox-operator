@@ -34,6 +34,11 @@ type Rir struct {
 	Slug string `json:"slug,omitempty"`
 }
 
+type Vrf struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 type NetboxMetadata struct {
 	Comments    string            `json:"comments,omitempty"`
 	Custom      map[string]string `json:"customFields,omitempty"`
@@ -42,6 +47,7 @@ type NetboxMetadata struct {
 	Rir         string            `json:"rir,omitempty"`
 	Site        string            `json:"site,omitempty"`
 	Tenant      string            `json:"tenant,omitempty"`
+	Vrf         string            `json:"vrf,omitempty"`
 }
 
 type IPAddress struct {

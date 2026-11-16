@@ -1,0 +1,58 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefixclaim-ipv4-parentprefixselector-vrf-mismatch
+  annotations:
+    description: Tests if creation fails when the parentPrefixSelector VRF does not contain a matching parent prefix, even though a matching prefix exists in another VRF
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefixclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: PrefixClaim
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-vrf-mismatch
+              spec:
+                vrf: MY_OTHER_VRF
+                parentPrefixSelector:
+                  tenant: MY_TENANT
+                  vrf: MY_OTHER_VRF
+                  family: IPv4
+                  environment: Production
+                  poolName: Pool 1
+              status:
+                (conditions[?type == 'PrefixAssigned']):
+                  - status: 'False'
+                    reason: 'PrefixCRNotCreated'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: PrefixCRNotCreated
+              source:
+                component: prefix-claim-controller
+              message: "Failed to assign prefix, prefix CR creation skipped: no parent prefixes found for this selector"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: PrefixClaim
+                name: prefixclaim-ipv4-parentprefixselector-vrf-mismatch
+        - error:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefixclaim-ipv4-parentprefixselector-vrf-mismatch
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=prefixclaim-ipv4-parentprefixselector-vrf-mismatch -n $NAMESPACE
