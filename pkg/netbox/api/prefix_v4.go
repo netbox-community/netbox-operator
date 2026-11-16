@@ -17,13 +17,71 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 
 	v4client "github.com/netbox-community/go-netbox/v4"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/models"
 )
+
+// allocatePrefix creates a child prefix of the given parent in a single atomic NetBox call
+// (POST /api/ipam/prefixes/{id}/available-prefixes/) and returns the allocated prefix.
+// The generated clients cannot express this request: they always serialize the required
+// "prefix" field and have no "prefix_length" field. It works for both legacy and current NetBox,
+// the caller is responsible for building a body matching the NetBox version.
+func (c *NetboxClientV4) allocatePrefix(ctx context.Context, parentPrefixId int32, body map[string]any) (prefix string, err error) {
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return "", err
+	}
+
+	cfg := c.client.GetConfig()
+	url := fmt.Sprintf("%s://%s/api/ipam/prefixes/%d/available-prefixes/", cfg.Scheme, cfg.Host, parentPrefixId)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return "", err
+	}
+	for k, v := range cfg.DefaultHeader {
+		req.Header.Set(k, v)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	httpResp, err := cfg.HTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to allocate prefix: %w", err)
+	}
+	defer func() { err = errors.Join(err, httpResp.Body.Close()) }()
+
+	respBody, readErr := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode == http.StatusConflict {
+		// NetBox answers 409 if the parent has no space left for the requested prefix length
+		return "", fmt.Errorf("%w: %s", ErrNoPrefixMatchsSizeCriteria, string(respBody))
+	}
+	if httpResp.StatusCode != http.StatusCreated {
+		return "", fmt.Errorf("failed to allocate prefix: status %d, body: %s", httpResp.StatusCode, string(respBody))
+	}
+	if readErr != nil {
+		return "", fmt.Errorf("failed to read allocated prefix response: %w", readErr)
+	}
+
+	// NetBox returns a single object when a single object was posted
+	var allocated struct {
+		Prefix string `json:"prefix"`
+	}
+	if err := json.Unmarshal(respBody, &allocated); err != nil {
+		return "", fmt.Errorf("failed to parse allocated prefix response: %w", err)
+	}
+	if allocated.Prefix == "" {
+		return "", errors.New("NetBox returned an empty prefix for the allocation")
+	}
+	return allocated.Prefix, nil
+}
 
 func (c *NetboxClientV4) createPrefixV4(ctx context.Context, prefix *v4client.WritablePrefixRequest) (resp *v4client.Prefix, err error) {
 	req := c.IpamAPI.IpamPrefixesCreate(ctx).WritablePrefixRequest(*prefix)
