@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/go-openapi/runtime"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/dcim"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 	"github.com/netbox-community/go-netbox/v3/netbox/client/ipam"
@@ -1630,4 +1631,66 @@ func TestPrefixClaim_GetAvailablePrefixByParentPrefixSelectorFailIfNonExistingFi
 
 	assert.Nil(t, actual)
 	assert.ErrorContains(t, err, "custom field non-existing not found")
+}
+
+func TestPrefixClaim_GetAvailablePrefixesByParentPrefixSelectorRole(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+
+	roleName := "Production"
+	roleId := int64(7)
+	roleSlug := "production"
+	mockPrefixIpam.EXPECT().
+		IpamRolesList(ipam.NewIpamRolesListParams().WithName(&roleName), nil).
+		Return(&ipam.IpamRolesListOK{
+			Payload: &ipam.IpamRolesListOKBody{
+				Results: []*netboxModels.Role{{ID: roleId, Name: &roleName, Slug: &roleSlug}},
+			},
+		}, nil)
+
+	var filter *QueryFilter
+	mockPrefixIpam.EXPECT().
+		IpamPrefixesList(gomock.Any(), nil, gomock.Any()).
+		DoAndReturn(func(_ *ipam.IpamPrefixesListParams, _ runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamPrefixesListOK, error) {
+			op := &runtime.ClientOperation{}
+			for _, opt := range opts {
+				opt(op)
+			}
+			filter = op.Params.(*QueryFilter)
+			return &ipam.IpamPrefixesListOK{Payload: &ipam.IpamPrefixesListOKBody{}}, nil
+		})
+
+	compositeClient := &NetboxCompositeClient{clientV3: &NetboxClientV3{Ipam: mockPrefixIpam}}
+
+	pxcSpec := netboxv1.PrefixClaimSpec{
+		ParentPrefixSelector: map[string]string{"role": roleName},
+		PrefixLength:         "/32",
+	}
+	_, err := compositeClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), &pxcSpec)
+
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]string{"role_id": strconv.Itoa(int(roleId))}, filter.netBoxFields)
+	assert.Empty(t, filter.customFields)
+}
+
+func TestPrefixClaim_GetAvailablePrefixesByParentPrefixSelectorRoleNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockPrefixIpam := mock_interfaces.NewMockIpamInterface(ctrl)
+	mockPrefixIpam.EXPECT().
+		IpamRolesList(gomock.Any(), nil).
+		Return(&ipam.IpamRolesListOK{Payload: &ipam.IpamRolesListOKBody{}}, nil)
+
+	compositeClient := &NetboxCompositeClient{clientV3: &NetboxClientV3{Ipam: mockPrefixIpam}}
+
+	pxcSpec := netboxv1.PrefixClaimSpec{
+		ParentPrefixSelector: map[string]string{"role": "missing"},
+		PrefixLength:         "/32",
+	}
+	_, err := compositeClient.GetAvailablePrefixesByParentPrefixSelector(context.TODO(), &pxcSpec)
+
+	assert.ErrorContains(t, err, "role 'missing'")
 }

@@ -127,6 +127,15 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 		fieldEntries["site_id"] = strconv.Itoa(int(details.Id))
 	}
 
+	if role, ok := prefixClaimSpec.ParentPrefixSelector["role"]; ok {
+		details, err := c.getRoleDetails(role)
+		if err != nil {
+			return nil, err
+		}
+
+		fieldEntries["role_id"] = strconv.Itoa(int(details.Id))
+	}
+
 	if family, ok := prefixClaimSpec.ParentPrefixSelector["family"]; ok {
 		switch family {
 		case "IPv4":
@@ -142,7 +151,7 @@ func (c *NetboxCompositeClient) GetAvailablePrefixesByParentPrefixSelector(ctx c
 	parentPrefixSelectorCustomFields := make([]CustomFieldEntry, 0, len(prefixClaimSpec.ParentPrefixSelector))
 	for k, v := range prefixClaimSpec.ParentPrefixSelector {
 		switch k {
-		case "tenant", "site", "family":
+		case "tenant", "site", "family", "role":
 			// skip built in fields
 		default:
 			parentPrefixSelectorCustomFields = append(parentPrefixSelectorCustomFields, CustomFieldEntry{

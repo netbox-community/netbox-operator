@@ -28,6 +28,12 @@ type Site struct {
 	Slug string `json:"slug,omitempty"`
 }
 
+type Role struct {
+	Id   int64  `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+	Slug string `json:"slug,omitempty"`
+}
+
 type Rir struct {
 	Id   int64  `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`

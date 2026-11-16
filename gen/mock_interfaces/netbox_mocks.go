@@ -368,6 +368,26 @@ func (mr *MockIpamInterfaceMockRecorder) IpamPrefixesUpdate(params, authInfo any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamPrefixesUpdate", reflect.TypeOf((*MockIpamInterface)(nil).IpamPrefixesUpdate), varargs...)
 }
 
+// IpamRolesList mocks base method.
+func (m *MockIpamInterface) IpamRolesList(params *ipam.IpamRolesListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamRolesListOK, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{params, authInfo}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "IpamRolesList", varargs...)
+	ret0, _ := ret[0].(*ipam.IpamRolesListOK)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IpamRolesList indicates an expected call of IpamRolesList.
+func (mr *MockIpamInterfaceMockRecorder) IpamRolesList(params, authInfo any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{params, authInfo}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRolesList", reflect.TypeOf((*MockIpamInterface)(nil).IpamRolesList), varargs...)
+}
+
 // MockTenancyInterface is a mock of TenancyInterface interface.
 type MockTenancyInterface struct {
 	ctrl     *gomock.Controller
