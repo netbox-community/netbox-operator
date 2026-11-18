@@ -1,0 +1,9 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetarget-crd-validations-claim-start-after-end
+spec:
+  asn: 64699
+  assignedNumberRangeStart: 10
+  assignedNumberRangeEnd: 1

@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetargetclaim-range-restore-1
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  asn: 64603
+  assignedNumberRangeStart: 1
+  assignedNumberRangeEnd: 10

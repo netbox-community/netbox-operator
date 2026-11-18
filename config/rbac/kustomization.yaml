@@ -30,3 +30,7 @@ resources:
 - asn_viewer_role.yaml
 - asnclaim_editor_role.yaml
 - asnclaim_viewer_role.yaml
+- routetarget_editor_role.yaml
+- routetarget_viewer_role.yaml
+- routetargetclaim_editor_role.yaml
+- routetargetclaim_viewer_role.yaml

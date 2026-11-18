@@ -1,0 +1,151 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetargetclaim-range-restore
+  annotations:
+    description: Tests if deletion and re-creation of a range-based claim restores the same route target instead of picking a new one
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-restore-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64603:1"
+                routeTargetName: routetargetclaim-range-restore-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-range-restore-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-range-restore-1
+              spec:
+                routeTarget: "64603:1"
+                preserveInNetbox: true
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-restore-2
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64603:2"
+                routeTargetName: routetargetclaim-range-restore-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-range-restore-2
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-range-restore-2
+              spec:
+                routeTarget: "64603:2"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Delete CR 1
+      description: delete CR 1 (we only delete CR 1, so if the restoration failed to claim, it will take the next available route target which will be 64603:3, not 64603:1)
+      try:
+        - delete:
+            ref:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              name: routetargetclaim-range-restore-1
+    - name: Apply CR 1 again and check if restored
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_1.yaml
+    - name: Check CR 1 spec and status and make sure it is restored
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-restore-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64603:1"
+                routeTargetName: routetargetclaim-range-restore-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-range-restore-1
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-range-restore-1
+              spec:
+                routeTarget: "64603:1"
+                preserveInNetbox: true
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Set preserveInNetbox to false
+      description: Set preserveInNetbox to false to clean up the NetBox test instance
+      try:
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-restore-1
+              spec:
+                preserveInNetbox: false
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-range-restore-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 2
+                    status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-range-restore-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-range-restore-2 -n $NAMESPACE

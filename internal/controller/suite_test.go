@@ -72,6 +72,17 @@ var mockVpnUpdateRequest *mock_interfaces.MockVpnL2vpnsUpdateRequest
 var mockVpnDestroyRequest *mock_interfaces.MockVpnL2vpnsDestroyRequest
 var mockVpnAPIClaim *mock_interfaces.MockVpnAPI
 var mockVpnClaimListRequest *mock_interfaces.MockVpnL2vpnsListRequest
+
+// Separate MockIpamAPI instances for the RouteTarget reconcilers, for the same
+// reason as the MockVpnAPI split above: both RouteTargetReconciler and
+// RouteTargetClaimReconciler call IpamAPI.IpamRouteTargetsList independently.
+var mockIpamAPIRouteTarget *mock_interfaces.MockIpamAPI
+var mockRouteTargetListRequest *mock_interfaces.MockIpamRouteTargetsListRequest
+var mockRouteTargetCreateRequest *mock_interfaces.MockIpamRouteTargetsCreateRequest
+var mockRouteTargetUpdateRequest *mock_interfaces.MockIpamRouteTargetsUpdateRequest
+var mockRouteTargetDestroyRequest *mock_interfaces.MockIpamRouteTargetsDestroyRequest
+var mockIpamAPIRouteTargetClaim *mock_interfaces.MockIpamAPI
+var mockRouteTargetClaimListRequest *mock_interfaces.MockIpamRouteTargetsListRequest
 var ctx context.Context
 var cancel context.CancelFunc
 
@@ -136,6 +147,14 @@ var _ = BeforeSuite(func() {
 	mockVpnDestroyRequest = mock_interfaces.NewMockVpnL2vpnsDestroyRequest(mockCtrl)
 	mockVpnAPIClaim = mock_interfaces.NewMockVpnAPI(mockCtrl)
 	mockVpnClaimListRequest = mock_interfaces.NewMockVpnL2vpnsListRequest(mockCtrl)
+
+	mockIpamAPIRouteTarget = mock_interfaces.NewMockIpamAPI(mockCtrl)
+	mockRouteTargetListRequest = mock_interfaces.NewMockIpamRouteTargetsListRequest(mockCtrl)
+	mockRouteTargetCreateRequest = mock_interfaces.NewMockIpamRouteTargetsCreateRequest(mockCtrl)
+	mockRouteTargetUpdateRequest = mock_interfaces.NewMockIpamRouteTargetsUpdateRequest(mockCtrl)
+	mockRouteTargetDestroyRequest = mock_interfaces.NewMockIpamRouteTargetsDestroyRequest(mockCtrl)
+	mockIpamAPIRouteTargetClaim = mock_interfaces.NewMockIpamAPI(mockCtrl)
+	mockRouteTargetClaimListRequest = mock_interfaces.NewMockIpamRouteTargetsListRequest(mockCtrl)
 
 	k8sManager, err := ctrl.NewManager(cfg, k8sManagerOptions)
 	Expect(k8sManager.GetConfig()).NotTo(BeNil())
@@ -225,6 +244,32 @@ var _ = BeforeSuite(func() {
 		NetboxClient: api.NewNetboxCompositeClient(
 			&api.NetboxClientV3{},
 			&api.NetboxClientV4{VpnAPI: mockVpnAPIClaim},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&RouteTargetReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("route-target-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPIRouteTarget},
+		),
+		OperatorNamespace: OperatorNamespace,
+		RestConfig:        k8sManager.GetConfig(),
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&RouteTargetClaimReconciler{
+		Client:              k8sManager.GetClient(),
+		Scheme:              k8sManager.GetScheme(),
+		EventStatusRecorder: NewEventStatusRecorder(k8sManager.GetEventRecorderFor("route-target-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient: api.NewNetboxCompositeClient(
+			&api.NetboxClientV3{},
+			&api.NetboxClientV4{IpamAPI: mockIpamAPIRouteTargetClaim},
 		),
 		OperatorNamespace: OperatorNamespace,
 		RestConfig:        k8sManager.GetConfig(),

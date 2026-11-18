@@ -25,4 +25,5 @@ var (
 	ErrInvalidIpFamily                 = errors.New("invalid IP Family")
 	ErrRestorationHashMismatch         = errors.New("restoration hash mismatch")
 	ErrL2VPNRangeExhausted             = errors.New("l2vpn identifier range exhausted")
+	ErrRouteTargetRangeExhausted       = errors.New("route target assigned number range exhausted")
 )

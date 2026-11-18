@@ -1,0 +1,59 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetarget-apply-update
+  annotations:
+    description: Tests if creation and update of a RouteTarget without a claim is successful
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_routetarget.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetarget-apply-update
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+              spec:
+                routeTarget: "64600:1"
+                tenant: MY_TENANT
+                description: some description
+                comments: your comments
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                (id != null): true
+                (url != null): true
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_routetarget-update.yaml
+    - name: Check CR spec and status after update
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetarget-apply-update
+              spec:
+                routeTarget: "64600:1"
+                description: new description
+                comments: new comments
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 2
+                    status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetarget-apply-update -n $NAMESPACE

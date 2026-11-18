@@ -1,0 +1,8 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTarget
+metadata:
+  name: routetarget-crd-validations-immutable
+spec:
+  routeTarget: "64699:2"
+  tenant: "NON_EXISTING_TENANT"

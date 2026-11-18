@@ -1,0 +1,71 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetargetclaim-update-ownerreference
+  annotations:
+    description: Tests if controller updates ownerReference if a non-Claim RouteTarget existed before (e.g. from a velero backup)
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_routetarget_1.yaml
+    - name: Check non-claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply claim CR 1
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_1.yaml
+    - name: Check claim CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-update-ownerreference-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64607:1"
+                routeTargetName: routetargetclaim-update-ownerreference-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-update-ownerreference-1
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-update-ownerreference-1
+              spec:
+                routeTarget: "64607:1"
+                comments: your comments
+                customFields:
+                  netboxOperatorRestorationHash: aef759f829ac98c78680f97233ac6e6948f9da25
+                description: some description
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-update-ownerreference-1 -n $NAMESPACE

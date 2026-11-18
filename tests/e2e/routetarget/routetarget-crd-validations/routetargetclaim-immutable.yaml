@@ -1,0 +1,11 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetarget-crd-validations-claim-immutable
+spec:
+  asn: 64699
+  assignedNumberRangeStart: 1
+  assignedNumberRangeEnd: 10
+  # non existing tenant on purpose, this resource must never reach NetBox
+  tenant: "NON_EXISTING_TENANT"

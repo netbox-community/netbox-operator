@@ -2,7 +2,7 @@
 
 **Disclaimer:** This project is currently under development and may change rapidly, including breaking changes. Use with caution in production environments.
 
-NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses, prefixes, L2VPNs and ASNs – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
+NetBox Operator extends the Kubernetes API by allowing users to manage NetBox resources – such as IP addresses, prefixes, L2VPNs, route targets and ASNs – directly through Kubernetes. This integration brings Kubernetes-native features like reconciliation, ensuring that network configurations are maintained automatically, thereby improving both efficiency and reliability.
 
 ## The Claim Model
 The NetBox Operator implements a "Claim Model" which is also used in the Kubernetes PersistentVolumeClaims (PVCs).
@@ -53,7 +53,7 @@ To optionally access the NetBox UI:
 
 ## Testing NetBox Operator using samples
 
-In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, L2VPN, L2VPNClaim, Asn, and AsnClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
+In the folder `config/samples/` you can find example manifests to create IpAddress, IpAddressClaim, Prefix, PrefixClaim, L2VPN, L2VPNClaim, RouteTarget, RouteTargetClaim, Asn, and AsnClaim resources. Apply them to the cluster with `kubectl apply -f <file-name>` and use your favorite Kubernetes tools to display.
 
 Example of assigning a Prefix using PrefixClaim:
 
@@ -140,6 +140,40 @@ Only VXLAN-based L2VPN types (`vxlan`, `vxlan-evpn`) are supported, since those 
 
 Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the L2VPN is preserved in NetBox upon CR deletion and can be reclaimed when the L2VPNClaim is re-created.
 
+# Route Target Management
+
+NetBox Operator supports managing [Route Targets](https://github.com/netbox-community/netbox/blob/main/docs/models/ipam/routetarget.md) (RFC 4360 extended communities, e.g. for VRF or EVPN import/export policies) through two custom resources:
+
+- **RouteTarget**: Represents a single Route Target in NetBox. Similar to an IpAddress, it manages the lifecycle of a specific route target value set in `spec.routeTarget` (e.g. `65000:100`), which is used as the Route Target's name in NetBox.
+- **RouteTargetClaim**: Claims a route target for an `asn` from an `assignedNumberRangeStart`/`assignedNumberRangeEnd` range. Set both to the same value to claim an exact route target. Similar to IpAddressClaim, it creates a child RouteTarget CR with the assigned value.
+
+Only ASN-based route targets (`ASN:number`) are supported. As defined in RFC 4360, a 2-byte ASN (0-65535) allows assigned numbers from 0-4294967295 and a 4-byte ASN (65536-4294967295) allows assigned numbers from 0-65535. These bounds are enforced by CRD validation.
+
+## Example: Claiming a Route Target
+
+1. Apply a RouteTargetClaim: `kubectl apply -f config/samples/netbox_v1_routetargetclaim_range.yaml`
+2. Check that the RouteTarget was reserved in NetBox: `kubectl get rtc routetargetclaim-range-sample -o jsonpath='{.status.routeTarget}'`
+3. List RouteTargetClaim and RouteTarget resources: `kubectl get rtc,rt`
+
+```yaml
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetargetclaim-range-sample
+spec:
+  asn: 65000
+  assignedNumberRangeStart: 1000
+  assignedNumberRangeEnd: 1999
+  tenant: "Dunder-Mifflin, Inc."
+  preserveInNetbox: true
+```
+
+The operator picks the lowest assigned number in the range that is not yet used by a route target of that ASN in NetBox (here `65000:1000`, then `65000:1001`, ...). Allocation is serialized per ASN with a lease lock, so concurrent claims for the same ASN never receive the same route target.
+
+Restoration (via `preserveInNetbox: true`) works the same way as for IP Addresses and Prefixes — the Route Target is preserved in NetBox upon CR deletion and can be reclaimed when the RouteTargetClaim is re-created.
+
+Assigning route targets to VRFs or L2VPNs (import/export targets) is not managed by the operator.
+
 # Mixed usage of Prefixes
 
 Note that NetBox does handle the Address management of Prefixes separately from IP Ranges and IP Addresses. This is important to know when you plan to use the same NetBox Prefix as a parentPrefix for your IpAddressClaims, IpRangeClaims and PrefixClaims.
@@ -163,13 +197,13 @@ The same applies if you use parentPrefixSelector with PrefixClaims. The above ex
 
 In the case that the cluster containing the NetBox Custom Resources managed by this NetBox Operator is not backed up (e.g. using Velero), we need to be able to restore some information from NetBox. This includes two mechanisms implemented in this NetBox Operator:
 
-- `IpAddressClaim`, `PrefixClaim`, and `L2VPNClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix/L2VPN in NetBox when the Kubernetes Custom Resource is deleted
-- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix/L2VPN based on data from the IpAddressClaim/PrefixClaim/L2VPNClaim resource
+- `IpAddressClaim`, `PrefixClaim`, `L2VPNClaim`, and `RouteTargetClaim` have the flag `preserveInNetbox` in their spec. If set to true, the NetBox Operator will not delete the assigned IP Address/Prefix/L2VPN/Route Target in NetBox when the Kubernetes Custom Resource is deleted
+- In NetBox, a custom field (by default `netboxOperatorRestorationHash`) is used to identify an IP Address/Prefix/L2VPN/Route Target based on data from the IpAddressClaim/PrefixClaim/L2VPNClaim/RouteTargetClaim resource
 
 Use Cases for this Restoration:
 
 - Disaster Recovery: In case the cluster is lost, IP Addresses can be restored with the IPAddressClaim only
-- Sticky IPs/VNIs: Some services do not handle changes to IPs or VNIs well. This ensures the IP/Prefix/VNI assigned to a Custom Resource is always the same.
+- Sticky IPs/VNIs/Route Targets: Some services do not handle changes to IPs, VNIs or route targets well. This ensures the IP/Prefix/VNI/Route Target assigned to a Custom Resource is always the same.
 
 # `ParentPrefixSelector` in `PrefixClaim`
 

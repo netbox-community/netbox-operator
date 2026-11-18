@@ -1150,6 +1150,62 @@ func (mr *MockIpamAPIMockRecorder) IpamRirsList(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRirsList", reflect.TypeOf((*MockIpamAPI)(nil).IpamRirsList), ctx)
 }
 
+// IpamRouteTargetsCreate mocks base method.
+func (m *MockIpamAPI) IpamRouteTargetsCreate(ctx context.Context) interfaces.IpamRouteTargetsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamRouteTargetsCreate", ctx)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsCreateRequest)
+	return ret0
+}
+
+// IpamRouteTargetsCreate indicates an expected call of IpamRouteTargetsCreate.
+func (mr *MockIpamAPIMockRecorder) IpamRouteTargetsCreate(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRouteTargetsCreate", reflect.TypeOf((*MockIpamAPI)(nil).IpamRouteTargetsCreate), ctx)
+}
+
+// IpamRouteTargetsDestroy mocks base method.
+func (m *MockIpamAPI) IpamRouteTargetsDestroy(ctx context.Context, id int32) interfaces.IpamRouteTargetsDestroyRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamRouteTargetsDestroy", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsDestroyRequest)
+	return ret0
+}
+
+// IpamRouteTargetsDestroy indicates an expected call of IpamRouteTargetsDestroy.
+func (mr *MockIpamAPIMockRecorder) IpamRouteTargetsDestroy(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRouteTargetsDestroy", reflect.TypeOf((*MockIpamAPI)(nil).IpamRouteTargetsDestroy), ctx, id)
+}
+
+// IpamRouteTargetsList mocks base method.
+func (m *MockIpamAPI) IpamRouteTargetsList(ctx context.Context) interfaces.IpamRouteTargetsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamRouteTargetsList", ctx)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsListRequest)
+	return ret0
+}
+
+// IpamRouteTargetsList indicates an expected call of IpamRouteTargetsList.
+func (mr *MockIpamAPIMockRecorder) IpamRouteTargetsList(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRouteTargetsList", reflect.TypeOf((*MockIpamAPI)(nil).IpamRouteTargetsList), ctx)
+}
+
+// IpamRouteTargetsUpdate mocks base method.
+func (m *MockIpamAPI) IpamRouteTargetsUpdate(ctx context.Context, id int32) interfaces.IpamRouteTargetsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IpamRouteTargetsUpdate", ctx, id)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsUpdateRequest)
+	return ret0
+}
+
+// IpamRouteTargetsUpdate indicates an expected call of IpamRouteTargetsUpdate.
+func (mr *MockIpamAPIMockRecorder) IpamRouteTargetsUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IpamRouteTargetsUpdate", reflect.TypeOf((*MockIpamAPI)(nil).IpamRouteTargetsUpdate), ctx, id)
+}
+
 // MockVpnL2vpnsListRequest is a mock of VpnL2vpnsListRequest interface.
 type MockVpnL2vpnsListRequest struct {
 	ctrl     *gomock.Controller
@@ -1996,4 +2052,247 @@ func (m *MockIpamRirsListRequest) Offset(offset int32) interfaces.IpamRirsListRe
 func (mr *MockIpamRirsListRequestMockRecorder) Offset(offset any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockIpamRirsListRequest)(nil).Offset), offset)
+}
+
+// MockIpamRouteTargetsListRequest is a mock of IpamRouteTargetsListRequest interface.
+type MockIpamRouteTargetsListRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamRouteTargetsListRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamRouteTargetsListRequestMockRecorder is the mock recorder for MockIpamRouteTargetsListRequest.
+type MockIpamRouteTargetsListRequestMockRecorder struct {
+	mock *MockIpamRouteTargetsListRequest
+}
+
+// NewMockIpamRouteTargetsListRequest creates a new mock instance.
+func NewMockIpamRouteTargetsListRequest(ctrl *gomock.Controller) *MockIpamRouteTargetsListRequest {
+	mock := &MockIpamRouteTargetsListRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamRouteTargetsListRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamRouteTargetsListRequest) EXPECT() *MockIpamRouteTargetsListRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamRouteTargetsListRequest) Execute() (*netbox.PaginatedRouteTargetList, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.PaginatedRouteTargetList)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamRouteTargetsListRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamRouteTargetsListRequest)(nil).Execute))
+}
+
+// Limit mocks base method.
+func (m *MockIpamRouteTargetsListRequest) Limit(limit int32) interfaces.IpamRouteTargetsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limit", limit)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsListRequest)
+	return ret0
+}
+
+// Limit indicates an expected call of Limit.
+func (mr *MockIpamRouteTargetsListRequestMockRecorder) Limit(limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limit", reflect.TypeOf((*MockIpamRouteTargetsListRequest)(nil).Limit), limit)
+}
+
+// Name mocks base method.
+func (m *MockIpamRouteTargetsListRequest) Name(name []string) interfaces.IpamRouteTargetsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name", name)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsListRequest)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockIpamRouteTargetsListRequestMockRecorder) Name(name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockIpamRouteTargetsListRequest)(nil).Name), name)
+}
+
+// NameIsw mocks base method.
+func (m *MockIpamRouteTargetsListRequest) NameIsw(nameIsw []string) interfaces.IpamRouteTargetsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NameIsw", nameIsw)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsListRequest)
+	return ret0
+}
+
+// NameIsw indicates an expected call of NameIsw.
+func (mr *MockIpamRouteTargetsListRequestMockRecorder) NameIsw(nameIsw any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NameIsw", reflect.TypeOf((*MockIpamRouteTargetsListRequest)(nil).NameIsw), nameIsw)
+}
+
+// Offset mocks base method.
+func (m *MockIpamRouteTargetsListRequest) Offset(offset int32) interfaces.IpamRouteTargetsListRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Offset", offset)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsListRequest)
+	return ret0
+}
+
+// Offset indicates an expected call of Offset.
+func (mr *MockIpamRouteTargetsListRequestMockRecorder) Offset(offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Offset", reflect.TypeOf((*MockIpamRouteTargetsListRequest)(nil).Offset), offset)
+}
+
+// MockIpamRouteTargetsCreateRequest is a mock of IpamRouteTargetsCreateRequest interface.
+type MockIpamRouteTargetsCreateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamRouteTargetsCreateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamRouteTargetsCreateRequestMockRecorder is the mock recorder for MockIpamRouteTargetsCreateRequest.
+type MockIpamRouteTargetsCreateRequestMockRecorder struct {
+	mock *MockIpamRouteTargetsCreateRequest
+}
+
+// NewMockIpamRouteTargetsCreateRequest creates a new mock instance.
+func NewMockIpamRouteTargetsCreateRequest(ctrl *gomock.Controller) *MockIpamRouteTargetsCreateRequest {
+	mock := &MockIpamRouteTargetsCreateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamRouteTargetsCreateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamRouteTargetsCreateRequest) EXPECT() *MockIpamRouteTargetsCreateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamRouteTargetsCreateRequest) Execute() (*netbox.RouteTarget, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.RouteTarget)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamRouteTargetsCreateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamRouteTargetsCreateRequest)(nil).Execute))
+}
+
+// RouteTargetRequest mocks base method.
+func (m *MockIpamRouteTargetsCreateRequest) RouteTargetRequest(routeTargetRequest netbox.RouteTargetRequest) interfaces.IpamRouteTargetsCreateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RouteTargetRequest", routeTargetRequest)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsCreateRequest)
+	return ret0
+}
+
+// RouteTargetRequest indicates an expected call of RouteTargetRequest.
+func (mr *MockIpamRouteTargetsCreateRequestMockRecorder) RouteTargetRequest(routeTargetRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RouteTargetRequest", reflect.TypeOf((*MockIpamRouteTargetsCreateRequest)(nil).RouteTargetRequest), routeTargetRequest)
+}
+
+// MockIpamRouteTargetsUpdateRequest is a mock of IpamRouteTargetsUpdateRequest interface.
+type MockIpamRouteTargetsUpdateRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamRouteTargetsUpdateRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamRouteTargetsUpdateRequestMockRecorder is the mock recorder for MockIpamRouteTargetsUpdateRequest.
+type MockIpamRouteTargetsUpdateRequestMockRecorder struct {
+	mock *MockIpamRouteTargetsUpdateRequest
+}
+
+// NewMockIpamRouteTargetsUpdateRequest creates a new mock instance.
+func NewMockIpamRouteTargetsUpdateRequest(ctrl *gomock.Controller) *MockIpamRouteTargetsUpdateRequest {
+	mock := &MockIpamRouteTargetsUpdateRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamRouteTargetsUpdateRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamRouteTargetsUpdateRequest) EXPECT() *MockIpamRouteTargetsUpdateRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamRouteTargetsUpdateRequest) Execute() (*netbox.RouteTarget, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*netbox.RouteTarget)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamRouteTargetsUpdateRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamRouteTargetsUpdateRequest)(nil).Execute))
+}
+
+// RouteTargetRequest mocks base method.
+func (m *MockIpamRouteTargetsUpdateRequest) RouteTargetRequest(routeTargetRequest netbox.RouteTargetRequest) interfaces.IpamRouteTargetsUpdateRequest {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RouteTargetRequest", routeTargetRequest)
+	ret0, _ := ret[0].(interfaces.IpamRouteTargetsUpdateRequest)
+	return ret0
+}
+
+// RouteTargetRequest indicates an expected call of RouteTargetRequest.
+func (mr *MockIpamRouteTargetsUpdateRequestMockRecorder) RouteTargetRequest(routeTargetRequest any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RouteTargetRequest", reflect.TypeOf((*MockIpamRouteTargetsUpdateRequest)(nil).RouteTargetRequest), routeTargetRequest)
+}
+
+// MockIpamRouteTargetsDestroyRequest is a mock of IpamRouteTargetsDestroyRequest interface.
+type MockIpamRouteTargetsDestroyRequest struct {
+	ctrl     *gomock.Controller
+	recorder *MockIpamRouteTargetsDestroyRequestMockRecorder
+	isgomock struct{}
+}
+
+// MockIpamRouteTargetsDestroyRequestMockRecorder is the mock recorder for MockIpamRouteTargetsDestroyRequest.
+type MockIpamRouteTargetsDestroyRequestMockRecorder struct {
+	mock *MockIpamRouteTargetsDestroyRequest
+}
+
+// NewMockIpamRouteTargetsDestroyRequest creates a new mock instance.
+func NewMockIpamRouteTargetsDestroyRequest(ctrl *gomock.Controller) *MockIpamRouteTargetsDestroyRequest {
+	mock := &MockIpamRouteTargetsDestroyRequest{ctrl: ctrl}
+	mock.recorder = &MockIpamRouteTargetsDestroyRequestMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockIpamRouteTargetsDestroyRequest) EXPECT() *MockIpamRouteTargetsDestroyRequestMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockIpamRouteTargetsDestroyRequest) Execute() (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute")
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockIpamRouteTargetsDestroyRequestMockRecorder) Execute() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockIpamRouteTargetsDestroyRequest)(nil).Execute))
 }
