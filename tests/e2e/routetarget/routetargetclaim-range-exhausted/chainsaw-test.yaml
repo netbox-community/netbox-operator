@@ -1,0 +1,117 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetargetclaim-range-exhausted
+  annotations:
+    description: Tests if creation fails once the assigned number range is exhausted
+spec:
+  steps:
+    - name: Apply CR 1
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_1.yaml
+    - name: Check CR 1 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-exhausted-1
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64604:1"
+                routeTargetName: routetargetclaim-range-exhausted-1
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-range-exhausted-1
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-range-exhausted-1
+              spec:
+                routeTarget: "64604:1"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 2
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_2.yaml
+    - name: Check CR 2 spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-exhausted-2
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64604:2"
+                routeTargetName: routetargetclaim-range-exhausted-2
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-range-exhausted-2
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-range-exhausted-2
+              spec:
+                routeTarget: "64604:2"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Apply CR 3
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim_3.yaml
+    - name: Check CR 3 spec and status and verify it fails
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-range-exhausted-3
+              status:
+                (conditions[?type == 'RouteTargetAssigned']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: RouteTargetCRNotCreated
+              source:
+                component: route-target-claim-controller
+              message: "Failed to fetch new route target from NetBox: route target assigned number range exhausted"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: RouteTargetClaim
+                name: routetargetclaim-range-exhausted-3
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-range-exhausted-1 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-range-exhausted-2 -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-range-exhausted-3 -n $NAMESPACE

@@ -419,3 +419,81 @@ func (a *ipamV4APIAdapter) IpamAsnRangesAvailableAsnsCreate(ctx context.Context,
 func (a *ipamV4APIAdapter) IpamRirsList(ctx context.Context) interfaces.IpamRirsListRequest {
 	return &ipamRirsListRequestAdapter{req: a.api.IpamRirsList(ctx)}
 }
+
+type ipamRouteTargetsListRequestAdapter struct {
+	req v4client.ApiIpamRouteTargetsListRequest
+}
+
+func (a *ipamRouteTargetsListRequestAdapter) Name(name []string) interfaces.IpamRouteTargetsListRequest {
+	a.req = a.req.Name(name)
+	return a
+}
+
+func (a *ipamRouteTargetsListRequestAdapter) NameIsw(nameIsw []string) interfaces.IpamRouteTargetsListRequest {
+	a.req = a.req.NameIsw(nameIsw)
+	return a
+}
+
+func (a *ipamRouteTargetsListRequestAdapter) Limit(limit int32) interfaces.IpamRouteTargetsListRequest {
+	a.req = a.req.Limit(limit)
+	return a
+}
+
+func (a *ipamRouteTargetsListRequestAdapter) Offset(offset int32) interfaces.IpamRouteTargetsListRequest {
+	a.req = a.req.Offset(offset)
+	return a
+}
+
+func (a *ipamRouteTargetsListRequestAdapter) Execute() (*v4client.PaginatedRouteTargetList, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamRouteTargetsCreateRequestAdapter struct {
+	req v4client.ApiIpamRouteTargetsCreateRequest
+}
+
+func (a *ipamRouteTargetsCreateRequestAdapter) RouteTargetRequest(routeTargetRequest v4client.RouteTargetRequest) interfaces.IpamRouteTargetsCreateRequest {
+	a.req = a.req.RouteTargetRequest(routeTargetRequest)
+	return a
+}
+
+func (a *ipamRouteTargetsCreateRequestAdapter) Execute() (*v4client.RouteTarget, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamRouteTargetsUpdateRequestAdapter struct {
+	req v4client.ApiIpamRouteTargetsUpdateRequest
+}
+
+func (a *ipamRouteTargetsUpdateRequestAdapter) RouteTargetRequest(routeTargetRequest v4client.RouteTargetRequest) interfaces.IpamRouteTargetsUpdateRequest {
+	a.req = a.req.RouteTargetRequest(routeTargetRequest)
+	return a
+}
+
+func (a *ipamRouteTargetsUpdateRequestAdapter) Execute() (*v4client.RouteTarget, *http.Response, error) {
+	return a.req.Execute()
+}
+
+type ipamRouteTargetsDestroyRequestAdapter struct {
+	req v4client.ApiIpamRouteTargetsDestroyRequest
+}
+
+func (a *ipamRouteTargetsDestroyRequestAdapter) Execute() (*http.Response, error) {
+	return a.req.Execute()
+}
+
+func (a *ipamV4APIAdapter) IpamRouteTargetsList(ctx context.Context) interfaces.IpamRouteTargetsListRequest {
+	return &ipamRouteTargetsListRequestAdapter{req: a.api.IpamRouteTargetsList(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamRouteTargetsCreate(ctx context.Context) interfaces.IpamRouteTargetsCreateRequest {
+	return &ipamRouteTargetsCreateRequestAdapter{req: a.api.IpamRouteTargetsCreate(ctx)}
+}
+
+func (a *ipamV4APIAdapter) IpamRouteTargetsUpdate(ctx context.Context, id int32) interfaces.IpamRouteTargetsUpdateRequest {
+	return &ipamRouteTargetsUpdateRequestAdapter{req: a.api.IpamRouteTargetsUpdate(ctx, id)}
+}
+
+func (a *ipamV4APIAdapter) IpamRouteTargetsDestroy(ctx context.Context, id int32) interfaces.IpamRouteTargetsDestroyRequest {
+	return &ipamRouteTargetsDestroyRequestAdapter{req: a.api.IpamRouteTargetsDestroy(ctx, id)}
+}

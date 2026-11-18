@@ -1,0 +1,8 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetarget-crd-validations-claim-missing-asn
+spec:
+  assignedNumberRangeStart: 1
+  assignedNumberRangeEnd: 10

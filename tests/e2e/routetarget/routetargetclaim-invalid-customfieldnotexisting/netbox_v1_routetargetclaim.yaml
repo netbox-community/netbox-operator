@@ -1,0 +1,15 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetargetclaim-invalid-customfieldnotexisting
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  asn: 64606
+  assignedNumberRangeStart: 1
+  assignedNumberRangeEnd: 1
+  customFields:
+    justmade: "thisup"

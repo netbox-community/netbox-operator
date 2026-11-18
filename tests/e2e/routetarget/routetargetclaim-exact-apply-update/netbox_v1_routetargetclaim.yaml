@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetargetclaim-exact-apply-update
+spec:
+  tenant: "MY_TENANT"
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: false
+  asn: 64601
+  assignedNumberRangeStart: 100
+  assignedNumberRangeEnd: 100

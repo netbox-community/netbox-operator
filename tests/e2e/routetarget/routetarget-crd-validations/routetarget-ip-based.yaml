@@ -1,0 +1,7 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTarget
+metadata:
+  name: routetarget-crd-validations-ip-based
+spec:
+  routeTarget: "192.0.2.1:100"

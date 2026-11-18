@@ -1,0 +1,100 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetargetclaim-exact-apply-update
+  annotations:
+    description: Tests if creation and update is successful for an exact route target
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-exact-apply-update
+              spec:
+                tenant: "MY_TENANT"
+                description: "some description"
+                comments: "your comments"
+                asn: 64601
+                assignedNumberRangeStart: 100
+                assignedNumberRangeEnd: 100
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64601:100"
+                routeTargetName: routetargetclaim-exact-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-exact-apply-update
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-exact-apply-update
+              spec:
+                routeTarget: "64601:100"
+                comments: your comments
+                description: some description
+                tenant: MY_TENANT
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim-update.yaml
+    - name: Check CR spec and status after update
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-exact-apply-update
+              spec:
+                description: "new description"
+                comments: "new comments"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "64601:100"
+                routeTargetName: routetargetclaim-exact-apply-update
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-exact-apply-update
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-exact-apply-update
+              spec:
+                routeTarget: "64601:100"
+                comments: new comments
+                description: new description
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-exact-apply-update -n $NAMESPACE

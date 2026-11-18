@@ -1,0 +1,128 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetarget-crd-validations
+  annotations:
+    description: Tests the CRD validations (required, format, bounds and immutability) of RouteTarget and RouteTargetClaim
+spec:
+  steps:
+    - name: RouteTarget without routeTarget
+      try:
+        - script:
+            content: kubectl apply -f routetarget-missing-routetarget.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'spec.routeTarget: Required value'))": true
+    - name: RouteTarget with IP-address-based value
+      try:
+        - script:
+            content: kubectl apply -f routetarget-ip-based.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'spec.routeTarget in body should match'))": true
+    - name: RouteTarget with ASN above the allowed range
+      try:
+        - script:
+            content: kubectl apply -f routetarget-asn-too-large.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'ASN must be in the range 0-4294967295'))": true
+    - name: RouteTarget with 4-byte ASN and assigned number above 65535
+      try:
+        - script:
+            content: kubectl apply -f routetarget-assigned-number-too-large.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'assigned number must be in the range'))": true
+    - name: Create RouteTarget for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f routetarget-immutable.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: RouteTarget with changed routeTarget
+      try:
+        - script:
+            content: kubectl apply -f routetarget-immutable-routetarget-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'routeTarget' is immutable\"`))": true
+    - name: RouteTarget with changed tenant
+      try:
+        - script:
+            content: kubectl apply -f routetarget-immutable-tenant-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'tenant' is immutable\"`))": true
+    - name: RouteTarget with changed description
+      description: description is mutable, this is the positive control for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f routetarget-immutable-description-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: RouteTargetClaim without asn
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-missing-asn.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'spec.asn: Required value'))": true
+    - name: RouteTargetClaim with range start after range end
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-start-after-end.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'assignedNumberRangeStart must be less than or equal to assignedNumberRangeEnd'))": true
+    - name: RouteTargetClaim with 4-byte ASN and range end above 65535
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-4byte-asn-number-too-large.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), 'assigned numbers for 4-byte ASNs must be in the range 0-65535'))": true
+    - name: Create RouteTargetClaim for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-immutable.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: RouteTargetClaim with changed asn
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-immutable-asn-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'asn' is immutable\"`))": true
+    - name: RouteTargetClaim with changed range
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-immutable-range-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'assignedNumberRangeStart' is immutable\"`))": true
+    - name: RouteTargetClaim with changed tenant
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-immutable-tenant-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): true
+              "(contains(to_string($stderr), `\"Field 'tenant' is immutable\"`))": true
+    - name: RouteTargetClaim with changed description
+      description: description is mutable, this is the positive control for the immutability checks
+      try:
+        - script:
+            content: kubectl apply -f routetargetclaim-immutable-description-changed.yaml -n=$NAMESPACE
+            check:
+              ($error != null): false
+    - name: Cleanup
+      description: The CRs are created via kubectl, so chainsaw does not track them for deletion
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete routetargetclaim routetarget-crd-validations-claim-immutable -n $NAMESPACE --ignore-not-found
+              kubectl delete routetarget routetarget-crd-validations-immutable -n $NAMESPACE --ignore-not-found
+              kubectl delete events --field-selector involvedObject.name=routetarget-crd-validations-immutable -n $NAMESPACE
+              kubectl delete events --field-selector involvedObject.name=routetarget-crd-validations-claim-immutable -n $NAMESPACE

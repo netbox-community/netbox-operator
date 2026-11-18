@@ -89,3 +89,16 @@ type ASNClaim struct {
 	ParentAsnRange string          `json:"parentAsnRange,omitempty"`
 	Metadata       *NetboxMetadata `json:"metadata,omitempty"`
 }
+
+type RouteTarget struct {
+	Name     string          `json:"name,omitempty"`
+	Id       int64           `json:"id,omitempty"`
+	Metadata *NetboxMetadata `json:"metadata,omitempty"`
+}
+
+type RouteTargetClaim struct {
+	Asn                      int64           `json:"asn,omitempty"`
+	AssignedNumberRangeStart int64           `json:"assignedNumberRangeStart,omitempty"`
+	AssignedNumberRangeEnd   int64           `json:"assignedNumberRangeEnd,omitempty"`
+	Metadata                 *NetboxMetadata `json:"metadata,omitempty"`
+}

@@ -119,6 +119,10 @@ type IpamAPI interface {
 	IpamAsnRangesList(ctx context.Context) IpamAsnRangesListRequest
 	IpamAsnRangesAvailableAsnsCreate(ctx context.Context, id int32) IpamAsnRangesAvailableAsnsCreateRequest
 	IpamRirsList(ctx context.Context) IpamRirsListRequest
+	IpamRouteTargetsList(ctx context.Context) IpamRouteTargetsListRequest
+	IpamRouteTargetsCreate(ctx context.Context) IpamRouteTargetsCreateRequest
+	IpamRouteTargetsUpdate(ctx context.Context, id int32) IpamRouteTargetsUpdateRequest
+	IpamRouteTargetsDestroy(ctx context.Context, id int32) IpamRouteTargetsDestroyRequest
 }
 
 type VpnL2vpnsListRequest interface {
@@ -198,4 +202,28 @@ type IpamRirsListRequest interface {
 	Limit(limit int32) IpamRirsListRequest
 	Offset(offset int32) IpamRirsListRequest
 	Execute() (*v4client.PaginatedRIRList, *http.Response, error)
+}
+
+// V4 Route Target API Interfaces
+
+type IpamRouteTargetsListRequest interface {
+	Name(name []string) IpamRouteTargetsListRequest
+	NameIsw(nameIsw []string) IpamRouteTargetsListRequest
+	Limit(limit int32) IpamRouteTargetsListRequest
+	Offset(offset int32) IpamRouteTargetsListRequest
+	Execute() (*v4client.PaginatedRouteTargetList, *http.Response, error)
+}
+
+type IpamRouteTargetsCreateRequest interface {
+	RouteTargetRequest(routeTargetRequest v4client.RouteTargetRequest) IpamRouteTargetsCreateRequest
+	Execute() (*v4client.RouteTarget, *http.Response, error)
+}
+
+type IpamRouteTargetsUpdateRequest interface {
+	RouteTargetRequest(routeTargetRequest v4client.RouteTargetRequest) IpamRouteTargetsUpdateRequest
+	Execute() (*v4client.RouteTarget, *http.Response, error)
+}
+
+type IpamRouteTargetsDestroyRequest interface {
+	Execute() (*http.Response, error)
 }

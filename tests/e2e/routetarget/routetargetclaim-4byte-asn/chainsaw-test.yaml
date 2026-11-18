@@ -1,0 +1,51 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetargetclaim-4byte-asn
+  annotations:
+    description: Tests if a route target can be claimed for a 4-byte ASN
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-4byte-asn
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+                routeTarget: "4200000001:65534"
+                routeTargetName: routetargetclaim-4byte-asn
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                name: routetargetclaim-4byte-asn
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-4byte-asn
+              spec:
+                routeTarget: "4200000001:65534"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-4byte-asn -n $NAMESPACE

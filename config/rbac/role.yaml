@@ -24,6 +24,8 @@ rules:
   - l2vpns
   - prefixclaims
   - prefixes
+  - routetargetclaims
+  - routetargets
   verbs:
   - create
   - delete
@@ -45,6 +47,8 @@ rules:
   - l2vpns/finalizers
   - prefixclaims/finalizers
   - prefixes/finalizers
+  - routetargetclaims/finalizers
+  - routetargets/finalizers
   verbs:
   - update
 - apiGroups:
@@ -60,6 +64,8 @@ rules:
   - l2vpns/status
   - prefixclaims/status
   - prefixes/status
+  - routetargetclaims/status
+  - routetargets/status
   verbs:
   - get
   - patch

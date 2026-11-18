@@ -1,0 +1,69 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routetargetclaim-invalid-customfieldnotexisting
+  annotations:
+    description: Tests if reservation in NetBox fails when a custom field is not registered
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_routetargetclaim.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTargetClaim
+              metadata:
+                name: routetargetclaim-invalid-customfieldnotexisting
+              spec:
+                customFields:
+                  justmade: "thisup"
+              status:
+                (conditions[?type == 'RouteTargetAssigned']):
+                  - status: 'True'
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: RouteTarget
+              metadata:
+                finalizers:
+                  - routetarget.netbox.dev/finalizer
+                name: routetargetclaim-invalid-customfieldnotexisting
+                ownerReferences:
+                  - apiVersion: netbox.dev/v1
+                    blockOwnerDeletion: true
+                    controller: true
+                    kind: RouteTargetClaim
+                    name: routetargetclaim-invalid-customfieldnotexisting
+              spec:
+                customFields:
+                  justmade: thisup
+                routeTarget: "64606:1"
+              status:
+                (conditions[?type == 'Ready']):
+                  - status: 'False'
+        - assert:
+            resource:
+              apiVersion: v1
+              kind: Event
+              type: Warning
+              reason: FailedToReserveRouteTargetInNetbox
+              source:
+                component: route-target-controller
+              message: "Failed to reserve Route Target in NetBox: failed to reserve route target: status 400, body: {\"__all__\":[\"Unknown field name 'justmade' in custom field data.\"]}, route target: 64606:1"
+              involvedObject:
+                apiVersion: netbox.dev/v1
+                kind: RouteTarget
+                name: routetargetclaim-invalid-customfieldnotexisting
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=routetargetclaim-invalid-customfieldnotexisting -n $NAMESPACE

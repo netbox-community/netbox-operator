@@ -1,0 +1,10 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTarget
+metadata:
+  name: routetarget-apply-update
+spec:
+  routeTarget: "64600:1"
+  tenant: "MY_TENANT"
+  description: "new description"
+  comments: "new comments"

@@ -1,0 +1,12 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTarget
+metadata:
+  name: routetargetclaim-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: aef759f829ac98c78680f97233ac6e6948f9da25
+  description: some description
+  routeTarget: "64607:1"
+  tenant: MY_TENANT

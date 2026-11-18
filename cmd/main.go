@@ -283,6 +283,28 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "L2VPN")
 		os.Exit(1)
 	}
+	if err = (&controller.RouteTargetClaimReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("route-target-claim-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RouteTargetClaim")
+		os.Exit(1)
+	}
+	if err = (&controller.RouteTargetReconciler{
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		EventStatusRecorder: controller.NewEventStatusRecorder(mgr.GetEventRecorderFor("route-target-controller")), //nolint:staticcheck // using deprecated API until controller-runtime migration is complete
+		NetboxClient:        netboxCompositeClient,
+		OperatorNamespace:   operatorNamespace,
+		RestConfig:          mgr.GetConfig(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RouteTarget")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

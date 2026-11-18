@@ -1,0 +1,16 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  labels:
+    app.kubernetes.io/name: netbox-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: routetargetclaim-sample
+spec:
+  tenant: "Dunder-Mifflin, Inc."
+  description: "some description"
+  comments: "your comments"
+  preserveInNetbox: true
+  asn: 65000
+  assignedNumberRangeStart: 200
+  assignedNumberRangeEnd: 200

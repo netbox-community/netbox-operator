@@ -1,0 +1,9 @@
+---
+apiVersion: netbox.dev/v1
+kind: RouteTargetClaim
+metadata:
+  name: routetarget-crd-validations-claim-4byte-too-large
+spec:
+  asn: 4200000000
+  assignedNumberRangeStart: 1
+  assignedNumberRangeEnd: 65536

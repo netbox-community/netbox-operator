@@ -14,4 +14,7 @@ resources:
   - netbox_v1_l2vpnclaim.yaml
   - netbox_v1_l2vpnclaim_range.yaml
   - netbox_v1_l2vpn.yaml
+  - netbox_v1_routetargetclaim.yaml
+  - netbox_v1_routetargetclaim_range.yaml
+  - netbox_v1_routetarget.yaml
   # +kubebuilder:scaffold:manifestskustomizesamples

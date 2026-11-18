@@ -12,6 +12,8 @@ resources:
 - bases/netbox.dev_asnclaims.yaml
 - bases/netbox.dev_l2vpnclaims.yaml
 - bases/netbox.dev_l2vpns.yaml
+- bases/netbox.dev_routetargetclaims.yaml
+- bases/netbox.dev_routetargets.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:
