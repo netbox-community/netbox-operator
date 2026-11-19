@@ -74,18 +74,14 @@ log "Resolving helm chart and demo data for NetBox ${VERSION}"
 if [[ "${VERSION}" == "3.7.8" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta5/netbox-5.0.0-beta5.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v3.7.sql"
-
 elif [[ "${VERSION}" == "4.0.11" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-5.0.0-beta.84/netbox-5.0.0-beta.84.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.0.sql"
-
 elif [[ "${VERSION}" == "4.1.10" ]] ;then
   log "Using default helm chart and demo data"
-
 elif [[ "${VERSION}" == "4.4.9" ]] ;then
   NETBOX_HELM_CHART="${NETBOX_HELM_REPO:-https://github.com}/netbox-community/netbox-chart/releases/download/netbox-7.2.26/netbox-7.2.26.tgz"
   NETBOX_SQL_DUMP_URL="https://raw.githubusercontent.com/netbox-community/netbox-demo-data/master/sql/netbox-demo-v4.4.sql"
-
 else
   echo "Unknown version ${VERSION}"
   exit 1
@@ -120,6 +116,9 @@ ${KUBECTL} apply -n "$NAMESPACE" -k "$SCRIPT_DIR/netbox-db"
 # gives it an OnDelete update strategy, which rules out `kubectl rollout status`.
 log "Waiting for the netbox-db statefulset to become ready"
 ${KUBECTL} wait -n "$NAMESPACE" --for=create statefulset/netbox-db --timeout=300s
+
+${KUBECTL} wait -n "$NAMESPACE" --for=jsonpath='{.status.readyReplicas}'=1 \
+    statefulset/netbox-db --timeout=600s
 
 log "Creating the demo-data load job scripts ConfigMap"
 ${KUBECTL} create configmap netbox-demo-data-load-job-scripts \
@@ -240,6 +239,18 @@ if [[ "${NETBOX_SCALED_DOWN}" == "true" ]]; then
     ${KUBECTL} scale deployment netbox -n "${NAMESPACE}" --replicas=1
 fi
 
+# NetBox's startup migration hits its cache (Redis/Valkey) immediately. If that pod
+# isn't Ready yet when NetBox starts - or gets recreated moments later by the IPv4
+# patch below - the connection can be rejected outright (EPERM) instead of just
+# failing fast, so wait for it here before anything triggers a NetBox pod restart.
+for CACHE_LABEL in "app.kubernetes.io/name=redis" "app.kubernetes.io/name=valkey"; do
+    if ${KUBECTL} get pods -n "${NAMESPACE}" -l "${CACHE_LABEL},app.kubernetes.io/instance=netbox" --no-headers 2>/dev/null | grep -q .; then
+        log "Waiting for the NetBox cache pod (${CACHE_LABEL}) to become ready"
+        ${KUBECTL} wait -n "${NAMESPACE}" --for=condition=ready pod \
+            -l "${CACHE_LABEL},app.kubernetes.io/instance=netbox" --timeout=180s
+    fi
+done
+
 # The helm charts for NetBox v4+ print the app version themselves, the v3.7.8 one does not
 if [[ "${VERSION}" == "3.7.8" ]] ;then
     # Print the app version of the NetBox helm release
@@ -251,7 +262,6 @@ fi
 
 if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   log "Creating nginx-unit ConfigMap and patching deployment"
-
   ${KUBECTL} apply -f "$SCRIPT_DIR/nginx-unit-config.yaml" -n "$NAMESPACE"
 
   # a strategic merge patch merges volumes/volumeMounts by name, so re-running does not duplicate them
@@ -290,12 +300,35 @@ if [[ "$FORCE_NETBOX_NGINX_IPV4" == "true" ]]; then
   }'
 fi
 
+# dump_netbox_diagnostics prints pod status, descriptions, logs and recent events
+# for the netbox deployment, so a failed rollout leaves a trace of *why* it failed
+# instead of just "exceeded its progress deadline".
+dump_netbox_diagnostics() {
+    log "ERROR: NetBox deployment failed to roll out, dumping diagnostics"
+    ${KUBECTL} get pods -n "${NAMESPACE}" -l app.kubernetes.io/component=netbox -o wide || true
+    ${KUBECTL} describe deployment netbox -n "${NAMESPACE}" || true
+    ${KUBECTL} describe pods -n "${NAMESPACE}" -l app.kubernetes.io/component=netbox || true
+    log "Previous container logs (if any):"
+    ${KUBECTL} logs -n "${NAMESPACE}" -l app.kubernetes.io/component=netbox --all-containers --tail=200 --previous || true
+    log "Current container logs:"
+    ${KUBECTL} logs -n "${NAMESPACE}" -l app.kubernetes.io/component=netbox --all-containers --tail=200 || true
+    log "Recent namespace events:"
+    ${KUBECTL} get events -n "${NAMESPACE}" --sort-by=.lastTimestamp | tail -n 50 || true
+}
+
+# How long to wait for the NetBox deployment to roll out before giving up and
+# dumping diagnostics. Kept well below the Deployment's progressDeadlineSeconds
+# default (600s) so CI fails fast with useful logs instead of blocking silently.
+NETBOX_ROLLOUT_TIMEOUT="${NETBOX_ROLLOUT_TIMEOUT:-300s}"
+
 log "Waiting for the NetBox deployment to roll out"
-${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox
+if ! ${KUBECTL} rollout status --namespace="${NAMESPACE}" deployment netbox --timeout="${NETBOX_ROLLOUT_TIMEOUT}"; then
+    dump_netbox_diagnostics
+    exit 1
+fi
 
 log "Creating the ConfigMap for the local-data loader script"
 TMP_CONFIGMAP_YAML="$(mktemp)"
-
 GENERATED_FILES+=("$TMP_CONFIGMAP_YAML")
 ${KUBECTL} create configmap netbox-loader-script \
   --namespace="${NAMESPACE}" \
