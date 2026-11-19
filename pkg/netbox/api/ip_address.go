@@ -44,7 +44,11 @@ func (c *NetboxCompositeClient) ReserveOrUpdateIpAddress(ctx context.Context, ip
 	}
 
 	if ipAddress.Metadata != nil {
-		desiredIPAddress.CustomFields = ipAddress.Metadata.Custom
+		customFields, err := c.convertCustomFields(ipAddress.Metadata.Custom)
+		if err != nil {
+			return nil, false, err
+		}
+		desiredIPAddress.CustomFields = customFields
 		desiredIPAddress.Comments = ipAddress.Metadata.Comments + warningComment
 		desiredIPAddress.Description = TruncateDescription(ipAddress.Metadata.Description)
 	}

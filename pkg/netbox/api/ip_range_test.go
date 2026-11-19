@@ -228,6 +228,47 @@ func TestIpRange(t *testing.T) {
 		assert.Equal(t, expectedIPRange().MarkPopulated, actual.MarkPopulated)
 	})
 
+	t.Run("reserve new ip range with non-text custom field", func(t *testing.T) {
+		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
+		mockCreateRequest := mock_interfaces.NewMockIpamIpRangesCreateRequest(ctrl)
+		mockListRequest := mock_interfaces.NewMockIpamIpRangesListRequest(ctrl)
+
+		mockIpamAPI.EXPECT().IpamIpRangesList(gomock.Any()).Return(mockListRequest)
+		mockListRequest.EXPECT().StartAddress([]string{startAddress}).Return(mockListRequest)
+		mockListRequest.EXPECT().EndAddress([]string{endAddress}).Return(mockListRequest)
+		mockListRequest.EXPECT().
+			Execute().
+			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
+
+		var customFields map[string]interface{}
+		mockIpamAPI.EXPECT().IpamIpRangesCreate(gomock.Any()).Return(mockCreateRequest)
+		mockCreateRequest.EXPECT().
+			WritableIPRangeRequest(gomock.Any()).
+			Do(func(req v4client.WritableIPRangeRequest) { customFields = req.GetCustomFields() }).
+			Return(mockCreateRequest)
+		expectedResp := expectedIPRange()
+		mockCreateRequest.EXPECT().
+			Execute().
+			Return(&expectedResp, &http.Response{StatusCode: 201, Body: http.NoBody}, nil)
+
+		compositeClient := &NetboxCompositeClient{
+			clientV4: &NetboxClientV4{IpamAPI: mockIpamAPI},
+			clientV3: &NetboxClientV3{Extras: mockCustomFieldTypes(ctrl, map[string]string{"json": "json"})},
+		}
+
+		_, _, err := compositeClient.ReserveOrUpdateIpRange(context.TODO(),
+			&models.IpRange{
+				StartAddress: startAddress,
+				EndAddress:   endAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{"json": `{"key": "value"}`},
+				},
+			}, &netboxv1.IpRange{})
+
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]interface{}{"json": map[string]interface{}{"key": "value"}}, customFields)
+	})
+
 	t.Run("restoration hash mismatch", func(t *testing.T) {
 		mockIpamAPI := mock_interfaces.NewMockIpamAPI(ctrl)
 		mockTenancy := mock_interfaces.NewMockTenancyInterface(ctrl)

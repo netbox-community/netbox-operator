@@ -70,7 +70,7 @@ type PrefixClaimSpec struct {
 	Comments string `json:"comments,omitempty"`
 
 	// The NetBox Custom Fields that should be added to the resource in NetBox.
-	// Note that currently only Text Type is supported (GitHub #129)
+	// Values of non-text custom field types (e.g. integer, boolean, json) are parsed as JSON
 	// More info on NetBox Custom Fields:
 	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
 	// Field is mutable, not required
