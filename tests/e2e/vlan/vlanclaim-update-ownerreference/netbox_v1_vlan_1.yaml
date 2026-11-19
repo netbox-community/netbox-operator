@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: Vlan
+metadata:
+  name: vlanclaim-update-ownerreference-1
+spec:
+  comments: your comments
+  customFields:
+    netboxOperatorRestorationHash: 8532d6f7b8910804379c629baf278265c344ef45
+  description: some description
+  vid: 170
+  site: MY_SITE
+  tenant: MY_TENANT
