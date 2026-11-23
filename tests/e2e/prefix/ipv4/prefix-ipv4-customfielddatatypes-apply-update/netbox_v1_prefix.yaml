@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: Prefix
+metadata:
+  name: prefix-ipv4-customfielddatatypes-apply-update
+spec:
+  comments: your comments
+  customFields:
+    cfDataTypeBool: "true"
+    cfDataTypeInteger: "7"
+    cfDataTypeJson: '{"key": "value"}'
+  description: some description
+  prefix: 4.0.10.0/24

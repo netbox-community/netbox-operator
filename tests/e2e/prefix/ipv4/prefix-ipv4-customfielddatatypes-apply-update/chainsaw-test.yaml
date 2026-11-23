@@ -1,0 +1,84 @@
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: prefix-ipv4-customfielddatatypes-apply-update
+  annotations:
+    description: Tests if custom fields of type boolean, integer and json can be set, updated and removed
+spec:
+  steps:
+    - name: Apply CR
+      try:
+        - apply:
+            file: netbox_v1_prefix.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefix-ipv4-customfielddatatypes-apply-update
+              spec:
+                customFields:
+                  cfDataTypeBool: "true"
+                  cfDataTypeInteger: "7"
+                  cfDataTypeJson: '{"key": "value"}'
+                prefix: 4.0.10.0/24
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 1
+                    status: 'True'
+    - name: Update CR
+      try:
+        - apply:
+            file: netbox_v1_prefix-update.yaml
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefix-ipv4-customfielddatatypes-apply-update
+              spec:
+                customFields:
+                  cfDataTypeBool: "false"
+                  cfDataTypeInteger: "8"
+                  cfDataTypeJson: '["a", "b"]'
+                prefix: 4.0.10.0/24
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 2
+                    status: 'True'
+    - name: Remove custom fields
+      try:
+        - patch:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefix-ipv4-customfielddatatypes-apply-update
+              spec:
+                customFields:
+                  cfDataTypeBool: null
+                  cfDataTypeInteger: null
+                  cfDataTypeJson: null
+    - name: Check CR spec and status
+      try:
+        - assert:
+            resource:
+              apiVersion: netbox.dev/v1
+              kind: Prefix
+              metadata:
+                name: prefix-ipv4-customfielddatatypes-apply-update
+              status:
+                (conditions[?type == 'Ready']):
+                  - observedGeneration: 3
+                    status: 'True'
+    - name: Cleanup events
+      description: Events cleanup required to fix issues with failing tests that assert the wrong Error resource
+      cleanup:
+        - script:
+            content: |-
+              kubectl delete events --field-selector involvedObject.name=prefix-ipv4-customfielddatatypes-apply-update -n $NAMESPACE

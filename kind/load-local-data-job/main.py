@@ -184,6 +184,16 @@ custom_fields = [
         validation_minimum=0,
         validation_maximum=10,
     ),
+    CustomField(
+        content_types=["ipam.prefix"],
+        object_types=["ipam.prefix"],
+        type="json",
+        name="cfDataTypeJson",
+        label="cf Data Type Json",
+        description="Custom field of type json",
+        required=False,
+        filter_logic="exact"
+    ),
 ]
 
 for custom_field in custom_fields:

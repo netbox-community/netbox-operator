@@ -130,6 +130,7 @@ func TestL2VPN(t *testing.T) {
 		mockListRequest.EXPECT().Identifier([]int32{int32(identifier)}).Return(mockListRequest)
 		mockListRequest.EXPECT().Execute().Return(&v4client.PaginatedL2VPNList{Results: []v4client.L2VPN{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
+		// capture the request to check the custom fields
 		var customFields map[string]interface{}
 		mockVpnAPI.EXPECT().VpnL2vpnsCreate(gomock.Any()).Return(mockCreateRequest)
 		mockCreateRequest.EXPECT().

@@ -43,7 +43,7 @@ type PrefixSpec struct {
 	Tenant string `json:"tenant,omitempty"`
 
 	// The NetBox Custom Fields that should be added to the resource in NetBox.
-	// Values of non-text custom field types (e.g. integer, boolean, json) are parsed as JSON
+	// Values of custom fields of type integer, boolean, json, multiselect, object and multiobject are parsed as JSON
 	// More info on NetBox Custom Fields:
 	// https://github.com/netbox-community/netbox/blob/main/docs/customization/custom-fields.md
 	// Field is mutable, not required

@@ -18,10 +18,10 @@ package api
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/netbox-community/go-netbox/v3/netbox/client/extras"
 
-	"github.com/netbox-community/netbox-operator/pkg/config"
 	"github.com/netbox-community/netbox-operator/pkg/netbox/utils"
 )
 
@@ -38,9 +38,10 @@ var jsonCustomFieldTypes = map[string]bool{
 func (c *NetboxCompositeClient) convertCustomFields(customFields map[string]string) (map[string]interface{}, error) {
 	converted := make(map[string]interface{}, len(customFields))
 	for key, value := range customFields {
-		// the restoration hash is always a text field
-		if key == config.GetOperatorConfig().NetboxRestorationHashFieldName {
-			converted[key] = value
+		converted[key] = value
+
+		// invalid JSON (e.g. an empty value) is passed as is and validated by NetBox
+		if !json.Valid([]byte(value)) {
 			continue
 		}
 
@@ -49,15 +50,15 @@ func (c *NetboxCompositeClient) convertCustomFields(customFields map[string]stri
 			return nil, err
 		}
 		if !jsonCustomFieldTypes[fieldType] {
-			converted[key] = value
 			continue
 		}
 
-		// invalid JSON (e.g. an empty value) is passed as is and validated by NetBox
+		// UseNumber keeps large integers exact
+		decoder := json.NewDecoder(strings.NewReader(value))
+		decoder.UseNumber()
 		var parsed interface{}
-		if err := json.Unmarshal([]byte(value), &parsed); err != nil {
-			converted[key] = value
-			continue
+		if err := decoder.Decode(&parsed); err != nil {
+			return nil, err
 		}
 		converted[key] = parsed
 	}
@@ -65,7 +66,8 @@ func (c *NetboxCompositeClient) convertCustomFields(customFields map[string]stri
 	return converted, nil
 }
 
-// NetBox doesn't allow to change the type of a custom field, so it is cached
+// the type of a custom field can't be changed in NetBox, so it is cached
+// if a custom field is deleted and recreated with another type, the operator has to be restarted
 func (c *NetboxCompositeClient) getCustomFieldType(name string) (string, error) {
 	if fieldType, ok := c.customFieldTypes.Load(name); ok {
 		return fieldType.(string), nil
@@ -74,14 +76,16 @@ func (c *NetboxCompositeClient) getCustomFieldType(name string) (string, error) 
 	request := extras.NewExtrasCustomFieldsListParams().WithName(&name)
 	response, err := c.clientV3.Extras.ExtrasCustomFieldsList(request, nil)
 	if err != nil {
-		return "", utils.NetboxError("failed to fetch CustomField details", err)
+		return "", utils.NetboxError("failed to fetch custom field '"+name+"' details", err)
 	}
 	// unknown custom fields are passed as is and rejected by NetBox
-	if len(response.Payload.Results) != 1 || response.Payload.Results[0].Type == nil {
+	// they aren't cached, so a custom field created later is picked up without a restart
+	results := response.Payload.Results
+	if len(results) != 1 || results[0].Type == nil || results[0].Type.Value == nil {
 		return "", nil
 	}
 
-	fieldType := *response.Payload.Results[0].Type.Value
+	fieldType := *results[0].Type.Value
 	c.customFieldTypes.Store(name, fieldType)
 	return fieldType, nil
 }

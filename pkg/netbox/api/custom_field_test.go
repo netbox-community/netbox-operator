@@ -17,6 +17,7 @@ limitations under the License.
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -52,17 +53,16 @@ func TestCustomField_ConvertCustomFields(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	// the restoration hash is not looked up
+	// values which aren't valid JSON are not looked up
 	mockExtras := mockCustomFieldTypes(ctrl, map[string]string{
-		"text":         "text",
-		"integer":      "integer",
-		"boolean":      "boolean",
-		"decimal":      "decimal",
-		"json":         "json",
-		"jsonString":   "json",
-		"multiobject":  "multiobject",
-		"emptyInteger": "integer",
-		"unknown":      "",
+		"text":        "text",
+		"integer":     "integer",
+		"bigInteger":  "integer",
+		"boolean":     "boolean",
+		"decimal":     "decimal",
+		"json":        "json",
+		"multiobject": "multiobject",
+		"unknown":     "",
 	})
 	compositeClient := &NetboxCompositeClient{
 		clientV3: &NetboxClientV3{Extras: mockExtras},
@@ -71,28 +71,29 @@ func TestCustomField_ConvertCustomFields(t *testing.T) {
 	actual, err := compositeClient.convertCustomFields(map[string]string{
 		"text":         "42",
 		"integer":      "42",
+		"bigInteger":   "9007199254740993",
 		"boolean":      "true",
 		"decimal":      "1.50",
-		"json":         `{"capi_cluster_name": "mgmt", "replicas": 3}`,
+		"json":         `{"name": "mgmt", "replicas": 3}`,
 		"jsonString":   "not json",
 		"multiobject":  "[1, 2]",
 		"emptyInteger": "",
-		"unknown":      "value",
+		"unknown":      "42",
 		config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash",
 	})
 
-	assert.NoError(t, err)
+	AssertNil(t, err)
 	assert.Equal(t, map[string]interface{}{
-		"text":        "42",
-		"integer":     float64(42),
-		"boolean":     true,
-		"json":        map[string]interface{}{"capi_cluster_name": "mgmt", "replicas": float64(3)},
-		"multiobject": []interface{}{float64(1), float64(2)},
-		// passed as is, as before
+		"text":         "42",
+		"integer":      json.Number("42"),
+		"bigInteger":   json.Number("9007199254740993"),
+		"boolean":      true,
 		"decimal":      "1.50",
+		"json":         map[string]interface{}{"name": "mgmt", "replicas": json.Number("3")},
 		"jsonString":   "not json",
+		"multiobject":  []interface{}{json.Number("1"), json.Number("2")},
 		"emptyInteger": "",
-		"unknown":      "value",
+		"unknown":      "42",
 		config.GetOperatorConfig().NetboxRestorationHashFieldName: "hash",
 	}, actual)
 }
@@ -113,7 +114,7 @@ func TestCustomField_ConvertCustomFieldsLookupError(t *testing.T) {
 	actual, err := compositeClient.convertCustomFields(map[string]string{name: "{}"})
 
 	assert.Nil(t, actual)
-	assert.ErrorContains(t, err, "failed to fetch CustomField details")
+	assert.EqualError(t, err, "failed to fetch custom field 'json' details: connection refused")
 }
 
 func TestCustomField_TypeIsCached(t *testing.T) {
@@ -126,7 +127,7 @@ func TestCustomField_TypeIsCached(t *testing.T) {
 
 	for range 2 {
 		actual, err := compositeClient.convertCustomFields(map[string]string{"boolean": "false"})
-		assert.NoError(t, err)
+		AssertNil(t, err)
 		assert.Equal(t, map[string]interface{}{"boolean": false}, actual)
 	}
 }

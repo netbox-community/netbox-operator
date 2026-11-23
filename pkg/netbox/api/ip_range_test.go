@@ -240,6 +240,7 @@ func TestIpRange(t *testing.T) {
 			Execute().
 			Return(&v4client.PaginatedIPRangeList{Results: []v4client.IPRange{}}, &http.Response{StatusCode: 200, Body: http.NoBody}, nil)
 
+		// capture the request to check the custom fields
 		var customFields map[string]interface{}
 		mockIpamAPI.EXPECT().IpamIpRangesCreate(gomock.Any()).Return(mockCreateRequest)
 		mockCreateRequest.EXPECT().
@@ -265,7 +266,7 @@ func TestIpRange(t *testing.T) {
 				},
 			}, &netboxv1.IpRange{})
 
-		assert.NoError(t, err)
+		AssertNil(t, err)
 		assert.Equal(t, map[string]interface{}{"json": map[string]interface{}{"key": "value"}}, customFields)
 	})
 
