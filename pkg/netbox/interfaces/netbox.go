@@ -48,6 +48,8 @@ type IpamInterface interface {
 	IpamIPRangesAvailableIpsList(params *ipam.IpamIPRangesAvailableIpsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamIPRangesAvailableIpsListOK, error)
 
 	IpamAsnsList(params *ipam.IpamAsnsListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamAsnsListOK, error)
+
+	IpamVlansList(params *ipam.IpamVlansListParams, authInfo runtime.ClientAuthInfoWriter, opts ...ipam.ClientOption) (*ipam.IpamVlansListOK, error)
 }
 
 type TenancyInterface interface {
@@ -103,6 +105,31 @@ type IpamPrefixesDestroyRequest interface {
 	Execute() (*http.Response, error)
 }
 
+type IpamVlansListRequest interface {
+	Name(name []string) IpamVlansListRequest
+	Site(site []string) IpamVlansListRequest
+	Vid(vid []int32) IpamVlansListRequest
+	VidGte(vidGte []int32) IpamVlansListRequest
+	VidLte(vidLte []int32) IpamVlansListRequest
+	Limit(limit int32) IpamVlansListRequest
+	Offset(offset int32) IpamVlansListRequest
+	Execute() (*v4client.PaginatedVLANList, *http.Response, error)
+}
+
+type IpamVlansCreateRequest interface {
+	WritableVLANRequest(writableVLANRequest v4client.WritableVLANRequest) IpamVlansCreateRequest
+	Execute() (*v4client.VLAN, *http.Response, error)
+}
+
+type IpamVlansUpdateRequest interface {
+	WritableVLANRequest(writableVLANRequest v4client.WritableVLANRequest) IpamVlansUpdateRequest
+	Execute() (*v4client.VLAN, *http.Response, error)
+}
+
+type IpamVlansDestroyRequest interface {
+	Execute() (*http.Response, error)
+}
+
 type IpamAPI interface {
 	IpamIpRangesList(ctx context.Context) IpamIpRangesListRequest
 	IpamIpRangesCreate(ctx context.Context) IpamIpRangesCreateRequest
@@ -112,6 +139,10 @@ type IpamAPI interface {
 	IpamPrefixesCreate(ctx context.Context) IpamPrefixesCreateRequest
 	IpamPrefixesUpdate(ctx context.Context, id int32) IpamPrefixesUpdateRequest
 	IpamPrefixesDestroy(ctx context.Context, id int32) IpamPrefixesDestroyRequest
+	IpamVlansList(ctx context.Context) IpamVlansListRequest
+	IpamVlansCreate(ctx context.Context) IpamVlansCreateRequest
+	IpamVlansUpdate(ctx context.Context, id int32) IpamVlansUpdateRequest
+	IpamVlansDestroy(ctx context.Context, id int32) IpamVlansDestroyRequest
 	IpamAsnsRetrieve(ctx context.Context, id int32) IpamAsnsRetrieveRequest
 	IpamAsnsCreate(ctx context.Context) IpamAsnsCreateRequest
 	IpamAsnsUpdate(ctx context.Context, id int32) IpamAsnsUpdateRequest

@@ -1,0 +1,13 @@
+---
+apiVersion: netbox.dev/v1
+kind: VlanClaim
+metadata:
+  name: vlanclaim-update-ownerreference-1
+spec:
+  comments: your comments
+  description: some description
+  vidRangeStart: 170
+  vidRangeEnd: 170
+  site: MY_SITE
+  preserveInNetbox: false
+  tenant: MY_TENANT

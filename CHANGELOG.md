@@ -5,6 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.2.79] - 2026-11-16
+
+<!-- Release notes generated using configuration in .github/release.yml at a61f970f8a86aa7c2c46e823d11c5a8ac1455697 -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump golang from 1.27.3 to 1.27.4 in the docker group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/668
+* Build(deps): bump the go-dependencies group with 9 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/669
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.78...v0.2.79
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.79)
+
+---
+
+## [v0.2.78] - 2026-11-09
+
+<!-- Release notes generated using configuration in .github/release.yml at 47e5bcc10c1c39ccf5a67d25432b854b27f31f98 -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 7 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/666
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.77...v0.2.78
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.78)
+
+---
+
+## [v0.2.77] - 2026-11-02
+
+<!-- Release notes generated using configuration in .github/release.yml at 7a47ee6b1e765a7a4e5bf277f776b02442a4a48a -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 17 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/664
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.76...v0.2.77
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.77)
+
+---
+
+## [v0.2.76] - 2026-10-26
+
+<!-- Release notes generated using configuration in .github/release.yml at 638fef08c88223a098e3f43ef4c359af483754b5 -->
+
+## What's Changed
+### Contributions
+* Build(deps): bump the go-dependencies group with 4 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/659
+* Build(deps): bump golang from 1.27.2 to 1.27.3 in the docker group by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/658
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.75...v0.2.76
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.76)
+
+---
+
+## [v0.2.75] - 2026-10-19
+
+<!-- Release notes generated using configuration in .github/release.yml at 841474871a6ce8fba8eb70b167ccc9ba1b66a8e6 -->
+
+## What's Changed
+### Contributions
+* remove flaky condition by @bruelea in https://github.com/netbox-community/netbox-operator/pull/652
+* bugfix improve stability of forced ipv4 path by @bruelea in https://github.com/netbox-community/netbox-operator/pull/653
+* Build(deps): bump the go-dependencies group with 13 updates by @dependabot[bot] in https://github.com/netbox-community/netbox-operator/pull/656
+
+
+**Full Changelog**: https://github.com/netbox-community/netbox-operator/compare/v0.2.74...v0.2.75
+
+[Full Release](https://github.com/netbox-community/netbox-operator/releases/tag/v0.2.75)
+
+---
+
 ## [v0.2.74] - 2026-10-12
 
 <!-- Release notes generated using configuration in .github/release.yml at f0f11cd88cf055b277c6f1c0b360a521d842b1b1 -->
