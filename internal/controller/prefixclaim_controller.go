@@ -237,15 +237,22 @@ func (r *PrefixClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			// Prefix cannot be restored from netbox
 			// 6.a assign new available Prefix
 
-			// get available Prefix under parent prefix in netbox with equal mask length
-			prefixModel, err = r.NetboxClient.GetAvailablePrefixByClaim(
+			// atomically allocate a Prefix under the parent prefix in netbox with equal mask length
+			// the prefix is created in netbox right away, so it can't be taken by another netbox client
+			// the metadata matches what the Prefix controller writes, and it contains the restoration hash,
+			// so the Prefix controller will find and update the prefix and a retry restores it
+			prefixSpec := generatePrefixSpec(o, "", logger)
+			prefixModel, err = r.NetboxClient.AllocatePrefixByClaim(
 				ctx,
 				&models.PrefixClaim{
 					ParentPrefix: o.Status.SelectedParentPrefix,
 					PrefixLength: o.Spec.PrefixLength,
 					Metadata: &models.NetboxMetadata{
-						Tenant: o.Spec.Tenant,
-						Site:   o.Spec.Site,
+						Comments:    prefixSpec.Comments,
+						Custom:      prefixSpec.CustomFields,
+						Description: prefixLookupKey.String() + " // " + prefixSpec.Description,
+						Tenant:      o.Spec.Tenant,
+						Site:        o.Spec.Site,
 					},
 				})
 			if err != nil {
