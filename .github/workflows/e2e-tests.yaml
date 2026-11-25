@@ -14,6 +14,11 @@ on: # yamllint disable-line rule:truthy
     types: [completed]
     branches: [main]
   pull_request:
+# Superseded pushes to a pull request do not need to finish their e2e matrix.
+# Runs on main and on tags are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   NETBOX_HOST: demo.netbox.dev
   AUTH_TOKEN: 0123456789abcdef0123456789abcdef01234567
