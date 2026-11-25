@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apismeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -87,6 +88,11 @@ func (r *VlanClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if !apierrors.IsNotFound(err) {
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, VlanClaimFinalizerName)
+		}
+
+		// Only delete the resource if it belongs to this claim.
+		if !metav1.IsControlledBy(vlan, o) {
 			return ctrl.Result{}, removeFinalizer(ctx, r.Client, o, VlanClaimFinalizerName)
 		}
 
