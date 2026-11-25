@@ -239,6 +239,19 @@ For the monitoring of the state of the CRs reconciled by the operator [kube stat
 `.spec.tenant` is the tenant that is assigned to the resource in NetBox.
 `.spec.parentPrefixSelector.tenant` is used by a Claim Controller (e.g. the controller of PrefixClaim) to find a suitable Prefix to get e.g. a Prefix from.
 
+## How to set Custom Fields of non-text types?
+
+The values in `.spec.customFields` are strings. For Custom Fields of type integer, boolean, json, multiselect, object and multiobject the value is parsed as JSON, values which aren't valid JSON are sent as strings. To store a string in a json Custom Field, quote it:
+
+```yaml
+customFields:
+  vlanId: "42"
+  managed: "true"
+  environments: '["production", "staging"]'
+  owner: '{"team": "network", "contact": "noc@example.com"}'
+  note: '"42"'
+```
+
 # Contributing
 
 We cordially invite collaboration from the community to enhance the quality and functionality of this project. Whether you are addressing bugs, introducing new features, refining documentation, or assisting with items on our to-do list, your contributions are highly valued and greatly appreciated. Please take a look at [Contribution guide] for more details.

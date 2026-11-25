@@ -68,6 +68,25 @@ func TestWritablePrefixRequestV4_MetadataNoTenantNoSite(t *testing.T) {
 	assert.Equal(t, "val2", result.GetCustomFields()["key2"])
 }
 
+func TestWritablePrefixRequestV4_WithJsonCustomField(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	compositeClient := &NetboxCompositeClient{
+		clientV3: &NetboxClientV3{Extras: mockCustomFieldTypes(ctrl, map[string]string{"key1": "json"})},
+	}
+
+	result, err := compositeClient.writablePrefixRequestV4(&models.Prefix{
+		Prefix: "10.0.0.0/24",
+		Metadata: &models.NetboxMetadata{
+			Custom: map[string]string{"key1": `{"key": "val1"}`},
+		},
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{"key": "val1"}, result.GetCustomFields()["key1"])
+}
+
 func TestWritablePrefixRequestV4_WithTenant(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

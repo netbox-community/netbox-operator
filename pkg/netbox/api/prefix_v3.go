@@ -74,7 +74,11 @@ func (c *NetboxCompositeClient) buildWritablePrefixRequestV3(prefix *models.Pref
 		Status: "active",
 	}
 	if prefix.Metadata != nil {
-		desiredPrefix.CustomFields = prefix.Metadata.Custom
+		customFields, err := c.convertCustomFields(prefix.Metadata.Custom)
+		if err != nil {
+			return nil, err
+		}
+		desiredPrefix.CustomFields = customFields
 		desiredPrefix.Comments = prefix.Metadata.Comments + warningComment
 		desiredPrefix.Description = TruncateDescription(prefix.Metadata.Description)
 

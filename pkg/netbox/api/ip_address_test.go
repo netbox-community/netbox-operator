@@ -831,4 +831,40 @@ func TestIPAddress(t *testing.T) {
 		assert.NotNil(t, result, "expected existing NetBox IP when timestamps match at second precision (with hash)")
 		assert.True(t, isUpToDate, "expected skip update when NetBox timestamp has sub-second precision matching status at second precision (with hash)")
 	})
+
+	t.Run("reserve ip address with non-text custom field", func(t *testing.T) {
+		inputList := ipam.NewIpamIPAddressesListParams().WithAddress(&ipAddress)
+		outputList := &ipam.IpamIPAddressesListOK{
+			Payload: &ipam.IpamIPAddressesListOKBody{
+				Results: []*netboxModels.IPAddress{},
+			},
+		}
+
+		// capture the request to check the custom fields
+		var customFields interface{}
+		mockIPAddress.EXPECT().IpamIPAddressesList(inputList, nil).Return(outputList, nil)
+		mockIPAddress.EXPECT().IpamIPAddressesCreate(gomock.Any(), nil).
+			Do(func(params interface{}, authInfo interface{}, opts ...interface{}) {
+				customFields = params.(*ipam.IpamIPAddressesCreateParams).Data.CustomFields
+			}).
+			Return(&ipam.IpamIPAddressesCreateCreated{Payload: expectedIPAddress()}, nil)
+
+		compositeClient := &NetboxCompositeClient{
+			clientV3: &NetboxClientV3{
+				Ipam:   mockIPAddress,
+				Extras: mockCustomFieldTypes(ctrl, map[string]string{"json": "json"}),
+			},
+		}
+
+		_, _, err := compositeClient.ReserveOrUpdateIpAddress(context.TODO(),
+			&models.IPAddress{
+				IpAddress: ipAddress,
+				Metadata: &models.NetboxMetadata{
+					Custom: map[string]string{"json": `{"key": "value"}`},
+				},
+			}, &netboxv1.IpAddress{})
+
+		AssertNil(t, err)
+		assert.Equal(t, map[string]interface{}{"json": map[string]interface{}{"key": "value"}}, customFields)
+	})
 }
